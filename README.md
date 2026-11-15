@@ -33,6 +33,14 @@ tools/run_tests.sh
 
 Exit code `0` means every test passed.
 
+## Validating levels
+
+```sh
+tools/validate_levels.sh
+```
+
+This checks every level: whether it is solvable, its proven minimum moves, and possible softlocks.
+
 ## Further reading
 
 - `Slide_and_Seal_Interactive_Labyrinth_v2/README.md`: game design overview

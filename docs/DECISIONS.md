@@ -91,6 +91,19 @@ The project owner approved all provisional M1 choices below. They now carry the 
 - **Arrow layout:** arrows are drawn and placed by their **on-screen** direction. In the isometric view, grid "up" is drawn up-right. Swipe direction is classified against the same camera projection.
 - **Selection:** a block takes priority over the zone beneath it. The selection stays after a commit for follow-up moves. It is dropped when the context no longer allows its mechanism.
 
+### P-008 — Level validation policy (M4)
+- **Errors** (block shipping):
+  - schema errors
+  - unsolvable, or no solution found within the search limit
+  - `target_actions` below the proven minimum
+  - `optimal_actions` set but different from the proven minimum
+- **Warnings** (designer decision):
+  - `optimal_actions` null
+  - proven dead-end states (softlocks). Undo always recovers, and doc 08 asks for no *unintended* softlocks, so a designer decides.
+  - states the scan could not classify
+- **Softlock scan scope:** every state reachable within *(proven minimum + 1)* mechanism actions. A state is a dead end only when its whole closure is exhausted without a completion (cap 4,000 states per closure). Undecided states are reported as unknown, never guessed.
+- `optimal_actions` is filled in only from the solver's proven minimum.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

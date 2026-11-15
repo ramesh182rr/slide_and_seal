@@ -23,7 +23,7 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
 | `mechanisms` | `{collection: []}` | no | Only `gravity_zones` is supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
-| `scoring` | `{target_actions, optimal_actions}` | yes | `optimal_actions` is `null` unless proven by the solver. |
+| `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
 ### Route
 ```json

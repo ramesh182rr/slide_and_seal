@@ -35,5 +35,5 @@
   "objectives": [
     { "type": "reach_destination", "target_id": "seal_final" }
   ],
-  "scoring": { "target_actions": 0, "optimal_actions": null }
+  "scoring": { "target_actions": 0, "optimal_actions": 0 }
 }

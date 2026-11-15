@@ -11,6 +11,16 @@ var target_id: String = ""
 var direction: Grid.Direction = Grid.Direction.UP
 
 
+## Short human-readable form, e.g. "run", "push block_a up", "gravity zone_upper down".
+func describe() -> String:
+	match kind:
+		Kind.PUSH:
+			return "push %s %s" % [target_id, Grid.direction_name(direction)]
+		Kind.SET_GRAVITY:
+			return "gravity %s %s" % [target_id, Grid.direction_name(direction)]
+	return "run"
+
+
 static func run_core() -> PuzzleAction:
 	var action := PuzzleAction.new()
 	action.kind = Kind.RUN_CORE

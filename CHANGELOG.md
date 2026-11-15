@@ -5,6 +5,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M4: Production solver and level validator
+
+**Added**
+- **`PuzzleSolver`** (`game/scripts/solver/`): exhaustive search over `PuzzleSimulator`, so it always agrees with gameplay.
+  - `solve()` uses a layered search: core runs are free and mechanism actions cost 1, so it returns a solution with the proven minimum. It reports `limit_hit` instead of claiming "unsolvable" when capped.
+  - `analyze()` is the softlock scan. It classifies every state within a given action depth as completable, a proven dead end (its whole closure has no completion) or unknown. Results are shared between closures, and it gives the shortest example path into a dead end.
+- **`LevelValidator`**: the release gate from doc 08 and doc 12, with errors and warnings per P-008, plus a readable report.
+- **`tools/validate_levels.sh`** (with `game/tools/validate_levels.gd`): validates every level in `game/data/levels`. Exit code 1 on any error. `tools/` is excluded from the Android export.
+- `PuzzleAction.describe()` gives readable action names for reports.
+- **Tests:** 14 solver and validator tests, bringing the suite to 144. They cover the minimum with free runs, proven unsolvability, honest limits, determinism, dead-end detection with its example path, unknown reporting, and every validator error and warning.
+
+**Changed**
+- `optimal_actions` is now set from proven minima: Level 1 = 0, slice = 4.
+- The shipped-level test uses `PuzzleSolver` and requires `optimal_actions` to equal the proven minimum.
+
+**Removed**
+- `tests/support/test_solver.gd`, the test-only precursor, now replaced by `PuzzleSolver`.
+
+**Validator findings** (slice, current layout; not changed, awaiting a design decision)
+- 536 proven dead-end states within 5 actions, and 17 unknown.
+- The shortest is `run > push block_a down > push block_a down > run`. Block A drops into the upper gravity zone on top of B, the column is full, and the gravity checkpoint allows nothing else.
+- On a scratch copy, a wall at (3,2) removes that trap (232 dead ends left). The next shortest is pushing B out of its zone onto the route at the push checkpoint, a consequence of D-009.
+
+**Known limitations**
+- The full softlock scan takes about 40 s for the slice, so it lives in the validator rather than the test suite.
+- No daily-schedule validation yet (no daily data exists).
+- The "editor workflow" from doc 13 is the command-line validator only.
+
 ### 2026-11-15 — Android build and emulator check
 
 **Added**

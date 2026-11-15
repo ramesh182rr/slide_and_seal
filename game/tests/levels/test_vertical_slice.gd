@@ -48,10 +48,10 @@ func test_checkpoints_pause_in_order() -> void:
 
 func test_minimum_is_exactly_four_mechanism_actions() -> void:
 	_session()
-	var solution := TestSolver.solve(_level)
-	assert_not_null(solution)
-	if solution != null:
-		assert_eq(solution.mechanism_actions, 4)
+	var result := PuzzleSolver.solve(_level)
+	assert_true(result.solvable)
+	assert_false(result.limit_hit)
+	assert_eq(result.minimum_actions, 4)
 
 
 func test_gravity_beat_cannot_be_skipped_by_pushing_b_out() -> void:

@@ -1,6 +1,6 @@
 extends TestCase
-## Every level in res://data/levels must load cleanly, be solvable, and have an achievable
-## designer target. Uses the test-only exhaustive search (TestSolver) until the M4 solver exists.
+## Every level in res://data/levels must load cleanly, be solvable, and have scoring that matches
+## the solver's proven minimum. (The slower softlock scan runs in tools/validate_levels.sh.)
 
 const LEVELS_DIR := "res://data/levels"
 
@@ -15,21 +15,23 @@ func test_every_shipped_level_loads() -> void:
 		assert_eq(result.errors, PackedStringArray(), path)
 
 
-func test_every_shipped_level_is_solvable_within_target() -> void:
+func test_every_shipped_level_is_solvable_with_consistent_scoring() -> void:
 	for path: String in _level_paths():
-		var result := LevelLoader.load_file(path)
-		if not result.is_ok():
+		var loaded := LevelLoader.load_file(path)
+		if not loaded.is_ok():
 			continue  # Reported by test_every_shipped_level_loads.
-		var solution := TestSolver.solve(result.level)
-		assert_not_null(solution, "%s has no solution" % path)
-		if solution == null:
+		var level := loaded.level
+		var result := PuzzleSolver.solve(level)
+		assert_true(result.solvable, "%s has no solution" % path)
+		if not result.solvable:
 			continue
-		assert_true(solution.mechanism_actions <= result.level.target_actions,
-			"%s: minimum %d mechanism actions exceeds target %d" % [path, solution.mechanism_actions, result.level.target_actions])
-		# Replay through a session: the found solution must hold under committed gameplay too.
-		var session := PuzzleSession.new(result.level)
-		for action: PuzzleAction in solution.actions:
-			assert_true(session.apply(action).is_ok(), path)
+		assert_true(level.target_actions >= result.minimum_actions,
+			"%s: target %d is below the proven minimum %d" % [path, level.target_actions, result.minimum_actions])
+		assert_eq(level.optimal_actions, result.minimum_actions, "%s: optimal_actions must equal the proven minimum" % path)
+		# The solver's solution must hold under committed gameplay too.
+		var session := PuzzleSession.new(level)
+		for action: PuzzleAction in result.solution:
+			assert_true(session.apply(action).is_ok(), "%s: %s" % [path, action.describe()])
 		assert_eq(session.get_state().phase, PuzzleState.Phase.LEVEL_COMPLETED, path)
 
 
