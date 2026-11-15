@@ -105,7 +105,7 @@ func test_rejects_core_not_at_route_start() -> void:
 func test_rejects_destination_not_at_route_end() -> void:
 	var data := LevelFixtures.corridor()
 	data["destination"]["position"] = [5, 1]
-	_assert_rejected(data, "route 'main' must end at the destination or on a portal entry")
+	_assert_rejected(data, "route 'main' must end at the destination, on a portal entry, or next to one rotating section")
 
 
 func test_rejects_unknown_start_route() -> void:
@@ -117,7 +117,7 @@ func test_rejects_unknown_start_route() -> void:
 func test_rejects_unreachable_route_segment() -> void:
 	var data := LevelFixtures.corridor()
 	data["routes"]["extra"] = {"nodes": [[0, 2], [1, 2]], "checkpoints": []}
-	_assert_rejected(data, "route segment 'extra' is never reached from the start")
+	_assert_rejected(data, "route 'extra' must end at the destination, on a portal entry, or next to one rotating section")
 
 
 func test_rejects_checkpoint_off_route() -> void:

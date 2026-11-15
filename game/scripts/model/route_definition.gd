@@ -10,6 +10,9 @@ var checkpoints: Array[CheckpointDefinition] = []
 ## Set by the loader when this segment ends on a portal entry: the portal and the segment it leads to.
 var exit_portal_id: String = ""
 var next_route_id: String = ""
+## Set by the loader for a track piece (D-017): the rotating section that contains the whole segment.
+## "" for fixed segments.
+var section_id: String = ""
 
 
 func last_index() -> int:

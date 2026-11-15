@@ -5,6 +5,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M6a: Rotating Sections (rules)
+
+**Added**
+- **`RotatingSectionDefinition`:** square sections with quarter-turn `rotate_cell` / `authored_cell`, and per-section allowed directions (D-020).
+- **`PuzzleAction.rotate_section(id, clockwise)`** (mechanism `rotating_sections`):
+  - turns the section, moving the blocks inside it (one-to-one remap, `ObjectMove.Cause.ROTATION`)
+  - then stabilises and applies the occupied-gate rule
+  - rejected while the core is inside (D-019)
+- **State:** `PuzzleState.section_turns` and `core_route_reversed`, both in the state key.
+- **Track pieces** (D-017): route segments wholly inside a section turn with it.
+  - The core leaves a fixed segment's open end into whichever end of a piece is currently adjacent (forwards or in reverse), then leaves the piece into the fixed segment starting beside its far end.
+  - If nothing lines up, the core waits until the section is turned.
+- **Rotation-aware rules:** `PuzzleSimulator.route_cell` / `is_wall_at` turn walls and route nodes inside sections (D-018). Pushes and core blocking use them.
+- **Loader:**
+  - parses `mechanisms.rotating_sections`
+  - classifies track pieces
+  - first-version limits: no switches, gates, portals, checkpoints, core start or destination inside a section
+  - **validates every possible connection**: each fixed segment ends at the destination, a portal entry or beside exactly one section; no two fixed starts share a section cell; the possible-successor graph reaches the destination and every segment, with no loops
+- The solver includes rotations.
+- **Tests:** 23 new, bringing the suite to 250. They cover:
+  - rotation geometry and its inverse
+  - waiting when misaligned; clockwise (reverse travel) and counterclockwise (forward travel) connections
+  - no turning with the core inside
+  - walls and blocks turning, blocks outside untouched, pushes respecting turned walls
+  - rejections, four turns returning to identity, undo, preview, the solver minimum
+  - 9 loader rules
+
+**Changed**
+- Route linking is now validated as a graph of possible connections instead of a single fixed chain. Portal links are recorded as before. Error wording for segments that end nowhere changed accordingly, and 4 existing loader tests were updated.
+- Core travel is bounded by `MAX_TRAVEL_STEPS` as a defensive guard, on top of the loader's no-loop guarantee.
+
+**Verified**
+- Mutation checks: allowing turns with the core inside, dropping reverse track travel, and ignoring turned walls are each caught.
+- All three shipped levels validate with identical results.
+
+**Known limitations**
+- Rules only: sections are not yet drawn as turning platforms or interactive in 3D. The renderer would still draw track pieces at their authored orientation, and no shipped level uses sections yet.
+- Switches, gates, portals and checkpoints inside sections are not supported yet.
+
 ### 2026-11-15 — Save data, progress and unlocking
 
 **Added**

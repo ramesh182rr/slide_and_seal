@@ -3,7 +3,7 @@ extends RefCounted
 ## One object displacement produced while resolving an action, for presentation.
 ## Gravity slides are reported as a single straight move from start to rest cell.
 
-enum Cause { PUSH, GRAVITY }
+enum Cause { PUSH, GRAVITY, ROTATION }
 
 var object_id: String
 var from_cell: Vector2i

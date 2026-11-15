@@ -25,6 +25,8 @@ var switches: Array[SwitchDefinition] = []
 var gates: Array[GateDefinition] = []
 ## Sorted by id.
 var portals: Array[PortalDefinition] = []
+## Sorted by id. Never overlapping.
+var rotating_sections: Array[RotatingSectionDefinition] = []
 ## Mechanisms usable before the first run (D-008).
 var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
@@ -58,6 +60,20 @@ func gate_at(cell: Vector2i) -> GateDefinition:
 	for gate: GateDefinition in gates:
 		if gate.position == cell:
 			return gate
+	return null
+
+
+func rotating_section(section_id: String) -> RotatingSectionDefinition:
+	for section: RotatingSectionDefinition in rotating_sections:
+		if section.id == section_id:
+			return section
+	return null
+
+
+func section_at(cell: Vector2i) -> RotatingSectionDefinition:
+	for section: RotatingSectionDefinition in rotating_sections:
+		if section.contains(cell):
+			return section
 	return null
 
 
@@ -97,4 +113,6 @@ func create_initial_state() -> PuzzleState:
 	for switch_def: SwitchDefinition in switches:
 		if switch_def.kind == SwitchDefinition.Kind.TOGGLE:
 			state.toggle_states[switch_def.id] = switch_def.initially_on
+	for section: RotatingSectionDefinition in rotating_sections:
+		state.section_turns[section.id] = 0
 	return state

@@ -18,10 +18,10 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `core` | `{position, route_id}` | yes | `position` must equal the first node of `route_id` (the start segment). |
 | `destination` | `{position, seal_id}` | yes | `position` must equal the last node of the final segment in the chain. |
 | `terrain` | `{walls: [cell]}` | yes | `walls` optional, unique, in bounds. |
-| `routes` | `{route_id: Route}` | yes | One or more segments linked by portals (D-003). |
+| `routes` | `{route_id: Route}` | yes | One or more segments, linked by portals or by track pieces in rotating sections (D-003, D-017). |
 | `objects` | `[Object]` | no | Movable objects. |
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
-| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates` and `portals` are supported. Every other collection must be empty until its resolver exists. |
+| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates`, `portals` and `rotating_sections` are supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
@@ -35,10 +35,15 @@ Route rules:
 - no cell appears twice, within a segment or across segments
 - at least 2 nodes
 
-Segment chain (computed by the loader):
+Segments and connections (validated by the loader):
+- A segment wholly inside a rotating section is a **track piece**. It turns with the section and may be travelled in either direction. A segment may not be partly inside a section. The start segment must be outside sections.
 - The core starts on the first node of `core.route_id`.
-- Each segment ends either at the destination, or on an **entry portal** (one with `exit`). The next segment is the one whose first node is the exit portal's cell.
-- The chain must reach the destination with no loops, and every segment must be part of it.
+- Each segment outside sections (a **fixed** segment) ends:
+  - at the destination, or
+  - on an **entry portal** (one with `exit`): the next segment starts on the exit portal's cell, or
+  - next to exactly one rotating section: the core continues into whichever end of a track piece is currently adjacent, then from the piece's far end into the fixed segment that starts adjacent to it.
+- Two fixed segments may not start next to the same section cell.
+- Over every possible connection, the destination must be reachable, every segment must be reachable, and there must be no loops.
 
 ### Checkpoint
 ```json
@@ -50,7 +55,7 @@ Segment chain (computed by the loader):
 ### Allowed mechanisms
 These rules apply to both `setup.allowed_mechanisms` and checkpoint `allowed_mechanisms`:
 - Known names: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
-- Only `gravity_shift`, `push_pulse` and `switches_seals` are implemented. The others are rejected.
+- Only `gravity_shift`, `push_pulse`, `switches_seals` and `rotating_sections` are implemented. The others are rejected.
 - No name may be listed twice.
 - Allowing `gravity_shift` requires at least one gravity zone.
 - Allowing `push_pulse` requires at least one pushable object.
@@ -110,6 +115,15 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - In bounds, not on a wall, switch or gate, and at most one portal per cell. Ids are unique among portals.
 - `portal_network` has no player action yet, so it cannot be listed in `allowed_mechanisms`.
 
+### Rotating section (`mechanisms.rotating_sections`)
+```json
+{ "id": "turntable", "position": [3,1], "size": 3, "allowed_directions": ["clockwise", "counterclockwise"] }
+```
+- A square of `size`×`size` cells (at least 2) with its top-left corner at `position`, inside the board. Sections may not overlap each other or gravity zones.
+- Content is authored at turn 0. Walls, blocks and track pieces inside turn with it (D-018).
+- `allowed_directions` is non-empty: `clockwise` and/or `counterclockwise`. One quarter turn per action. Turning is rejected while the core is inside (D-019).
+- **Not supported inside a section yet:** switches, gates, portals, checkpoints, the core start, the destination.
+
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
 
@@ -121,3 +135,4 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Added in M2 (backward compatible, so still v3): `setup`, the object flags `pushable` and `gravity_affected`, and `gravity_zones` content.
 - Added in M5a (backward compatible): `switches` and `gates` content.
 - Added in M5b (backward compatible): `portals` content and multiple route segments.
+- Added in M6a (backward compatible): `rotating_sections` content and track pieces.

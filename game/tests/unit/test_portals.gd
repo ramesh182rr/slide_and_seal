@@ -142,7 +142,7 @@ func test_rejects_exit_where_no_segment_starts() -> void:
 func test_rejects_segment_ending_nowhere() -> void:
 	var data := LevelFixtures.portal_corridor()
 	data["mechanisms"]["portals"].remove_at(0)
-	_assert_rejected(data, "route 'a' must end at the destination or on a portal entry")
+	_assert_rejected(data, "route 'a' must end at the destination, on a portal entry, or next to one rotating section")
 
 
 func test_rejects_portal_inside_a_segment() -> void:
@@ -170,6 +170,8 @@ func test_rejects_segment_loop() -> void:
 	var data := LevelFixtures.portal_corridor()
 	data["routes"]["b"]["nodes"] = [[4, 1], [5, 1], [6, 1], [6, 2]]
 	data["destination"]["position"] = [0, 2]
+	# A well-formed seal segment, so the loop is the only problem.
+	data["routes"]["c"] = {"nodes": [[1, 2], [0, 2]], "checkpoints": []}
 	LevelFixtures.add_portal(data, "p_back", Vector2i(6, 2), "p_start")
 	LevelFixtures.add_portal(data, "p_start", Vector2i(0, 1))
 	_assert_rejected(data, "route segments form a loop at 'a'")

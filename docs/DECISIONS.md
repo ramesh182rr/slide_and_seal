@@ -93,6 +93,24 @@ Blocks treat portal cells as ordinary floor. Portal-compatible blocks may come l
 ### D-016 — Sequential unlocking (2026-11-15)
 The first level in catalog order is always open. Completing a level unlocks the next one in catalog order, across worlds. Stars never gate progression (doc 01 §10).
 
+### D-017 — Rotating sections turn track pieces; connection by adjacency (2026-11-15)
+- A route segment lying wholly inside a rotating section is a **track piece**. It turns with the section and may be travelled in either direction.
+- When the core reaches the open end of a fixed segment, it continues into a track piece only if one of the piece's (rotated) ends is orthogonally adjacent. It then leaves the piece's far end into the fixed segment that starts adjacent to it.
+- If nothing lines up, the core waits (blocked) until the section is turned.
+- Fixed segments connect to each other only through portals or track pieces.
+
+### D-018 — Everything inside a section turns (2026-11-15)
+- Walls and track pieces inside are stored at the authored orientation and derived for the current one. Blocks inside move with the section.
+- A quarter turn is a one-to-one remap of the square, so nothing inside can collide.
+- Sections must be square, at least 2×2, may not overlap each other or gravity zones.
+- **First version:** switches, gates, portals, checkpoints, the core start and the destination may not lie inside a section.
+
+### D-019 — No turning while the core is inside the section (2026-11-15)
+A rotation is rejected (`MOVE_BLOCKED`) while the core is on any cell of the section.
+
+### D-020 — Allowed turn directions per section (2026-11-15)
+Each section lists `allowed_directions` from `clockwise` / `counterclockwise`. A rotation is one quarter turn and counts as one action. Rotation state is `PuzzleState.section_turns` (clockwise quarter turns, mod 4).
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 

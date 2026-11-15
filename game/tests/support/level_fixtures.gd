@@ -81,6 +81,35 @@ static func portal_corridor(portal_requires: Array = []) -> Dictionary:
 	return data
 
 
+## 7x5 board. Fixed segment "a" (0,2)→(2,2) ends beside 3x3 section "s" at (3,1); track piece "t"
+## inside runs vertically (4,1)→(4,3) at turn 0, so it does not line up until the section turns.
+## Fixed segment "b" (6,2)→(6,4) starts beside the section's far side and ends at the seal (6,4).
+## Checkpoint "cp" at (1,2). Rotation allowed everywhere; both directions.
+static func rotation_corridor() -> Dictionary:
+	var data := corridor()
+	data["id"] = "test_rotation_corridor"
+	data["board"] = {"width": 7, "height": 5}
+	data["core"] = {"position": [0, 2], "route_id": "a"}
+	data["destination"] = {"position": [6, 4], "seal_id": "seal"}
+	data["terrain"] = {"walls": []}
+	data["routes"] = {
+		"a": {
+			"nodes": [[0, 2], [1, 2], [2, 2]],
+			"checkpoints": [{"id": "cp", "position": [1, 2], "auto_pause": true, "allowed_mechanisms": []}],
+		},
+		"t": {"nodes": [[4, 1], [4, 2], [4, 3]], "checkpoints": []},
+		"b": {"nodes": [[6, 2], [6, 3], [6, 4]], "checkpoints": []},
+	}
+	add_rotating_section(data, "s", Vector2i(3, 1), 3, ["clockwise", "counterclockwise"])
+	return allow_everywhere(data, [MechanismIds.ROTATING_SECTIONS])
+
+
+static func add_rotating_section(data: Dictionary, id: String, origin: Vector2i, size: int, allowed: Array) -> Dictionary:
+	_collection(data, "rotating_sections").append(
+		{"id": id, "position": [origin.x, origin.y], "size": size, "allowed_directions": allowed})
+	return data
+
+
 ## Adds a portal. `exit` = id of the portal it carries the core to ("" for exit-only).
 static func add_portal(data: Dictionary, id: String, cell: Vector2i, exit: String = "", requires: Array = []) -> Dictionary:
 	var portal := {"id": id, "position": [cell.x, cell.y], "requires": requires}

@@ -216,6 +216,10 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 					var portal := _parse_portal(entries[i], context)
 					if portal != null:
 						level.portals.append(portal)
+				"rotating_sections":
+					var section := _parse_rotating_section(entries[i], context)
+					if section != null:
+						level.rotating_sections.append(section)
 				_:
 					_error("mechanisms.%s is not supported by the simulation yet" % key)
 					break
@@ -224,6 +228,33 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 	level.switches.sort_custom(func(a: SwitchDefinition, b: SwitchDefinition) -> bool: return a.id < b.id)
 	level.gates.sort_custom(func(a: GateDefinition, b: GateDefinition) -> bool: return a.id < b.id)
 	level.portals.sort_custom(func(a: PortalDefinition, b: PortalDefinition) -> bool: return a.id < b.id)
+	level.rotating_sections.sort_custom(
+		func(a: RotatingSectionDefinition, b: RotatingSectionDefinition) -> bool: return a.id < b.id)
+
+
+func _parse_rotating_section(value: Variant, context: String) -> RotatingSectionDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var section := RotatingSectionDefinition.new()
+	section.id = _string(data, "id", context)
+	section.origin = _cell(data.get("position"), context + ".position")
+	section.size = _int(data.get("size"), context + ".size")
+	section.allow_clockwise = false
+	section.allow_counterclockwise = false
+	var allowed := _array(data, "allowed_directions", context)
+	for i: int in allowed.size():
+		match allowed[i]:
+			"clockwise":
+				section.allow_clockwise = true
+			"counterclockwise":
+				section.allow_counterclockwise = true
+			_:
+				_error("%s.allowed_directions[%d] must be clockwise or counterclockwise" % [context, i])
+	if allowed.is_empty():
+		_error("%s.allowed_directions must not be empty" % context)
+	return section
 
 
 func _parse_portal(value: Variant, context: String) -> PortalDefinition:
@@ -358,8 +389,11 @@ func _validate(level: LevelDefinition) -> void:
 	_validate_gravity_zones(level)
 	_validate_switches_and_gates(level)
 	_validate_portals(level)
+	_validate_rotating_sections(level)
 	if _errors.is_empty():
-		_link_route_segments(level)
+		_classify_track_pieces(level)
+	if _errors.is_empty():
+		_validate_route_graph(level)
 	_validate_mechanism_availability(level)
 	if _errors.is_empty():
 		_validate_initial_state_settled(level)
@@ -502,39 +536,151 @@ func _validate_portals(level: LevelDefinition) -> void:
 				_error("portal '%s' lies inside route '%s'; portals must end or start a segment" % [portal.id, route.id])
 
 
-## Follows the segments from the start: each ends at the destination or on an entry portal whose
-## exit starts the next segment. Records the links on each RouteDefinition.
-func _link_route_segments(level: LevelDefinition) -> void:
-	var visited: Dictionary[String, bool] = {}
-	var route := level.routes[level.start_route_id]
-	while true:
-		if visited.has(route.id):
-			_error("route segments form a loop at '%s'" % route.id)
-			return
-		visited[route.id] = true
+func _validate_rotating_sections(level: LevelDefinition) -> void:
+	var board := Rect2i(Vector2i.ZERO, level.board_size)
+	var ids: Dictionary[String, bool] = {}
+	for i: int in level.rotating_sections.size():
+		var section := level.rotating_sections[i]
+		if ids.has(section.id):
+			_error("duplicate rotating section id '%s'" % section.id)
+		ids[section.id] = true
+		if section.size < 2:
+			_error("rotating section '%s' must be at least 2x2" % section.id)
+			continue
+		if not board.encloses(section.rect()):
+			_error("rotating section '%s' extends outside the board" % section.id)
+		for j: int in range(i + 1, level.rotating_sections.size()):
+			if section.rect().intersects(level.rotating_sections[j].rect()):
+				_error("rotating sections '%s' and '%s' overlap" % [section.id, level.rotating_sections[j].id])
+		for zone: GravityZoneDefinition in level.gravity_zones:
+			if section.rect().intersects(zone.rect):
+				_error("rotating section '%s' overlaps gravity zone '%s'" % [section.id, zone.id])
+		# First version (D-018): only walls, blocks and track pieces may sit inside a section.
+		var unsupported: Array[Array] = [["the core start", level.core_start], ["the destination", level.destination]]
+		for switch_def: SwitchDefinition in level.switches:
+			unsupported.append(["switch '%s'" % switch_def.id, switch_def.position])
+		for gate: GateDefinition in level.gates:
+			unsupported.append(["gate '%s'" % gate.id, gate.position])
+		for portal: PortalDefinition in level.portals:
+			unsupported.append(["portal '%s'" % portal.id, portal.position])
+		for route: RouteDefinition in level.routes.values():
+			for checkpoint: CheckpointDefinition in route.checkpoints:
+				unsupported.append(["checkpoint '%s'" % checkpoint.id, checkpoint.position])
+		for item: Array in unsupported:
+			if section.contains(item[1]):
+				_error("%s inside rotating section '%s' is not supported yet" % [item[0], section.id])
+
+
+## A segment with any node inside a section must lie wholly inside it: a track piece (D-017).
+func _classify_track_pieces(level: LevelDefinition) -> void:
+	for route: RouteDefinition in level.routes.values():
+		var section := level.section_at(route.nodes[0])
+		for node: Vector2i in route.nodes:
+			if level.section_at(node) != section:
+				_error("route '%s' must lie entirely inside one rotating section or entirely outside" % route.id)
+				return
+		if section != null:
+			route.section_id = section.id
+	if level.routes[level.start_route_id].section_id != "":
+		_error("the start route must not be a track piece")
+
+
+## Sections whose square contains a neighbour of `cell` (cell itself outside every section).
+func _sections_touching(level: LevelDefinition, cell: Vector2i) -> Array[RotatingSectionDefinition]:
+	var touching: Array[RotatingSectionDefinition] = []
+	for offset: Vector2i in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+		var section := level.section_at(cell + offset)
+		if section != null and not touching.has(section):
+			touching.append(section)
+	return touching
+
+
+## Validates every connection the core could ever take (D-015, D-017). Fixed segments end at the
+## destination, on a portal entry (static link), or next to exactly one rotating section (dynamic link
+## into a track piece). The possible-successor graph over fixed segments must reach the destination,
+## reach every segment, and contain no loop, so core travel always terminates.
+func _validate_route_graph(level: LevelDefinition) -> void:
+	var fixed: Array[RouteDefinition] = []
+	var ids: Array = level.routes.keys()
+	ids.sort()
+	for route_id: String in ids:
+		if level.routes[route_id].section_id == "":
+			fixed.append(level.routes[route_id])
+	var successors: Dictionary[String, PackedStringArray] = {}
+	var end_section: Dictionary[String, String] = {}
+	var destination_route := ""
+	for route: RouteDefinition in fixed:
+		successors[route.id] = PackedStringArray()
 		var last := route.nodes[route.last_index()]
 		if last == level.destination:
-			break
+			destination_route = route.id
+			continue
 		var portal := level.portal_at(last)
-		if portal == null or portal.exit_id == "":
-			_error("route '%s' must end at the destination or on a portal entry" % route.id)
-			return
-		var exit_cell := level.portal_by_id(portal.exit_id).position
-		var next: RouteDefinition = null
-		for candidate: RouteDefinition in level.routes.values():
-			if candidate.nodes[0] == exit_cell:
-				next = candidate
-		if next == null:
-			_error("portal '%s' exits at %s, where no route segment starts" % [portal.id, exit_cell])
-			return
-		route.exit_portal_id = portal.id
-		route.next_route_id = next.id
-		route = next
-	var route_ids: Array = level.routes.keys()
-	route_ids.sort()
-	for route_id: String in route_ids:
-		if not visited.has(route_id):
-			_error("route segment '%s' is never reached from the start" % route_id)
+		if portal != null and portal.exit_id != "":
+			var exit_cell := level.portal_by_id(portal.exit_id).position
+			var next: RouteDefinition = null
+			for candidate: RouteDefinition in fixed:
+				if candidate.nodes[0] == exit_cell:
+					next = candidate
+			if next == null:
+				_error("portal '%s' exits at %s, where no route segment starts" % [portal.id, exit_cell])
+				continue
+			route.exit_portal_id = portal.id
+			route.next_route_id = next.id
+			successors[route.id].append(next.id)
+			continue
+		var touching := _sections_touching(level, last)
+		if touching.size() != 1:
+			_error("route '%s' must end at the destination, on a portal entry, or next to one rotating section" % route.id)
+			continue
+		end_section[route.id] = touching[0].id
+	if destination_route == "":
+		_error("destination.position must be the last node of a route segment outside rotating sections")
+	# Track-piece junctions: a fixed end touching section S can lead to any fixed start touching S.
+	var start_cells: Dictionary[Vector2i, String] = {}
+	for route: RouteDefinition in fixed:
+		var start := route.nodes[0]
+		for section: RotatingSectionDefinition in _sections_touching(level, start):
+			for offset: Vector2i in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+				if section.contains(start + offset):
+					if start_cells.has(start + offset):
+						_error("routes '%s' and '%s' both start next to section cell %s" % [start_cells[start + offset], route.id, start + offset])
+					start_cells[start + offset] = route.id
+			for from_id: String in end_section.keys():
+				if end_section[from_id] == section.id:
+					successors[from_id].append(route.id)
+	if not _errors.is_empty():
+		return
+	# Depth-first search from the start: detect loops, collect reachable segments.
+	var reached: Dictionary[String, bool] = {}
+	var on_stack: Dictionary[String, bool] = {}
+	if not _visit_route(level.start_route_id, successors, reached, on_stack):
+		return
+	if destination_route != "" and not reached.has(destination_route):
+		_error("the destination cannot be reached from the start")
+	for route: RouteDefinition in fixed:
+		if not reached.has(route.id):
+			_error("route segment '%s' is never reached from the start" % route.id)
+	for route_id: String in ids:
+		var route: RouteDefinition = level.routes[route_id]
+		if route.section_id != "" and not end_section.values().has(route.section_id):
+			_error("track piece '%s' is never reached: no route ends next to section '%s'" % [route.id, route.section_id])
+
+
+func _visit_route(route_id: String, successors: Dictionary[String, PackedStringArray],
+		reached: Dictionary[String, bool], on_stack: Dictionary[String, bool]) -> bool:
+	if on_stack.has(route_id):
+		_error("route segments form a loop at '%s'" % route_id)
+		return false
+	if reached.has(route_id):
+		return true
+	reached[route_id] = true
+	on_stack[route_id] = true
+	for next_id: String in successors[route_id]:
+		if not _visit_route(next_id, successors, reached, on_stack):
+			return false
+	on_stack.erase(route_id)
+	return true
 
 
 func _validate_fixture_cell(level: LevelDefinition, label: String, cell: Vector2i) -> void:

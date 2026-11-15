@@ -50,6 +50,11 @@ static func candidate_actions(level: LevelDefinition) -> Array[PuzzleAction]:
 	for switch_def: SwitchDefinition in level.switches:
 		if switch_def.kind == SwitchDefinition.Kind.TOGGLE:
 			actions.append(PuzzleAction.toggle_switch(switch_def.id))
+	for section: RotatingSectionDefinition in level.rotating_sections:
+		if section.allow_clockwise:
+			actions.append(PuzzleAction.rotate_section(section.id, true))
+		if section.allow_counterclockwise:
+			actions.append(PuzzleAction.rotate_section(section.id, false))
 	return actions
 
 
