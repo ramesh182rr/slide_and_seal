@@ -19,6 +19,10 @@ var seal_id: String = ""
 var initial_objects: Array[MovableObject] = []
 ## Sorted by id. Never overlapping.
 var gravity_zones: Array[GravityZoneDefinition] = []
+## Sorted by id.
+var switches: Array[SwitchDefinition] = []
+## Sorted by id.
+var gates: Array[GateDefinition] = []
 ## Mechanisms usable before the first run (D-008).
 var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
@@ -41,6 +45,20 @@ func gravity_zone(zone_id: String) -> GravityZoneDefinition:
 	return null
 
 
+func switch_by_id(switch_id: String) -> SwitchDefinition:
+	for switch_def: SwitchDefinition in switches:
+		if switch_def.id == switch_id:
+			return switch_def
+	return null
+
+
+func gate_at(cell: Vector2i) -> GateDefinition:
+	for gate: GateDefinition in gates:
+		if gate.position == cell:
+			return gate
+	return null
+
+
 func checkpoint_by_id(checkpoint_id: String) -> CheckpointDefinition:
 	for route: RouteDefinition in routes.values():
 		for checkpoint: CheckpointDefinition in route.checkpoints:
@@ -60,4 +78,7 @@ func create_initial_state() -> PuzzleState:
 	state.sort_objects()
 	for zone: GravityZoneDefinition in gravity_zones:
 		state.gravity_directions[zone.id] = zone.initial_direction
+	for switch_def: SwitchDefinition in switches:
+		if switch_def.kind == SwitchDefinition.Kind.TOGGLE:
+			state.toggle_states[switch_def.id] = switch_def.initially_on
 	return state

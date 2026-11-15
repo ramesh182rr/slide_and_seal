@@ -4,9 +4,11 @@ extends RefCounted
 
 
 ## Settles every gravity-affected object inside each zone. MUTATES `state`; callers must pass
-## a fresh clone they own. `core_cell` is an obstacle. Returns the moves made, in resolution order.
+## a fresh clone they own. `core_cell` and `closed_cells` (closed gates) are obstacles.
+## Returns the moves made, in resolution order. One pass; PuzzleSimulator.stabilize iterates
+## this with gate re-evaluation.
 static func settle(level: LevelDefinition, state: PuzzleState, core_cell: Vector2i,
-		core_step: int = -1) -> Array[ObjectMove]:
+		core_step: int = -1, closed_cells: Dictionary[Vector2i, bool] = {}) -> Array[ObjectMove]:
 	var moves: Array[ObjectMove] = []
 	for zone: GravityZoneDefinition in level.gravity_zones:
 		var direction: Grid.Direction = state.gravity_directions[zone.id]
@@ -16,7 +18,7 @@ static func settle(level: LevelDefinition, state: PuzzleState, core_cell: Vector
 			while true:
 				var next_cell := obj.position + step
 				if not zone.contains(next_cell) or level.is_wall(next_cell) or next_cell == core_cell \
-						or state.object_at(next_cell) != null:
+						or closed_cells.has(next_cell) or state.object_at(next_cell) != null:
 					break
 				obj.position = next_cell
 			if obj.position != start:

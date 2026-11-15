@@ -15,4 +15,4 @@ const ALL := [
 	ROTATING_SECTIONS, ENERGY_ROUTING, MAGNETIC_POLARITY,
 ]
 ## Mechanisms the simulation can resolve today. Levels may only allow these.
-const IMPLEMENTED := [GRAVITY_SHIFT, PUSH_PULSE]
+const IMPLEMENTED := [GRAVITY_SHIFT, PUSH_PULSE, SWITCHES_SEALS]

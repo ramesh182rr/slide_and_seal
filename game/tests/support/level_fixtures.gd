@@ -62,6 +62,27 @@ static func add_gravity_zone(data: Dictionary, id: String, position: Vector2i, s
 	return data
 
 
+## Adds a switch ("pressure" or "toggle"). Returns `data` for chaining.
+static func add_switch(data: Dictionary, id: String, kind: String, cell: Vector2i, initially_on: bool = false) -> Dictionary:
+	_collection(data, "switches").append(
+		{"id": id, "kind": kind, "position": [cell.x, cell.y]}.merged({"initially_on": initially_on} if kind == "toggle" else {}))
+	return data
+
+
+## Adds a gate that opens when all `requires` switches are on. Returns `data` for chaining.
+static func add_gate(data: Dictionary, id: String, cell: Vector2i, requires: Array) -> Dictionary:
+	_collection(data, "gates").append({"id": id, "position": [cell.x, cell.y], "requires": requires})
+	return data
+
+
+static func _collection(data: Dictionary, key: String) -> Array:
+	if not data.has("mechanisms"):
+		data["mechanisms"] = {}
+	if not data["mechanisms"].has(key):
+		data["mechanisms"][key] = []
+	return data["mechanisms"][key]
+
+
 ## Sets the mechanisms allowed during setup and at every checkpoint. Returns `data` for chaining.
 static func allow_everywhere(data: Dictionary, mechanisms: Array) -> Dictionary:
 	data["setup"] = {"allowed_mechanisms": mechanisms.duplicate()}

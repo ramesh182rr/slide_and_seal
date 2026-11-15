@@ -78,6 +78,18 @@ Both are supported (built in M3b):
 - **Tap:** tap a block or zone to select it (outline). A contextual panel then shows its valid directions, previews first and commits on confirm.
 - **Swipe:** swipe starting on a block to push it in the swipe direction, or on a zone to set its gravity direction. Swipe is a shortcut; it goes through exactly the same action and validation path as the panel.
 
+### D-013 — Gates never close on an occupied cell: reject the action (2026-11-15)
+- A gate is open when **all** its linked switches are on. A closed gate blocks the core, pushes and gravity, like a wall.
+- Any action whose resolved result would leave a closed gate on an occupied cell (a block or the core) is rejected, and the state is unchanged. This includes `RUN_CORE` when gravity during travel would release a switch.
+- Gate state and pressure-switch state are derived from object positions and toggle states, never stored.
+- Settling iterates until stable: gravity runs, gates are re-evaluated, and gravity runs again while anything moved.
+
+### D-014 — Pressure switches are pressed by blocks only (2026-11-15)
+The core passing over or resting on a switch does nothing. Toggle switches flip only through the player action `TOGGLE_SWITCH` (mechanism `switches_seals`).
+
+### D-015 — Portals carry the core only, for now (2026-11-15)
+Blocks treat portal cells as ordinary floor. Portal-compatible blocks may come later with a level that needs them.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 

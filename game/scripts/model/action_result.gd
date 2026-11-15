@@ -13,6 +13,8 @@ enum Failure {
 	INVALID_DIRECTION,
 	MOVE_BLOCKED,
 	NO_EFFECT,
+	## The result would leave a closed gate on an occupied cell (D-013).
+	GATE_OCCUPIED,
 }
 
 var failure: Failure = Failure.NONE

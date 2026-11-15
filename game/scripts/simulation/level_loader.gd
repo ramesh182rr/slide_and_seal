@@ -7,7 +7,7 @@ const SUPPORTED_SCHEMA_VERSION := 3
 const MAX_BOARD_SIDE := 32
 const ACCESS_VALUES := ["free", "premium"]
 const OBJECT_KINDS := [MovableObject.KIND_BLOCK]
-## Collections a level may declare. All except gravity_zones must stay empty until their resolver exists.
+## Collections a level may declare. Only gravity_zones, switches and gates are implemented; the rest must stay empty.
 const MECHANISM_COLLECTIONS := [
 	"gravity_zones", "push_devices", "portals", "switches", "gates", "rotating_sections",
 	"energy_emitters", "reflectors", "receivers", "magnetic_fields", "magnetic_objects",
@@ -197,15 +197,67 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 			_error("mechanisms.%s must be an array" % key)
 			continue
 		var entries: Array = mechanisms[key]
-		if key == "gravity_zones":
-			for i: int in entries.size():
-				var zone := _parse_gravity_zone(entries[i], "mechanisms.gravity_zones[%d]" % i)
-				if zone != null:
-					level.gravity_zones.append(zone)
-		elif not entries.is_empty():
-			_error("mechanisms.%s is not supported by the simulation yet" % key)
+		for i: int in entries.size():
+			var context := "mechanisms.%s[%d]" % [key, i]
+			match key:
+				"gravity_zones":
+					var zone := _parse_gravity_zone(entries[i], context)
+					if zone != null:
+						level.gravity_zones.append(zone)
+				"switches":
+					var switch_def := _parse_switch(entries[i], context)
+					if switch_def != null:
+						level.switches.append(switch_def)
+				"gates":
+					var gate := _parse_gate(entries[i], context)
+					if gate != null:
+						level.gates.append(gate)
+				_:
+					_error("mechanisms.%s is not supported by the simulation yet" % key)
+					break
 	level.gravity_zones.sort_custom(
 		func(a: GravityZoneDefinition, b: GravityZoneDefinition) -> bool: return a.id < b.id)
+	level.switches.sort_custom(func(a: SwitchDefinition, b: SwitchDefinition) -> bool: return a.id < b.id)
+	level.gates.sort_custom(func(a: GateDefinition, b: GateDefinition) -> bool: return a.id < b.id)
+
+
+func _parse_switch(value: Variant, context: String) -> SwitchDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var switch_def := SwitchDefinition.new()
+	switch_def.id = _string(data, "id", context)
+	switch_def.position = _cell(data.get("position"), context + ".position")
+	match _string(data, "kind", context):
+		"pressure":
+			switch_def.kind = SwitchDefinition.Kind.PRESSURE
+			if data.has("initially_on"):
+				_error("%s.initially_on only applies to toggle switches" % context)
+		"toggle":
+			switch_def.kind = SwitchDefinition.Kind.TOGGLE
+			switch_def.initially_on = _bool(data, "initially_on", context, false)
+		var other:
+			if other != "":
+				_error("%s.kind '%s' must be pressure or toggle" % [context, other])
+	return switch_def
+
+
+func _parse_gate(value: Variant, context: String) -> GateDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var gate := GateDefinition.new()
+	gate.id = _string(data, "id", context)
+	gate.position = _cell(data.get("position"), context + ".position")
+	var requires := _array(data, "requires", context)
+	for i: int in requires.size():
+		if typeof(requires[i]) != TYPE_STRING:
+			_error("%s.requires[%d] must be a switch id" % [context, i])
+		else:
+			gate.requires.append(requires[i])
+	return gate
 
 
 func _parse_gravity_zone(value: Variant, context: String) -> GravityZoneDefinition:
@@ -284,6 +336,7 @@ func _validate(level: LevelDefinition) -> void:
 			_error("destination.position must equal the last node of route '%s'" % start_route.id)
 	_validate_objects(level)
 	_validate_gravity_zones(level)
+	_validate_switches_and_gates(level)
 	_validate_mechanism_availability(level)
 	if _errors.is_empty():
 		_validate_initial_state_settled(level)
@@ -361,8 +414,51 @@ func _validate_gravity_zones(level: LevelDefinition) -> void:
 				_error("gravity zones '%s' and '%s' overlap" % [zone.id, level.gravity_zones[j].id])
 
 
+func _validate_switches_and_gates(level: LevelDefinition) -> void:
+	var ids: Dictionary[String, bool] = {}
+	var switch_cells: Dictionary[Vector2i, bool] = {}
+	for switch_def: SwitchDefinition in level.switches:
+		if ids.has(switch_def.id):
+			_error("duplicate switch or gate id '%s'" % switch_def.id)
+		ids[switch_def.id] = true
+		_validate_fixture_cell(level, "switch '%s'" % switch_def.id, switch_def.position)
+		if switch_cells.has(switch_def.position):
+			_error("switch '%s' shares a cell with another switch" % switch_def.id)
+		switch_cells[switch_def.position] = true
+	var gate_cells: Dictionary[Vector2i, bool] = {}
+	for gate: GateDefinition in level.gates:
+		if ids.has(gate.id):
+			_error("duplicate switch or gate id '%s'" % gate.id)
+		ids[gate.id] = true
+		_validate_fixture_cell(level, "gate '%s'" % gate.id, gate.position)
+		if gate_cells.has(gate.position):
+			_error("gate '%s' shares a cell with another gate" % gate.id)
+		gate_cells[gate.position] = true
+		if switch_cells.has(gate.position):
+			_error("gate '%s' shares a cell with a switch" % gate.id)
+		if gate.requires.is_empty():
+			_error("gate '%s' must require at least one switch" % gate.id)
+		var seen: Dictionary[String, bool] = {}
+		for switch_id: String in gate.requires:
+			if level.switch_by_id(switch_id) == null:
+				_error("gate '%s' requires unknown switch '%s'" % [gate.id, switch_id])
+			if seen.has(switch_id):
+				_error("gate '%s' lists switch '%s' twice" % [gate.id, switch_id])
+			seen[switch_id] = true
+
+
+func _validate_fixture_cell(level: LevelDefinition, label: String, cell: Vector2i) -> void:
+	if not level.in_bounds(cell):
+		_error("%s at %s is out of bounds" % [label, cell])
+	elif level.is_wall(cell):
+		_error("%s at %s is inside a wall" % [label, cell])
+
+
 ## Every allowed mechanism must have something to act on.
 func _validate_mechanism_availability(level: LevelDefinition) -> void:
+	var has_toggle := false
+	for switch_def: SwitchDefinition in level.switches:
+		has_toggle = has_toggle or switch_def.kind == SwitchDefinition.Kind.TOGGLE
 	var has_pushable := false
 	for obj: MovableObject in level.initial_objects:
 		has_pushable = has_pushable or obj.pushable
@@ -376,14 +472,18 @@ func _validate_mechanism_availability(level: LevelDefinition) -> void:
 			_error("%s allows gravity_shift but the level has no gravity zones" % context)
 		if allowed.has(MechanismIds.PUSH_PULSE) and not has_pushable:
 			_error("%s allows push_pulse but the level has no pushable objects" % context)
+		if allowed.has(MechanismIds.SWITCHES_SEALS) and not has_toggle:
+			_error("%s allows switches_seals but the level has no toggle switches" % context)
 
 
-## Committed states are always settled (D-006), so the authored start must be too.
+## Committed states are always stable (D-006, D-013), so the authored start must be too.
 func _validate_initial_state_settled(level: LevelDefinition) -> void:
 	var state := level.create_initial_state()
-	for move: ObjectMove in GravityResolver.settle(level, state, level.core_start):
+	for move: ObjectMove in PuzzleSimulator.stabilize(level, state, level.core_start):
 		_error("object '%s' is not at rest under gravity (it would slide from %s to %s)"
 			% [move.object_id, move.from_cell, move.to_cell])
+	for gate_id: String in SwitchGateResolver.occupied_closed_gates(level, level.create_initial_state(), level.core_start):
+		_error("gate '%s' starts closed on an occupied cell" % gate_id)
 
 
 # --- Typed field helpers ------------------------------------------------------

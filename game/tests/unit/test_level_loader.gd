@@ -297,6 +297,72 @@ func test_rejects_push_allowed_without_pushable_objects() -> void:
 	_assert_rejected(data, "checkpoint 'cp' allows push_pulse but the level has no pushable objects")
 
 
+# --- M5a: switches and gates ------------------------------------------------------
+
+func test_loads_switches_and_gates() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(5, 0), true)
+	LevelFixtures.add_switch(data, "p", "pressure", Vector2i(4, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 1), ["t", "p"])
+	var result := LevelLoader.from_dict(data)
+	assert_eq(result.errors, PackedStringArray())
+	if not result.is_ok():
+		return
+	var level := result.level
+	assert_eq(level.switches.size(), 2)
+	assert_eq(level.switch_by_id("t").kind, SwitchDefinition.Kind.TOGGLE)
+	assert_true(level.switch_by_id("t").initially_on)
+	assert_eq(level.switch_by_id("p").kind, SwitchDefinition.Kind.PRESSURE)
+	assert_eq(level.gate_at(Vector2i(5, 1)).requires, PackedStringArray(["t", "p"]))
+	assert_true(level.create_initial_state().toggle_states["t"])
+
+
+func test_rejects_gate_requiring_unknown_switch() -> void:
+	_assert_rejected(LevelFixtures.add_gate(LevelFixtures.corridor(), "g", Vector2i(5, 1), ["ghost"]),
+		"gate 'g' requires unknown switch 'ghost'")
+
+
+func test_rejects_gate_without_switches() -> void:
+	_assert_rejected(LevelFixtures.add_gate(LevelFixtures.corridor(), "g", Vector2i(5, 1), []),
+		"gate 'g' must require at least one switch")
+
+
+func test_rejects_unknown_switch_kind() -> void:
+	_assert_rejected(LevelFixtures.add_switch(LevelFixtures.corridor(), "s", "lever", Vector2i(5, 0)),
+		"kind 'lever' must be pressure or toggle")
+
+
+func test_rejects_initially_on_for_pressure_switch() -> void:
+	var data := LevelFixtures.corridor()
+	data["mechanisms"] = {"switches": [{"id": "p", "kind": "pressure", "position": [5, 0], "initially_on": true}]}
+	_assert_rejected(data, "initially_on only applies to toggle switches")
+
+
+func test_rejects_gate_on_a_switch() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(5, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 0), ["t"])
+	_assert_rejected(data, "gate 'g' shares a cell with a switch")
+
+
+func test_rejects_duplicate_switch_and_gate_ids() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "x", "toggle", Vector2i(5, 0))
+	LevelFixtures.add_gate(data, "x", Vector2i(5, 1), ["x"])
+	_assert_rejected(data, "duplicate switch or gate id 'x'")
+
+
+func test_rejects_gate_starting_closed_on_a_block() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(5, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(4, 2), ["t"])
+	LevelFixtures.add_block(data, "b", Vector2i(4, 2))
+	_assert_rejected(data, "gate 'g' starts closed on an occupied cell")
+
+
+func test_rejects_switches_allowed_without_toggle_switch() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "p", "pressure", Vector2i(4, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 1), ["p"])
+	LevelFixtures.allow_everywhere(data, [MechanismIds.SWITCHES_SEALS])
+	_assert_rejected(data, "allows switches_seals but the level has no toggle switches")
+
+
 func _assert_rejected(data: Dictionary, expected_fragment: String) -> void:
 	var result := LevelLoader.from_dict(data)
 	assert_null(result.level, "level should be rejected")

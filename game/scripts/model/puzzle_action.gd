@@ -4,7 +4,8 @@ extends RefCounted
 
 ## RUN_CORE covers both "Run" and "Resume" (decision P-002).
 ## PUSH: target_id = object id (D-007). SET_GRAVITY: target_id = gravity zone id (D-006).
-enum Kind { RUN_CORE, PUSH, SET_GRAVITY }
+## TOGGLE_SWITCH: target_id = toggle switch id (D-014); direction unused.
+enum Kind { RUN_CORE, PUSH, SET_GRAVITY, TOGGLE_SWITCH }
 
 var kind: Kind = Kind.RUN_CORE
 var target_id: String = ""
@@ -18,6 +19,8 @@ func describe() -> String:
 			return "push %s %s" % [target_id, Grid.direction_name(direction)]
 		Kind.SET_GRAVITY:
 			return "gravity %s %s" % [target_id, Grid.direction_name(direction)]
+		Kind.TOGGLE_SWITCH:
+			return "toggle %s" % target_id
 	return "run"
 
 
@@ -40,4 +43,11 @@ static func set_gravity(zone_id: String, p_direction: Grid.Direction) -> PuzzleA
 	action.kind = Kind.SET_GRAVITY
 	action.target_id = zone_id
 	action.direction = p_direction
+	return action
+
+
+static func toggle_switch(switch_id: String) -> PuzzleAction:
+	var action := PuzzleAction.new()
+	action.kind = Kind.TOGGLE_SWITCH
+	action.target_id = switch_id
 	return action

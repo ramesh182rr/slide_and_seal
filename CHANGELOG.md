@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M5a: Switches & Seals (rules)
+
+**Added**
+- **Switches** (`SwitchDefinition`):
+  - `pressure` switches are on while a block rests on them; the core never presses them (D-014).
+  - `toggle` switches are flipped by the new `PuzzleAction.toggle_switch` (mechanism `switches_seals`), and their state is stored in `PuzzleState.toggle_states`, which is included in the state key.
+- **Gates** (`GateDefinition`): open when all `requires` switches are on. A closed gate blocks the core, pushes and gravity.
+- **`SwitchGateResolver`:** switch and gate state is always derived from positions and toggles, never stored.
+- **`PuzzleSimulator.stabilize`:** gravity settles, gates are re-evaluated, and this repeats until nothing moves. It is used by every action, by core travel and by the loader's start-state check. Each object's move is merged into one start → rest move for animation.
+- **D-013 rule:** any action whose result would leave a closed gate on a block or the core is rejected with the new failure `GATE_OCCUPIED`. This includes a Run, when gravity during travel would release a switch.
+- **Loader** (schema v3, backward compatible): `mechanisms.switches` and `mechanisms.gates`, validated as described in `docs/LEVEL_SCHEMA.md`. `switches_seals` is now an implemented mechanism.
+- The solver includes toggle actions.
+- **Tests:** 26 new (17 rules, 9 loader), bringing the suite to 178. Mutation checks confirmed the travel gate check, iterative stabilisation and gate blocking are each caught by their tests.
+
+**Verified**
+- Both shipped levels still validate with identical results (slice: minimum 4, 536 dead ends, 17 unknown), so there is no behaviour change for existing content.
+
+**Decisions:** D-013 (reject, never close an occupied gate), D-014 (blocks only press switches) and D-015 (portals carry the core only).
+
+**Known limitations**
+- Rules only: switches and gates are not yet rendered or interactive in the 3D scene, and no shipped level uses them.
+- Portals are next (M5b).
+
 ### 2026-11-15 — Android Back handling and panel fixes
 
 **Added**

@@ -47,6 +47,9 @@ static func candidate_actions(level: LevelDefinition) -> Array[PuzzleAction]:
 	for zone: GravityZoneDefinition in level.gravity_zones:
 		for direction: Grid.Direction in zone.allowed_directions:
 			actions.append(PuzzleAction.set_gravity(zone.id, direction))
+	for switch_def: SwitchDefinition in level.switches:
+		if switch_def.kind == SwitchDefinition.Kind.TOGGLE:
+			actions.append(PuzzleAction.toggle_switch(switch_def.id))
 	return actions
 
 

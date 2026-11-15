@@ -21,7 +21,7 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `routes` | `{route_id: Route}` | yes | Exactly one segment until junctions exist (D-003). |
 | `objects` | `[Object]` | no | Movable objects. |
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
-| `mechanisms` | `{collection: []}` | no | Only `gravity_zones` is supported. Every other collection must be empty until its resolver exists. |
+| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches` and `gates` are supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
@@ -45,10 +45,11 @@ Route rules:
 ### Allowed mechanisms
 These rules apply to both `setup.allowed_mechanisms` and checkpoint `allowed_mechanisms`:
 - Known names: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
-- Only `gravity_shift` and `push_pulse` are implemented. The others are rejected.
+- Only `gravity_shift`, `push_pulse` and `switches_seals` are implemented. The others are rejected.
 - No name may be listed twice.
 - Allowing `gravity_shift` requires at least one gravity zone.
 - Allowing `push_pulse` requires at least one pushable object.
+- Allowing `switches_seals` requires at least one toggle switch. Pressure switches are not player-operated.
 
 ### Object
 ```json
@@ -72,6 +73,25 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Directions are `up`, `right`, `down` or `left`. `allowed_directions` must be non-empty, contain no duplicates and include `direction`.
 - The authored start state must already be at rest under gravity (D-006).
 
+### Switch (`mechanisms.switches`)
+```json
+{ "id": "lever_a", "kind": "toggle", "position": [5,0], "initially_on": false }
+{ "id": "plate_a", "kind": "pressure", "position": [2,2] }
+```
+- `kind` is `pressure` (on while a block rests on it; the core never presses it, D-014) or `toggle` (flipped by the player).
+- `initially_on` (default `false`) applies to toggle switches only.
+- In bounds, not on a wall, and at most one switch per cell.
+
+### Gate (`mechanisms.gates`)
+```json
+{ "id": "gate_a", "position": [5,1], "requires": ["lever_a", "plate_a"] }
+```
+- The gate is open when **all** `requires` switches are on (D-013). A closed gate blocks the core, pushes and gravity.
+- `requires` is non-empty, lists existing switch ids, and has no duplicates.
+- In bounds, not on a wall, not on a switch, and at most one gate per cell.
+- Switch and gate ids share one namespace.
+- No gate may start closed on a block or on the core's start cell.
+
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
 
@@ -81,3 +101,4 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Added top-level `objects` for movable objects.
 - Unknown mechanism collections and non-empty, unsupported ones are now load errors, not silently ignored.
 - Added in M2 (backward compatible, so still v3): `setup`, the object flags `pushable` and `gravity_affected`, and `gravity_zones` content.
+- Added in M5a (backward compatible): `switches` and `gates` content.

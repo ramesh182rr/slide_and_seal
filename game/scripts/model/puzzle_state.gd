@@ -14,6 +14,8 @@ var core_node_index: int = 0
 var objects: Array[MovableObject] = []
 ## Current direction of each gravity zone, keyed by zone id.
 var gravity_directions: Dictionary[String, Grid.Direction] = {}
+## On/off state of each TOGGLE switch, keyed by switch id. (Pressure switches and gates are derived.)
+var toggle_states: Dictionary[String, bool] = {}
 ## Checkpoint ids in the order the core reached them.
 var reached_checkpoint_ids: PackedStringArray = PackedStringArray()
 ## Player mechanism actions committed (excludes core runs).
@@ -30,6 +32,7 @@ func clone() -> PuzzleState:
 	for obj: MovableObject in objects:
 		copy.objects.append(obj.clone())
 	copy.gravity_directions = gravity_directions.duplicate()
+	copy.toggle_states = toggle_states.duplicate()
 	copy.reached_checkpoint_ids = reached_checkpoint_ids.duplicate()
 	copy.mechanism_action_count = mechanism_action_count
 	copy.core_run_count = core_run_count
@@ -78,11 +81,17 @@ func to_key(include_counters: bool = true) -> String:
 	var gravity_parts := PackedStringArray()
 	for zone_id: String in zone_ids:
 		gravity_parts.append("%s:%d" % [zone_id, gravity_directions[zone_id]])
+	var toggle_ids: Array[String] = toggle_states.keys()
+	toggle_ids.sort()
+	var toggle_parts := PackedStringArray()
+	for switch_id: String in toggle_ids:
+		toggle_parts.append("%s:%d" % [switch_id, int(toggle_states[switch_id])])
 	var parts := PackedStringArray([
 		"phase=%d" % phase,
 		"core=%s#%d" % [core_route_id, core_node_index],
 		"objects=" + "|".join(object_parts),
 		"gravity=" + "|".join(gravity_parts),
+		"toggles=" + "|".join(toggle_parts),
 		"checkpoints=" + "|".join(reached_checkpoint_ids),
 	])
 	if include_counters:

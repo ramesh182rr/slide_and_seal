@@ -4,6 +4,9 @@ extends RefCounted
 ## Pure and deterministic: never mutates its inputs, uses no scene tree, physics, time or randomness.
 ## Gameplay, preview, hints, solver and validator must all go through these functions.
 
+## Safety bound for stabilize(); gravity only moves blocks forward, so real levels converge quickly.
+const MAX_STABILIZE_PASSES := 64
+
 
 static func apply_action(level: LevelDefinition, state: PuzzleState, action: PuzzleAction) -> ActionResult:
 	match action.kind:
@@ -13,6 +16,8 @@ static func apply_action(level: LevelDefinition, state: PuzzleState, action: Puz
 			return _push(level, state, action)
 		PuzzleAction.Kind.SET_GRAVITY:
 			return _set_gravity(level, state, action)
+		PuzzleAction.Kind.TOGGLE_SWITCH:
+			return _toggle_switch(level, state, action)
 	return ActionResult.rejected(ActionResult.Failure.UNKNOWN_ACTION, "Unknown action kind %d." % action.kind)
 
 
@@ -28,7 +33,8 @@ static func core_position(level: LevelDefinition, state: PuzzleState) -> Vector2
 
 ## A cell the core cannot enter.
 static func is_cell_blocked(level: LevelDefinition, state: PuzzleState, cell: Vector2i) -> bool:
-	return not level.in_bounds(cell) or level.is_wall(cell) or state.object_at(cell) != null
+	return not level.in_bounds(cell) or level.is_wall(cell) or state.object_at(cell) != null \
+		or SwitchGateResolver.is_closed_gate_at(level, state, cell)
 
 
 ## Mechanisms the player may use in the current state (decision D-008).
@@ -41,6 +47,28 @@ static func allowed_mechanisms(level: LevelDefinition, state: PuzzleState) -> Pa
 		if checkpoint.auto_pause:
 			return checkpoint.allowed_mechanisms
 	return level.setup_allowed_mechanisms
+
+
+## Brings `state` to rest (D-006, D-013): settle gravity with the current gates, re-evaluate gates
+## (blocks may have pressed or released switches), and repeat while anything moved.
+## MUTATES `state`; callers pass a clone they own. Each moved object is reported once, start → rest.
+static func stabilize(level: LevelDefinition, state: PuzzleState, core_cell: Vector2i,
+		core_step: int = -1) -> Array[ObjectMove]:
+	var moves: Array[ObjectMove] = []
+	var by_object: Dictionary[String, ObjectMove] = {}
+	for pass_index: int in MAX_STABILIZE_PASSES:
+		var closed := SwitchGateResolver.closed_gate_cells(level, state)
+		var pass_moves := GravityResolver.settle(level, state, core_cell, core_step, closed)
+		if pass_moves.is_empty():
+			return moves
+		for move: ObjectMove in pass_moves:
+			if by_object.has(move.object_id):
+				by_object[move.object_id].to_cell = move.to_cell
+			else:
+				by_object[move.object_id] = move
+				moves.append(move)
+	push_error("PuzzleSimulator.stabilize did not converge in %d passes" % MAX_STABILIZE_PASSES)
+	return moves
 
 
 # --- Core travel --------------------------------------------------------------
@@ -69,7 +97,10 @@ static func _run_core(level: LevelDefinition, state: PuzzleState) -> ActionResul
 		var cell := route.nodes[index]
 		travel.path.append(cell)
 		# Persistent gravity: the cell the core just vacated may let blocks slide (D-006).
-		moves.append_array(GravityResolver.settle(level, next, cell, travel.path.size() - 1))
+		moves.append_array(stabilize(level, next, cell, travel.path.size() - 1))
+		var gate_rejection := _reject_if_gate_occupied(level, next, cell)
+		if gate_rejection != null:
+			return gate_rejection
 		if index == route.last_index():
 			next.phase = PuzzleState.Phase.LEVEL_COMPLETED
 			travel.stop_reason = CoreTravelResult.StopReason.DESTINATION
@@ -104,14 +135,18 @@ static func _push(level: LevelDefinition, state: PuzzleState, action: PuzzleActi
 		return ActionResult.rejected(ActionResult.Failure.INVALID_TARGET, "Object '%s' is not pushable." % obj.id)
 	var core_cell := core_position(level, state)
 	var target := obj.position + Grid.offset(action.direction)
-	if not level.in_bounds(target) or level.is_wall(target) or target == core_cell or state.object_at(target) != null:
+	if not level.in_bounds(target) or level.is_wall(target) or target == core_cell \
+			or state.object_at(target) != null or SwitchGateResolver.is_closed_gate_at(level, state, target):
 		return ActionResult.rejected(ActionResult.Failure.MOVE_BLOCKED,
 			"Cannot push '%s' %s: %s is not free." % [obj.id, Grid.direction_name(action.direction), target])
 
 	var next := state.clone()
 	next.object_by_id(obj.id).position = target
 	var moves: Array[ObjectMove] = [ObjectMove.new(obj.id, obj.position, target, ObjectMove.Cause.PUSH)]
-	moves.append_array(GravityResolver.settle(level, next, core_cell))
+	moves.append_array(stabilize(level, next, core_cell))
+	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
+	if gate_rejection != null:
+		return gate_rejection
 	if next.has_same_object_positions(state):
 		return ActionResult.rejected(ActionResult.Failure.NO_EFFECT,
 			"Pushing '%s' %s has no effect: gravity returns it." % [obj.id, Grid.direction_name(action.direction)])
@@ -135,9 +170,43 @@ static func _set_gravity(level: LevelDefinition, state: PuzzleState, action: Puz
 
 	var next := state.clone()
 	next.gravity_directions[zone.id] = action.direction
-	var moves := GravityResolver.settle(level, next, core_position(level, state))
+	var core_cell := core_position(level, state)
+	var moves := stabilize(level, next, core_cell)
+	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
+	if gate_rejection != null:
+		return gate_rejection
 	next.mechanism_action_count += 1
 	return ActionResult.success(next, null, moves)
+
+
+static func _toggle_switch(level: LevelDefinition, state: PuzzleState, action: PuzzleAction) -> ActionResult:
+	var rejection := _check_mechanism_available(level, state, MechanismIds.SWITCHES_SEALS)
+	if rejection != null:
+		return rejection
+	var switch_def := level.switch_by_id(action.target_id)
+	if switch_def == null or switch_def.kind != SwitchDefinition.Kind.TOGGLE:
+		return ActionResult.rejected(ActionResult.Failure.INVALID_TARGET, "No toggle switch '%s'." % action.target_id)
+
+	var next := state.clone()
+	next.toggle_states[switch_def.id] = not state.toggle_states[switch_def.id]
+	var core_cell := core_position(level, state)
+	var moves := stabilize(level, next, core_cell)
+	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
+	if gate_rejection != null:
+		return gate_rejection
+	next.mechanism_action_count += 1
+	return ActionResult.success(next, null, moves)
+
+
+# --- Helpers ------------------------------------------------------------------
+
+## D-013: a resolved result may never leave a closed gate on a block or the core.
+static func _reject_if_gate_occupied(level: LevelDefinition, state: PuzzleState, core_cell: Vector2i) -> ActionResult:
+	var gate_ids := SwitchGateResolver.occupied_closed_gates(level, state, core_cell)
+	if gate_ids.is_empty():
+		return null
+	return ActionResult.rejected(ActionResult.Failure.GATE_OCCUPIED,
+		"That would close gate %s on an occupied cell." % ", ".join(gate_ids))
 
 
 static func _is_interactive_phase(state: PuzzleState) -> bool:
