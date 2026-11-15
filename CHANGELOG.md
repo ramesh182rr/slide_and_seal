@@ -5,6 +5,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M6b: Rotating sections in 3D, plus "Quarter Turn"
+
+**Added**
+- **Level** `game/data/levels/world_06_quarter_turn.json`, "Quarter Turn" (doc 09 #32), in the new catalog world "The Shifting Labyrinth":
+  - a clockwise-only 3×3 turntable with an L-shaped track piece; two turns connect the corridor to the seal corridor
+  - a fixed crate rides the turntable
+  - the validator proves a minimum of 2
+- **Renderer:**
+  - section pivots carry the tiles, walls and track inlay inside each section, turned to the current orientation
+  - fixed amber frame (cyan when selected) and an off-centre hub
+  - preview ghosts show where track pieces and blocks would end up after a turn
+- **Playback:** the platform turns smoothly, and blocks on it orbit the centre in step.
+- **Interaction:**
+  - tap a section to open a panel with one button per allowed direction (hold to preview, release to turn)
+  - the panel explains when the core is on the section
+  - HUD: "Rotation" and "Tap a rotating section"
+- `MechanismPanel` action mode supports up to two buttons (`show_actions`), created once and reused.
+- **Tests:** 5 Quarter Turn scene tests, bringing the suite to 255. They cover:
+  - platform and crate visuals matching state, including after undo
+  - the unavailable-section message
+  - the clockwise-only panel and the track/crate preview, committed through the real button signal
+  - solving the full level through taps
+
+**Changed**
+- Fixed (non-pushable) blocks are drawn grey steel instead of slate, to stand apart from walls.
+- Navigation tests updated for four catalog levels; Quarter Turn is now the last level.
+
+**Found by the validator during design**
+- The first draft started the L already connected to the incoming corridor, so "run, run" stranded the core inside the turntable. The start orientation was changed.
+- One recoverable trap remains by nature of L pieces: turning a third time and running. It is reported as 1 dead end; undo recovers. A rule alternative is raised in P-014.
+
+**Known limitations**
+- Placeholder art. The mid-turn screenshot was taken at the start of the turn, so the turning animation is covered by tests of the final platform angle rather than visual review.
+
 ### 2026-11-15 — M6a: Rotating Sections (rules)
 
 **Added**

@@ -20,6 +20,9 @@ var _library := MaterialLibrary.new()
 var _fixtures: MechanismFixtures3D
 var _outline: MeshInstance3D
 var _preview_root: Node3D
+## Per rotating section: a pivot at the section centre carrying everything inside it, and a fixed frame.
+var _section_pivots: Dictionary[String, Node3D] = {}
+var _section_frames: Dictionary[String, MeshInstance3D] = {}
 
 
 ## Rebuilds everything for `level`, then snaps to `state`.
@@ -30,8 +33,11 @@ func build(level: LevelDefinition, state: PuzzleState) -> void:
 	_objects.clear()
 	_zone_chevrons.clear()
 	_zone_plates.clear()
+	_section_pivots.clear()
+	_section_frames.clear()
 	_outline = null
 	_level = level
+	_build_section_pivots()
 	_build_floor()
 	_build_walls()
 	_build_route()
@@ -57,6 +63,8 @@ func sync_to_state(state: PuzzleState) -> void:
 	for zone_id: String in state.gravity_directions.keys():
 		for pivot: Node3D in _zone_chevrons[zone_id]:
 			pivot.rotation.y = BoardCoords.direction_yaw(state.gravity_directions[zone_id])
+	for section_id: String in state.section_turns.keys():
+		_section_pivots[section_id].rotation.y = section_yaw(state.section_turns[section_id])
 	_fixtures.sync_to_state(state)
 
 
@@ -66,6 +74,15 @@ func level() -> LevelDefinition:
 
 func fixtures() -> MechanismFixtures3D:
 	return _fixtures
+
+
+func section_pivot(section_id: String) -> Node3D:
+	return _section_pivots.get(section_id)
+
+
+## Clockwise quarter turns on the grid (y down) are negative rotations about +Y in the world.
+static func section_yaw(turns: int) -> float:
+	return -posmod(turns, 4) * PI / 2.0
 
 
 func core_node() -> Node3D:
@@ -81,7 +98,7 @@ func zone_chevrons(zone_id: String) -> Array:
 
 
 ## Highlights the selected block (outline that travels with it), zone or switch. Empty ids clear it.
-func set_highlight(object_id: String, zone_id: String, switch_id: String = "") -> void:
+func set_highlight(object_id: String, zone_id: String, switch_id: String = "", section_id: String = "") -> void:
 	if _outline != null:
 		_outline.get_parent().remove_child(_outline)
 		_outline.free()
@@ -96,6 +113,9 @@ func set_highlight(object_id: String, zone_id: String, switch_id: String = "") -
 		ring.bottom_radius = 0.46
 		ring.height = 0.16
 		_outline = _add_mesh(ring, _outline_material(), Vector3.ZERO, _fixtures.switch_base(switch_id))
+	for id: String in _section_frames.keys():
+		_section_frames[id].material_override = _material("section_frame_selected", Palette.CYAN_ENERGY, 1.2) \
+			if id == section_id else _material("section_frame", Palette.MECHANISM_AMBER, 0.5)
 	for id: String in _zone_plates.keys():
 		_zone_plates[id].material_override = _material("zone_plate_selected", Palette.CYAN_ENERGY, 0.6, 0.32) \
 			if id == zone_id else _material("zone_plate", Palette.POLARITY_BLUE, 0.3, 0.2)
@@ -121,6 +141,16 @@ func show_preview(current: PuzzleState, previewed: PuzzleState) -> void:
 		if now != null and now.position != obj.position:
 			_add_mesh(ghost, material, object_world_position(obj.position), _preview_root)
 	_fixtures.add_preview_ghosts(_preview_root, current, previewed)
+	# Where each track piece would lie after a previewed turn.
+	var pad := BoxMesh.new()
+	pad.size = Vector3(0.3, 0.06, 0.3)
+	for route: RouteDefinition in _level.routes.values():
+		if route.section_id == "" or current.section_turns[route.section_id] == previewed.section_turns[route.section_id]:
+			continue
+		var section := _level.rotating_section(route.section_id)
+		for node: Vector2i in route.nodes:
+			var cell := section.rotate_cell(node, previewed.section_turns[route.section_id])
+			_add_mesh(pad, material, BoardCoords.cell_to_world(cell, 0.06), _preview_root)
 
 
 func clear_preview() -> void:
@@ -151,11 +181,13 @@ func _build_floor() -> void:
 	var tile := BoxMesh.new()
 	tile.size = Vector3(TILE_SIZE, 0.2, TILE_SIZE)
 	var tile_material := _material("tile", Palette.BOARD_SLATE)
+	var turntable_material := _material("tile_turntable", Palette.BOARD_SLATE.lightened(0.08))
 	for y: int in size.y:
 		for x: int in size.x:
 			var cell := Vector2i(x, y)
 			if not _level.is_wall(cell):
-				_add_mesh(tile, tile_material, BoardCoords.cell_to_world(cell, -0.1))
+				var inside := _level.section_at(cell) != null
+				_add_at_cell(tile, turntable_material if inside else tile_material, cell, -0.1)
 
 
 func _build_walls() -> void:
@@ -163,7 +195,7 @@ func _build_walls() -> void:
 	wall.size = Vector3(TILE_SIZE, WALL_HEIGHT, TILE_SIZE)
 	var wall_material := _material("wall", Palette.WALL, 0.0, 1.0, 0.3, 0.7)
 	for cell: Vector2i in _level.walls.keys():
-		_add_mesh(wall, wall_material, BoardCoords.cell_to_world(cell, WALL_HEIGHT * 0.5 - 0.2))
+		_add_at_cell(wall, wall_material, cell, WALL_HEIGHT * 0.5 - 0.2)
 
 
 ## Emissive inlay along every route: a pad per node plus connectors between neighbours.
@@ -177,11 +209,12 @@ func _build_route() -> void:
 	along_z.size = Vector3(0.07, 0.02, BoardCoords.CELL_SIZE)
 	for route: RouteDefinition in _level.routes.values():
 		for i: int in route.nodes.size():
-			_add_mesh(pad, inlay, BoardCoords.cell_to_world(route.nodes[i], 0.01))
+			_add_at_cell(pad, inlay, route.nodes[i], 0.01)
 			if i > 0:
 				var a := BoardCoords.cell_to_world(route.nodes[i - 1], 0.01)
 				var b := BoardCoords.cell_to_world(route.nodes[i], 0.01)
-				_add_mesh(along_x if route.nodes[i].y == route.nodes[i - 1].y else along_z, inlay, (a + b) * 0.5)
+				_add_at_world(along_x if route.nodes[i].y == route.nodes[i - 1].y else along_z, inlay, (a + b) * 0.5,
+					_level.section_at(route.nodes[i]))
 
 
 func _build_markers() -> void:
@@ -234,7 +267,7 @@ func _build_objects(state: PuzzleState) -> void:
 	var cube := BoxMesh.new()
 	cube.size = Vector3.ONE * BLOCK_SIZE
 	var pushable_material := _material("block", Palette.METAL_HIGHLIGHT, 0.0, 1.0, 0.5, 0.35)
-	var fixed_material := _material("block_fixed", Palette.BOARD_SLATE.lightened(0.15), 0.0, 1.0, 0.5, 0.5)
+	var fixed_material := _material("block_fixed", Palette.METAL_HIGHLIGHT.darkened(0.3), 0.0, 1.0, 0.7, 0.3)
 	for obj: MovableObject in state.objects:
 		var node := _add_mesh(cube, pushable_material if obj.pushable else fixed_material, Vector3.ZERO)
 		node.name = "Object_%s" % obj.id
@@ -249,6 +282,44 @@ func _build_core() -> void:
 	glow.light_energy = 1.2
 	glow.omni_range = 2.5
 	_core.add_child(glow)
+
+
+## A pivot per section (content at authored orientation; turned in sync_to_state), a fixed frame
+## outlining the square, and a hub on the pivot that visibly turns.
+func _build_section_pivots() -> void:
+	for section: RotatingSectionDefinition in _level.rotating_sections:
+		var pivot := Node3D.new()
+		pivot.name = "Section_%s" % section.id
+		pivot.position = BoardCoords.rect_center(section.rect())
+		add_child(pivot)
+		_section_pivots[section.id] = pivot
+		var frame := TorusMesh.new()
+		frame.inner_radius = section.size * 0.5 * 1.32
+		frame.outer_radius = section.size * 0.5 * 1.42
+		frame.rings = 4
+		frame.ring_segments = 4
+		var frame_node := _add_mesh(frame, _material("section_frame", Palette.MECHANISM_AMBER, 0.5),
+			pivot.position + Vector3(0, -0.02, 0))
+		frame_node.rotation.y = PI / 4.0  # A 4-sided torus, turned to sit square with the grid.
+		_section_frames[section.id] = frame_node
+		var hub := CylinderMesh.new()
+		hub.top_radius = 0.14
+		hub.bottom_radius = 0.14
+		hub.height = 0.05
+		var hub_node := _add_mesh(hub, _material("section_hub", Palette.MECHANISM_AMBER, 0.8), Vector3(0, 0.03, 0), pivot)
+		hub_node.position.x = 0.32  # Off-centre so the turn is visible even on an empty section.
+
+
+## Places a mesh for `cell`: on its section's pivot when inside a section, otherwise on the board.
+func _add_at_cell(mesh: Mesh, material: Material, cell: Vector2i, height: float) -> MeshInstance3D:
+	return _add_at_world(mesh, material, BoardCoords.cell_to_world(cell, height), _level.section_at(cell))
+
+
+func _add_at_world(mesh: Mesh, material: Material, world: Vector3, section: RotatingSectionDefinition) -> MeshInstance3D:
+	if section == null:
+		return _add_mesh(mesh, material, world)
+	var pivot := _section_pivots[section.id]
+	return _add_mesh(mesh, material, world - pivot.position, pivot)
 
 
 # --- Helpers ------------------------------------------------------------------

@@ -4,12 +4,24 @@
     {
       "id": "world_01_awakening",
       "title": "The Awakening",
-      "levels": ["world_01_level_001", "world_01_slice"]
+      "levels": [
+        "world_01_level_001",
+        "world_01_slice"
+      ]
     },
     {
       "id": "world_05_sealed_chambers",
       "title": "The Sealed Chambers",
-      "levels": ["world_05_showcase"]
+      "levels": [
+        "world_05_showcase"
+      ]
+    },
+    {
+      "id": "world_06_shifting_labyrinth",
+      "title": "The Shifting Labyrinth",
+      "levels": [
+        "world_06_quarter_turn"
+      ]
     }
   ]
 }

@@ -1,0 +1,42 @@
+{
+  "schema_version": 3,
+  "id": "world_06_quarter_turn",
+  "title": "Quarter Turn",
+  "world_id": "world_06_shifting_labyrinth",
+  "access": "free",
+  "board": { "width": 7, "height": 7 },
+  "core": { "position": [0, 3], "route_id": "route_in" },
+  "destination": { "position": [6, 6], "seal_id": "seal_final" },
+  "terrain": {
+    "walls": [[5, 2]]
+  },
+  "setup": { "allowed_mechanisms": [] },
+  "routes": {
+    "route_in": {
+      "nodes": [[0, 3], [1, 3], [2, 3]],
+      "checkpoints": [
+        { "id": "cp_turntable", "position": [1, 3], "allowed_mechanisms": ["rotating_sections"] }
+      ]
+    },
+    "track_bend": {
+      "nodes": [[4, 2], [4, 3], [5, 3]],
+      "checkpoints": []
+    },
+    "route_out": {
+      "nodes": [[4, 5], [5, 5], [6, 5], [6, 6]],
+      "checkpoints": []
+    }
+  },
+  "objects": [
+    { "id": "crate", "kind": "block", "position": [5, 4], "pushable": false, "gravity_affected": false }
+  ],
+  "mechanisms": {
+    "rotating_sections": [
+      { "id": "turntable", "position": [3, 2], "size": 3, "allowed_directions": ["clockwise"] }
+    ]
+  },
+  "objectives": [
+    { "type": "reach_destination", "target_id": "seal_final" }
+  ],
+  "scoring": { "target_actions": 2, "optimal_actions": 2 }
+}

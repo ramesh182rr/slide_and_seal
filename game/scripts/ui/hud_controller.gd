@@ -14,6 +14,7 @@ const MECHANISM_LABELS := {
 	MechanismIds.PUSH_PULSE: "Push",
 	MechanismIds.GRAVITY_SHIFT: "Gravity",
 	MechanismIds.SWITCHES_SEALS: "Switches",
+	MechanismIds.ROTATING_SECTIONS: "Rotation",
 }
 
 var _title := Label.new()
@@ -115,7 +116,7 @@ func available_text() -> String:
 	return _available.text
 
 
-## "Tap or swipe a block", "Tap a switch", or both joined. Switches are tap-only.
+## "Tap or swipe a block", "Tap a switch", or both joined. Switches and sections are tap-only.
 static func _how_to(mechanisms: PackedStringArray) -> String:
 	var swipeable := PackedStringArray()
 	if mechanisms.has(MechanismIds.PUSH_PULSE):
@@ -125,8 +126,14 @@ static func _how_to(mechanisms: PackedStringArray) -> String:
 	var parts := PackedStringArray()
 	if not swipeable.is_empty():
 		parts.append("Tap or swipe a " + " or ".join(swipeable))
+	var tap_only := PackedStringArray()
 	if mechanisms.has(MechanismIds.SWITCHES_SEALS):
-		parts.append("tap a switch" if not parts.is_empty() else "Tap a switch")
+		tap_only.append("switch")
+	if mechanisms.has(MechanismIds.ROTATING_SECTIONS):
+		tap_only.append("rotating section")
+	if not tap_only.is_empty():
+		var phrase := "a " + " or ".join(tap_only)
+		parts.append(("tap " if not parts.is_empty() else "Tap ") + phrase)
 	return "; ".join(parts)
 
 

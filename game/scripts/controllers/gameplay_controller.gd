@@ -4,7 +4,7 @@ extends Node
 ## Every state change goes through PuzzleSession; previews use PuzzleSession.preview (same rules).
 ## Input is locked while a committed result is being played back.
 
-enum TargetKind { NONE, OBJECT, ZONE, SWITCH }
+enum TargetKind { NONE, OBJECT, ZONE, SWITCH, SECTION }
 
 ## Emitted when the player confirms leaving the puzzle.
 signal leave_requested
@@ -66,9 +66,9 @@ func _ready() -> void:
 	panel.close_requested.connect(clear_selection)
 	_hud.completion_card().next_requested.connect(func() -> void: next_level_requested.emit())
 	_hud.completion_card().levels_requested.connect(func() -> void: level_select_requested.emit())
-	panel.action_preview_started.connect(func() -> void: preview_target_direction(Grid.Direction.UP))
+	panel.action_preview_started.connect(preview_target_action)
 	panel.action_preview_ended.connect(end_preview)
-	panel.action_chosen.connect(func() -> void: commit_target_direction(Grid.Direction.UP))
+	panel.action_chosen.connect(commit_target_action)
 	_input.tapped.connect(_on_tapped)
 	_input.swipe_previewed.connect(_on_swipe_previewed)
 	_input.swipe_cancelled.connect(end_preview)
@@ -109,6 +109,8 @@ func selected_target() -> String:
 			return "zone:" + _target_id
 		TargetKind.SWITCH:
 			return "switch:" + _target_id
+		TargetKind.SECTION:
+			return "section:" + _target_id
 	return ""
 
 
@@ -212,6 +214,26 @@ func select_switch(switch_id: String) -> void:
 		_set_target(TargetKind.SWITCH, switch_id)
 
 
+func select_section(section_id: String) -> void:
+	if _session.get_level().rotating_section(section_id) == null:
+		return
+	if not _allowed(MechanismIds.ROTATING_SECTIONS):
+		_select_none_with_message("Sections cannot be turned here.")
+	else:
+		_set_target(TargetKind.SECTION, section_id)
+
+
+## Preview / commit the panel's action button `index` (toggle for a switch; a turn for a section).
+func preview_target_action(index: int) -> void:
+	_preview(_panel_action(index))
+
+
+func commit_target_action(index: int) -> void:
+	var action := _panel_action(index)
+	if action != null:
+		request_action(action)
+
+
 func clear_selection() -> void:
 	_set_target(TargetKind.NONE, "")
 
@@ -236,7 +258,7 @@ func _set_target(kind: TargetKind, id: String) -> void:
 	_target_id = id
 	_board.clear_preview()
 	_board.set_highlight(id if kind == TargetKind.OBJECT else "", id if kind == TargetKind.ZONE else "",
-		id if kind == TargetKind.SWITCH else "")
+		id if kind == TargetKind.SWITCH else "", id if kind == TargetKind.SECTION else "")
 	if kind != TargetKind.NONE:
 		_hud.clear_message()
 	_refresh_panel()
@@ -252,12 +274,26 @@ func _refresh_panel() -> void:
 	# Drop a selection the current context no longer supports (e.g. after the core moved on).
 	if _target_kind == TargetKind.OBJECT and not _allowed(MechanismIds.PUSH_PULSE) \
 			or _target_kind == TargetKind.ZONE and not _allowed(MechanismIds.GRAVITY_SHIFT) \
-			or _target_kind == TargetKind.SWITCH and not _allowed(MechanismIds.SWITCHES_SEALS):
+			or _target_kind == TargetKind.SWITCH and not _allowed(MechanismIds.SWITCHES_SEALS) \
+			or _target_kind == TargetKind.SECTION and not _allowed(MechanismIds.ROTATING_SECTIONS):
 		_target_kind = TargetKind.NONE
 		_target_id = ""
 		_board.set_highlight("", "")
 	if _target_kind == TargetKind.NONE:
 		panel.hide_target()
+		return
+	if _target_kind == TargetKind.SECTION:
+		var options: Array = []
+		for clockwise: bool in _section_turn_options(_target_id):
+			options.append({
+				"label": "Turn clockwise" if clockwise else "Turn counter-clockwise",
+				"enabled": not _busy and _session.preview(PuzzleAction.rotate_section(_target_id, clockwise)).is_ok(),
+			})
+		var core_inside := _session.get_level().rotating_section(_target_id).contains(
+			PuzzleSimulator.core_position(_session.get_level(), _session.get_state()))
+		panel.show_actions("Rotating section · Turn",
+			"The core is on this section; it cannot turn now." if core_inside
+				else "Hold to preview where the track will lie, release to turn.", options)
 		return
 	if _target_kind == TargetKind.SWITCH:
 		var on: bool = _session.get_state().toggle_states[_target_id]
@@ -301,6 +337,8 @@ func _on_tapped(screen_position: Vector2) -> void:
 		var gate := level.gate_at(hit.cell)
 		_select_none_with_message("Gate%s opens when every switch marked %s is on."
 			% [_symbol_phrase(gate.id), _board.fixtures().symbol(gate.id)])
+	elif level.section_at(hit.cell) != null:
+		select_section(level.section_at(hit.cell).id)
 	elif level.portal_at(hit.cell) != null:
 		var portal := level.portal_at(hit.cell)
 		_select_none_with_message("Portal%s: carries the core from its entry to the matching exit." % _symbol_phrase(portal.id)
@@ -341,6 +379,28 @@ func _target_at(screen_position: Vector2) -> Array:
 
 func _pick(screen_position: Vector2) -> BoardPicker.Hit:
 	return BoardPicker.pick(_camera_rig.get_camera(), screen_position, _session.get_level(), _session.get_state())
+
+
+## Turn directions the section allows, clockwise first (matches the panel's button order).
+func _section_turn_options(section_id: String) -> Array[bool]:
+	var section := _session.get_level().rotating_section(section_id)
+	var options: Array[bool] = []
+	if section.allow_clockwise:
+		options.append(true)
+	if section.allow_counterclockwise:
+		options.append(false)
+	return options
+
+
+func _panel_action(index: int) -> PuzzleAction:
+	match _target_kind:
+		TargetKind.SWITCH:
+			return PuzzleAction.toggle_switch(_target_id)
+		TargetKind.SECTION:
+			var options := _section_turn_options(_target_id)
+			if index < options.size():
+				return PuzzleAction.rotate_section(_target_id, options[index])
+	return null
 
 
 func _switch_at(cell: Vector2i) -> String:

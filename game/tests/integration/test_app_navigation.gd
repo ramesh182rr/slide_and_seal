@@ -41,10 +41,11 @@ func test_catalog_loads_in_order_without_errors() -> void:
 	var ids := PackedStringArray()
 	for entry: LevelCatalog.Entry in catalog.entries:
 		ids.append(entry.level_id)
-	assert_eq(ids, PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase"]))
+	assert_eq(ids, PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase", "world_06_quarter_turn"]))
 	assert_eq(catalog.worlds[0].title, "The Awakening")
 	assert_eq(catalog.next_after("world_01_slice").level_id, "world_05_showcase")
-	assert_null(catalog.next_after("world_05_showcase"))
+	assert_eq(catalog.next_after("world_05_showcase").level_id, "world_06_quarter_turn")
+	assert_null(catalog.next_after("world_06_quarter_turn"))
 
 
 func test_every_level_file_is_in_the_catalog() -> void:
@@ -62,7 +63,7 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	(app.current_screen() as HomeScreen).play_requested.emit()
 	assert_eq(app.current_screen_name(), AppRoot.LEVEL_SELECT)
 	var screen := app.current_screen() as LevelSelectScreen
-	assert_eq(screen.listed_level_ids(), PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase"]))
+	assert_eq(screen.listed_level_ids(), PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase", "world_06_quarter_turn"]))
 	assert_eq(screen.row_texts("world_01_slice")[0], "2.  The Awakening — Vertical Slice")
 	app.free()
 
@@ -127,12 +128,11 @@ func test_completion_card_offers_next_level() -> void:
 
 func test_last_level_has_no_next_button_and_returns_to_levels() -> void:
 	var app := _spawn()
-	app.start_level("world_05_showcase")
+	app.start_level("world_06_quarter_turn")
 	var gameplay := _gameplay(app)
 	_solve(gameplay, [
-		PuzzleAction.run_core(), PuzzleAction.toggle_switch("lever_gate"), PuzzleAction.run_core(),
-		PuzzleAction.push("block_k", Grid.Direction.DOWN), PuzzleAction.run_core(),
-		PuzzleAction.toggle_switch("lever_portal"), PuzzleAction.run_core(),
+		PuzzleAction.run_core(), PuzzleAction.rotate_section("turntable", true),
+		PuzzleAction.rotate_section("turntable", true), PuzzleAction.run_core(),
 	])
 	var card := gameplay.get_hud().completion_card()
 	assert_true(card.visible)

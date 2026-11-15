@@ -9,6 +9,7 @@ const PUSH_SECONDS := 0.18
 const SLIDE_SECONDS_PER_CELL := 0.08
 const ZONE_TURN_SECONDS := 0.22
 const GATE_SECONDS := 0.25
+const SECTION_TURN_SECONDS := 0.4
 
 ## When true, nothing animates (reduced motion; also used by tests).
 var instant: bool = false
@@ -25,6 +26,7 @@ func play(before: PuzzleState, result: ActionResult) -> void:
 		return
 	var tween := create_tween()
 	var steps := _queue_zone_turns(tween, before, result.state)
+	steps += _queue_section_turns(tween, before, result)
 	if result.travel != null:
 		steps += _queue_travel(tween, result)
 	else:
@@ -47,6 +49,35 @@ func _queue_zone_turns(tween: Tween, before: PuzzleState, after: PuzzleState) ->
 			var turn := func(t: float) -> void: pivot.rotation.y = lerp_angle(from_yaw, to_yaw, t)
 			_tweener(tween, count > 0).tween_method(turn, 0.0, 1.0, ZONE_TURN_SECONDS)
 			count += 1
+	return count
+
+
+## Turned sections rotate their platform; blocks on it orbit the centre in step (D-018).
+func _queue_section_turns(tween: Tween, before: PuzzleState, result: ActionResult) -> int:
+	var level := _board.level()
+	var count := 0
+	for section: RotatingSectionDefinition in level.rotating_sections:
+		var turns_before: int = before.section_turns[section.id]
+		var turns_after: int = result.state.section_turns[section.id]
+		if turns_before == turns_after:
+			continue
+		var pivot := _board.section_pivot(section.id)
+		var from_yaw := BoardRenderer3D.section_yaw(turns_before)
+		# The shortest signed quarter turn (one action = one quarter turn).
+		var delta := -PI / 2.0 if posmod(turns_after - turns_before, 4) == 1 else PI / 2.0
+		var spin := func(t: float) -> void: pivot.rotation.y = from_yaw + delta * t
+		_tweener(tween, count > 0).tween_method(spin, 0.0, 1.0, SECTION_TURN_SECONDS) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		count += 1
+		var center := pivot.position
+		for move: ObjectMove in result.object_moves:
+			if move.cause != ObjectMove.Cause.ROTATION or not section.contains(move.from_cell):
+				continue
+			var node := _board.object_node(move.object_id)
+			var start := BoardRenderer3D.object_world_position(move.from_cell)
+			var orbit := func(t: float) -> void: node.position = center + (start - center).rotated(Vector3.UP, delta * t)
+			tween.parallel().tween_method(orbit, 0.0, 1.0, SECTION_TURN_SECONDS) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	return count
 
 
@@ -86,14 +117,19 @@ func _queue_travel(tween: Tween, result: ActionResult) -> int:
 	return count
 
 
-## A push plays first; gravity slides then play together.
+## A push plays first; gravity slides then play together. Rotation moves are played by
+## _queue_section_turns (blocks ride the turning platform), so they are skipped here.
 func _queue_moves(tween: Tween, moves: Array[ObjectMove]) -> int:
 	var gravity_started := false
+	var count := 0
 	for move: ObjectMove in moves:
+		if move.cause == ObjectMove.Cause.ROTATION:
+			continue
+		count += 1
 		var parallel := move.cause == ObjectMove.Cause.GRAVITY and gravity_started
 		_queue_move(tween, move, parallel)
 		gravity_started = gravity_started or move.cause == ObjectMove.Cause.GRAVITY
-	return moves.size()
+	return count
 
 
 func _queue_move(tween: Tween, move: ObjectMove, parallel: bool) -> void:

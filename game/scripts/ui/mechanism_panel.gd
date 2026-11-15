@@ -10,10 +10,13 @@ signal direction_preview_started(direction: Grid.Direction)
 signal direction_preview_ended
 signal direction_chosen(direction: Grid.Direction)
 signal close_requested
-## Single-action mode (e.g. toggling a switch): same hold-to-preview / release-to-commit pattern.
-signal action_preview_started
+## Action mode (toggling a switch, turning a section): one or two buttons with the same
+## hold-to-preview / release-to-commit pattern. `index` is the button's position in `show_actions`.
+signal action_preview_started(index: int)
 signal action_preview_ended
-signal action_chosen
+signal action_chosen(index: int)
+
+const MAX_ACTIONS := 2
 
 const CELL_SIZE := Vector2(150, 118)
 ## Size of an unused middle row/column, so diagonal-only layouts stay compact.
@@ -26,7 +29,8 @@ var _slots: Array[ArrowButton] = []
 ## Direction shown in each slot, or -1 when the slot is empty.
 var _slot_directions := PackedInt32Array()
 var _buttons: Dictionary[int, ArrowButton] = {}
-var _action_button := Button.new()
+var _action_row := HBoxContainer.new()
+var _action_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -65,13 +69,19 @@ func _ready() -> void:
 	_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(_grid)
 
-	_action_button.custom_minimum_size = Vector2(0, 110)
-	_action_button.focus_mode = Control.FOCUS_NONE
-	_action_button.visible = false
-	_action_button.button_down.connect(func() -> void: action_preview_started.emit())
-	_action_button.button_up.connect(func() -> void: action_preview_ended.emit())
-	_action_button.pressed.connect(func() -> void: action_chosen.emit())
-	column.add_child(_action_button)
+	_action_row.add_theme_constant_override("separation", 16)
+	_action_row.visible = false
+	column.add_child(_action_row)
+	for i: int in MAX_ACTIONS:
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(0, 110)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.focus_mode = Control.FOCUS_NONE
+		button.button_down.connect(func() -> void: action_preview_started.emit(i))
+		button.button_up.connect(func() -> void: action_preview_ended.emit())
+		button.pressed.connect(func() -> void: action_chosen.emit(i))
+		_action_row.add_child(button)
+		_action_buttons.append(button)
 
 	for i: int in 9:
 		var button := ArrowButton.new()
@@ -90,7 +100,7 @@ func show_target(title: String, hint: String, options: Array[Dictionary]) -> voi
 	_title.text = title
 	_hint.text = hint
 	_grid.visible = true
-	_action_button.visible = false
+	_action_row.visible = false
 	_buttons.clear()
 	_slot_directions.fill(-1)
 	for option: Dictionary in options:
@@ -119,18 +129,27 @@ func show_target(title: String, hint: String, options: Array[Dictionary]) -> voi
 
 ## Single-button mode: one action instead of directions.
 func show_action(title: String, hint: String, button_text: String, enabled: bool) -> void:
+	show_actions(title, hint, [{"label": button_text, "enabled": enabled}])
+
+
+## Action mode with up to MAX_ACTIONS buttons; `options` holds {label: String, enabled: bool}.
+func show_actions(title: String, hint: String, options: Array) -> void:
 	_title.text = title
 	_hint.text = hint
 	_buttons.clear()
 	_grid.visible = false
-	_action_button.visible = true
-	_action_button.text = button_text
-	_action_button.disabled = not enabled
+	_action_row.visible = true
+	for i: int in MAX_ACTIONS:
+		var button := _action_buttons[i]
+		button.visible = i < options.size()
+		if button.visible:
+			button.text = options[i]["label"]
+			button.disabled = not options[i]["enabled"]
 	visible = true
 
 
-func action_button() -> Button:
-	return _action_button
+func action_button(index: int = 0) -> Button:
+	return _action_buttons[index]
 
 
 func hide_target() -> void:

@@ -177,6 +177,20 @@ The validator's dead ends in the slice (see the M4 changelog) are accepted for t
 - **Completion card:** shows the stars for this run and "New best!" on the first completion or an improvement.
 - **Tests never touch the real save:** they use `user://test_*.json` scratch files cleaned in `after_each()`, and `TestFiles.remove_progress` refuses the real path.
 
+### P-014 — Presenting rotating sections (M6b)
+- **Visuals:**
+  - Each section is a pivot carrying its floor tiles (slightly lighter), walls and track inlay, turned to the current orientation.
+  - A fixed amber square frame outlines it (cyan when selected), and an off-centre hub shows the turn.
+- **Playback:** the platform turns over 0.4 s, and blocks on it orbit the centre in step. Gravity and gate changes play afterwards.
+- **Interaction:**
+  - Tap any section cell without a block to select the section.
+  - The panel shows one button per allowed direction ("Turn clockwise" / "Turn counter-clockwise"), with hold to preview and release to turn.
+  - The preview shows where the track pieces will lie and where blocks will land.
+  - Sections are tap-only, like switches.
+- Fixed (non-pushable) blocks are drawn grey steel, to stand apart from walls and pushable blocks.
+
+**Open question for the owner:** with D-017 the core may enter a track piece whose far end does not yet connect, and it then strands inside (undo recovers). An alternative rule, "the core enters a track piece only when both ends connect", would remove that whole class of softlock. That would be a rule change, so it is not implemented.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically
