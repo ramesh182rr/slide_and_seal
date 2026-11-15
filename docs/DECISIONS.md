@@ -157,6 +157,27 @@ Blocks may carry `polarity` `+` or `-` (unmarked = neutral). The core never reac
 - **World 1:** keeps doc 09's six teaching beats, with small decisions added where possible.
 - **Review flow:** one world at a time. Each level is proven by the validator (solvable, proven minimum, softlock scan) and screenshotted before owner review.
 
+### D-031 — Free view rotation (2026-11-15)
+The player can rotate the board **view** to any angle around the board centre. This is presentation only: it never changes the puzzle, and it is unrelated to the rotating-section mechanic. Arrow panels, swipes and picking follow the live camera projection.
+
+### D-032 — View controls: gestures plus buttons (2026-11-15)
+- **Gestures:** pinch to zoom, two-finger drag to pan, two-finger twist to rotate (free).
+- **Buttons:** on-screen rotate left/right (animated 90° steps), zoom in/out and reset view.
+- **Desktop:** mouse wheel zooms, Q/E rotate, R resets.
+
+### D-033 — Redesign Worlds 1–2 to a richer standard (2026-11-15)
+- Owner feedback: the drafted levels felt too simple, with too few interactions.
+- **New standard:**
+  - every level has a named hook
+  - boards grow through each world
+  - several checkpoints or decision points
+  - rising difficulty within a world
+- Worlds 1 and 2 are redone before World 3.
+
+### D-034 — World 1 teaches levers and gates (2026-11-15; changes the doc 07/09 teaching order)
+- World 1 levels 1–2 stay gentle route/checkpoint introductions. The rest teach levers and gates in depth: symbols, multi-lever gates, lever order across checkpoints, and gates never closing on the core.
+- World 5 then focuses on pressure plates and energy.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -302,6 +323,16 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - Proven minimums are 1, 1, 1, 2, 2 and 3, with 0 dead ends in all six.
 - Blocks are non-pushable (push is World 3).
 - Known art gap: these blocks are drawn as grey "fixed" steel, with no visual cue yet for "affected by gravity".
+
+### P-022 — View control details (M9a, implements D-031 / D-032)
+- **Gestures:** a second finger turns any touch into a view gesture: pinch zooms, twist rotates freely (the board follows the fingers), and the midpoint drag pans.
+  - A swipe preview in progress is cancelled.
+  - No tap or swipe fires until every finger is lifted, so ending a gesture never selects or pushes anything.
+- **Buttons:** a slim column on the right edge (rotate counter-clockwise, rotate clockwise, zoom in, zoom out, reset). Turns are 90° and animate over 0.3 s; reduced motion makes them instant. Each zoom step is ×1.25.
+- **Limits:** zoom 1× (the whole board fits) to 3×. Panning stops when the view centre reaches the board's edge, so the board can never be lost off screen. Reset restores the default 45° view, 1× zoom and no pan.
+- **View changes work during move playback** (they are presentation only). The arrow pad and swipe directions update live.
+- **Desktop:** the mouse wheel zooms ×1.1, Q/E turn the view, R resets, and trackpad pinch and scroll zoom and pan.
+- The view is not saved; each level opens at the default view.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

@@ -7,8 +7,14 @@ extends CanvasLayer
 signal run_requested
 signal undo_requested
 signal restart_requested
+## View controls (D-032): presentation only.
+signal view_turn_requested(clockwise: bool)
+signal view_zoom_requested(factor: float)
+signal view_reset_requested
 
 const MARGIN := 48
+const VIEW_BUTTON_SIZE := 84.0
+const VIEW_ZOOM_STEP := 1.25
 
 const MECHANISM_LABELS := {
 	MechanismIds.PUSH_PULSE: "Push",
@@ -31,6 +37,7 @@ var _restart := Button.new()
 var _run := Button.new()
 var _margin := MarginContainer.new()
 var _leave_dialog := LeaveDialog.new()
+var _view_buttons: Dictionary[IconButton.Icon, IconButton] = {}
 
 
 func _ready() -> void:
@@ -50,6 +57,7 @@ func _ready() -> void:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 12)
 	_margin.add_child(column)
+	_build_view_controls()
 
 	UiTheme.style_label(_title, 44, Palette.TEXT)
 	UiTheme.style_label(_status, 32, Palette.CYAN_ENERGY)
@@ -83,6 +91,35 @@ func _ready() -> void:
 		buttons.add_child(button)
 	# Last child of the root so it draws above, and captures input over, everything else.
 	root.add_child(_leave_dialog)
+
+
+## A slim vertical cluster on the right edge, centred on the board band. Only the buttons take
+## input; the gaps between them pass touches through to the board.
+func _build_view_controls() -> void:
+	var cluster := VBoxContainer.new()
+	cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cluster.add_theme_constant_override("separation", 10)
+	cluster.size_flags_horizontal = Control.SIZE_SHRINK_END
+	cluster.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_margin.add_child(cluster)
+	var specs: Array[Array] = [
+		[IconButton.Icon.ROTATE_LEFT, func() -> void: view_turn_requested.emit(false)],
+		[IconButton.Icon.ROTATE_RIGHT, func() -> void: view_turn_requested.emit(true)],
+		[IconButton.Icon.ZOOM_IN, func() -> void: view_zoom_requested.emit(VIEW_ZOOM_STEP)],
+		[IconButton.Icon.ZOOM_OUT, func() -> void: view_zoom_requested.emit(1.0 / VIEW_ZOOM_STEP)],
+		[IconButton.Icon.RESET_VIEW, func() -> void: view_reset_requested.emit()],
+	]
+	for spec: Array in specs:
+		var button := IconButton.new(spec[0] as IconButton.Icon)
+		button.custom_minimum_size = Vector2(VIEW_BUTTON_SIZE, VIEW_BUTTON_SIZE)
+		button.modulate.a = 0.85
+		button.pressed.connect(spec[1] as Callable)
+		cluster.add_child(button)
+		_view_buttons[spec[0] as IconButton.Icon] = button
+
+
+func view_button(icon: IconButton.Icon) -> IconButton:
+	return _view_buttons[icon]
 
 
 func set_title(text: String) -> void:

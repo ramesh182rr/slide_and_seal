@@ -55,6 +55,16 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_swipe_vectors)
 	_director.setup(_board)
 	_director.instant = instant_playback
+	_camera_rig.instant = instant_playback
+	_camera_rig.view_changed.connect(_on_view_changed)
+	_hud.view_turn_requested.connect(_camera_rig.turn_view)
+	_hud.view_zoom_requested.connect(_camera_rig.zoom_by)
+	_hud.view_reset_requested.connect(_camera_rig.reset_view)
+	_input.turn_requested.connect(_camera_rig.turn_view)
+	_input.rotate_requested.connect(_camera_rig.rotate_view)
+	_input.zoom_requested.connect(_camera_rig.zoom_by)
+	_input.pan_requested.connect(_camera_rig.pan_by_screen)
+	_input.reset_view_requested.connect(_camera_rig.reset_view)
 	_hud.set_title(loaded.level.title)
 	_hud.run_requested.connect(func() -> void: request_action(PuzzleAction.run_core()))
 	_hud.undo_requested.connect(request_undo)
@@ -549,6 +559,13 @@ func _refresh() -> void:
 			next_level_available)
 	else:
 		card.hide()
+
+
+## The view moved: swipe classification and the arrow pad must follow the new projection.
+func _on_view_changed() -> void:
+	_update_swipe_vectors()
+	if _target_kind == TargetKind.OBJECT or _target_kind == TargetKind.ZONE:
+		_refresh_panel()
 
 
 func _update_swipe_vectors() -> void:

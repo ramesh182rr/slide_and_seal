@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M9a: board view controls (rotate, zoom, pan)
+
+**Added**
+- **Free view rotation, zoom and pan** of the board (D-031, D-032, P-022). The view is presentation only and never changes the puzzle.
+  - **Touch:** pinch zooms, two-finger twist rotates to any angle, two-finger drag pans.
+  - **Buttons:** a right-edge column with rotate counter-clockwise/clockwise (animated 90°), zoom in/out and reset view. The icons are drawn in code (`IconButton`).
+  - **Desktop:** the mouse wheel zooms, Q/E turn, R resets, and trackpad pinch and scroll work.
+- `CameraRig`: `rotate_view`, `turn_view`, `zoom_by`, `pan_by_screen`, `reset_view` and a `view_changed` signal. Zoom is clamped to 1×–3×, and the pan keeps the board on screen.
+- Swipe directions and the arrow pad follow the live view, and picking works at any angle and zoom.
+- Tests: `test_camera_controls.gd` (12 tests) covers buttons, wheel, keys, pinch, twist direction, two-finger pan, clamping, reset, picking after a view change, and that a gesture never leaves a stray tap or push.
+
+**Fixed (during development)**
+- The twist and the turn buttons first rotated the board against the fingers and the icon. A test caught this before it shipped.
+
+**Known limitations**
+- Gestures were tested with synthetic touch events only. A real multi-touch check needs a device, since the emulator only offers a limited pinch.
+- At high zoom the board can sit under the top labels and the button column.
+- The view resets on each level and is not saved.
+
 ### 2026-11-15 — Campaign: World 2 "Gravity Works" drafted; Android emulator play test
 
 **Added**
