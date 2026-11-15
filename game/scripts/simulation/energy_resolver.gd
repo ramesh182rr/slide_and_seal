@@ -58,7 +58,7 @@ static func _trace_one(level: LevelDefinition, state: PuzzleState, emitter: Emit
 	for step: int in MAX_BEAM_STEPS:
 		cell += Grid.offset(direction)
 		if not level.in_bounds(cell) or PuzzleSimulator.is_terrain_wall_at(level, state, cell) \
-				or level.emitter_at(cell) != null or state.object_at(cell) != null \
+				or level.emitter_at(cell) != null or level.magnet_at(cell) != null or state.object_at(cell) != null \
 				or SwitchGateResolver.is_closed_gate_at(level, state, cell):
 			return beam
 		var key := "%d,%d,%d" % [cell.x, cell.y, direction]

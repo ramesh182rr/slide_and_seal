@@ -125,6 +125,33 @@ static func energy_corridor() -> Dictionary:
 	return allow_everywhere(data, [MechanismIds.ENERGY_ROUTING])
 
 
+## 7x5 board, route along y = 2 from (0,2) to (6,2), checkpoint "cp" at (3,2) (on the magnet's
+## column). Magnet "m" at (3,0) starts with `polarity`. Magnetic polarity allowed everywhere.
+static func magnet_corridor(polarity: String = "-") -> Dictionary:
+	var data := corridor()
+	data["id"] = "test_magnet_corridor"
+	data["board"] = {"width": 7, "height": 5}
+	data["core"] = {"position": [0, 2], "route_id": "main"}
+	data["destination"] = {"position": [6, 2], "seal_id": "seal"}
+	data["routes"] = {"main": {
+		"nodes": [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2]],
+		"checkpoints": [{"id": "cp", "position": [3, 2], "auto_pause": true, "allowed_mechanisms": []}],
+	}}
+	add_magnet(data, "m", Vector2i(3, 0), polarity)
+	return allow_everywhere(data, [MechanismIds.MAGNETIC_POLARITY])
+
+
+static func add_magnet(data: Dictionary, id: String, cell: Vector2i, polarity: String) -> Dictionary:
+	_collection(data, "magnetic_fields").append({"id": id, "position": [cell.x, cell.y], "polarity": polarity})
+	return data
+
+
+## Adds a block with a magnetic polarity ("+" or "-"). Returns `data` for chaining.
+static func add_polar_block(data: Dictionary, id: String, cell: Vector2i, polarity: String) -> Dictionary:
+	(data["objects"] as Array).append({"id": id, "kind": "block", "position": [cell.x, cell.y], "polarity": polarity})
+	return data
+
+
 static func add_emitter(data: Dictionary, id: String, cell: Vector2i, direction: String, requires: Array = []) -> Dictionary:
 	_collection(data, "energy_emitters").append(
 		{"id": id, "position": [cell.x, cell.y], "direction": direction, "requires": requires})

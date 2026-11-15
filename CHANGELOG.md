@@ -5,6 +5,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M8a: Magnetic Polarity (rules) — all eight mechanics now in the rules engine
+
+**Added**
+- **Magnets** (`mechanisms.magnetic_fields`, `MagnetDefinition`) and block `polarity` (`+` / `-`; neutral when omitted).
+- **`PuzzleAction.flip_magnet`** (mechanism `magnetic_polarity`, D-026): switches polarity and fires one pulse (`MagnetResolver.pulse`), counted as one action. Afterwards gravity settles and the gate rules apply.
+- **Pulse rules** (D-027 – D-029):
+  - it reaches along the magnet's row and column until a wall, closed gate or solid fixture, passing over the core
+  - only the first block per line reacts (neutral blocks shield)
+  - a polarised block moves one cell toward (opposite) or away (like) if that cell is free
+  - pulse only, never continuous
+- **Solid fixtures:** magnets are solid and stop beams.
+- **State key:** magnet polarity and block polarity.
+- **Loader:** magnets validated like other solid fixtures; `magnetic_objects` rejected with a pointer to `polarity`; allowing `magnetic_polarity` requires a magnet.
+- The solver includes magnet flips.
+- **Tests:** 20 new, bringing the suite to 303. They cover:
+  - attraction and repulsion, reversing by flipping back, blocks unable to enter the magnet, the board edge
+  - neutral shielding, first-block-only, walls stopping the field, all four lines in one pulse
+  - the field passing over the core, which blocks cannot move onto
+  - pulse-only, magnets solid and stopping beams, rejections, undo/preview/key, the solver minimum
+  - 5 loader rules
+
+**Changed**
+- The "unsupported mechanism" loader test now uses `push_devices`, the only collection still unimplemented.
+
+**Verified**
+- Mutation checks: removing shielding, swapping attract/repel, and dropping the free-cell check are each caught. The first run showed two shielding tests passing by coincidence (the shielded block could not have moved anyway); both were rebuilt so the shielded block *would* move if unshielded, and they now catch the mutation.
+- All five shipped levels validate unchanged.
+
+**Known limitations**
+- Rules only: magnets and polarity are not drawn or interactive in 3D yet.
+- Magnets inside rotating sections are not supported yet.
+
 ### 2026-11-15 — M7b: Energy routing in 3D, plus "Reflector Logic"
 
 **Added**

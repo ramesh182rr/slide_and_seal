@@ -7,7 +7,8 @@ extends RefCounted
 ## TOGGLE_SWITCH: target_id = toggle switch id (D-014); direction unused.
 ## ROTATE_SECTION: target_id = rotating section id; `clockwise` picks the turn (D-020).
 ## FLIP_REFLECTOR: target_id = reflector id (D-022).
-enum Kind { RUN_CORE, PUSH, SET_GRAVITY, TOGGLE_SWITCH, ROTATE_SECTION, FLIP_REFLECTOR }
+## FLIP_MAGNET: target_id = magnet id; switches its polarity and fires one pulse (D-026).
+enum Kind { RUN_CORE, PUSH, SET_GRAVITY, TOGGLE_SWITCH, ROTATE_SECTION, FLIP_REFLECTOR, FLIP_MAGNET }
 
 var kind: Kind = Kind.RUN_CORE
 var target_id: String = ""
@@ -28,6 +29,8 @@ func describe() -> String:
 			return "rotate %s %s" % [target_id, "cw" if clockwise else "ccw"]
 		Kind.FLIP_REFLECTOR:
 			return "flip %s" % target_id
+		Kind.FLIP_MAGNET:
+			return "magnet %s" % target_id
 	return "run"
 
 
@@ -72,4 +75,11 @@ static func flip_reflector(reflector_id: String) -> PuzzleAction:
 	var action := PuzzleAction.new()
 	action.kind = Kind.FLIP_REFLECTOR
 	action.target_id = reflector_id
+	return action
+
+
+static func flip_magnet(magnet_id: String) -> PuzzleAction:
+	var action := PuzzleAction.new()
+	action.kind = Kind.FLIP_MAGNET
+	action.target_id = magnet_id
 	return action

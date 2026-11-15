@@ -24,6 +24,8 @@ static func apply_action(level: LevelDefinition, state: PuzzleState, action: Puz
 			return _rotate_section(level, state, action)
 		PuzzleAction.Kind.FLIP_REFLECTOR:
 			return _flip_reflector(level, state, action)
+		PuzzleAction.Kind.FLIP_MAGNET:
+			return _flip_magnet(level, state, action)
 	return ActionResult.rejected(ActionResult.Failure.UNKNOWN_ACTION, "Unknown action kind %d." % action.kind)
 
 
@@ -387,6 +389,25 @@ static func _flip_reflector(level: LevelDefinition, state: PuzzleState, action: 
 	next.reflector_slash[reflector.id] = not state.reflector_slash[reflector.id]
 	var core_cell := core_position(level, state)
 	var moves := stabilize(level, next, core_cell)
+	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
+	if gate_rejection != null:
+		return gate_rejection
+	next.mechanism_action_count += 1
+	return ActionResult.success(next, null, moves)
+
+
+static func _flip_magnet(level: LevelDefinition, state: PuzzleState, action: PuzzleAction) -> ActionResult:
+	var rejection := _check_mechanism_available(level, state, MechanismIds.MAGNETIC_POLARITY)
+	if rejection != null:
+		return rejection
+	var magnet := level.magnet_by_id(action.target_id)
+	if magnet == null:
+		return ActionResult.rejected(ActionResult.Failure.INVALID_TARGET, "No magnet '%s'." % action.target_id)
+	var next := state.clone()
+	next.magnet_positive[magnet.id] = not state.magnet_positive[magnet.id]
+	var core_cell := core_position(level, state)
+	var moves := MagnetResolver.pulse(level, next, magnet, core_cell)
+	moves.append_array(stabilize(level, next, core_cell))
 	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
 	if gate_rejection != null:
 		return gate_rejection

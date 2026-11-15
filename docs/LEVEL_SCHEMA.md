@@ -21,7 +21,7 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `routes` | `{route_id: Route}` | yes | One or more segments, linked by portals or by track pieces in rotating sections (D-003, D-017). |
 | `objects` | `[Object]` | no | Movable objects. |
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
-| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates`, `portals`, `rotating_sections`, `energy_emitters` and `reflectors` are supported. Every other collection must be empty until its resolver exists. |
+| `mechanisms` | `{collection: []}` | no | Every collection except `push_devices` is supported. `receivers` and `magnetic_objects` are rejected with a pointer to their replacement. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
@@ -55,20 +55,21 @@ Segments and connections (validated by the loader):
 ### Allowed mechanisms
 These rules apply to both `setup.allowed_mechanisms` and checkpoint `allowed_mechanisms`:
 - Known names: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
-- Only `gravity_shift`, `push_pulse`, `switches_seals`, `rotating_sections` and `energy_routing` are implemented. The others are rejected.
+- All except `portal_network` are implemented. Portals are fixed or switch-controlled and have no player action.
 - No name may be listed twice.
 - Allowing `gravity_shift` requires at least one gravity zone.
 - Allowing `push_pulse` requires at least one pushable object.
 - Allowing `switches_seals` requires at least one toggle switch. Pressure switches and receivers are not player-operated.
-- Allowing `energy_routing` requires at least one reflector, and allowing `rotating_sections` requires at least one section.
+- Allowing `energy_routing` requires at least one reflector, `rotating_sections` at least one section, and `magnetic_polarity` at least one magnet.
 
 ### Object
 ```json
-{ "id": "block_a", "kind": "block", "position": [2,3], "pushable": true, "gravity_affected": true }
+{ "id": "block_a", "kind": "block", "position": [2,3], "pushable": true, "gravity_affected": true, "polarity": "+" }
 ```
 Object rules:
 - `kind` is currently `block`.
 - `pushable` and `gravity_affected` default to `true`.
+- `polarity` (optional): `+` or `-`. Omit it for a neutral block (D-029).
 - in bounds, not on a wall
 - no two objects on one cell
 - not on the core's start cell
@@ -142,6 +143,14 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - `orientation` is `/` or `\` (written `"\\"` in JSON). The player flips it with `energy_routing` (D-022).
 - **Emitters and reflectors are solid:** in bounds, not on a wall or route, not sharing a cell with any other fixture, and not inside a rotating section. Their ids share the namespace of switches and gates.
 
+### Magnet (`mechanisms.magnetic_fields`)
+```json
+{ "id": "magnet_a", "position": [3,0], "polarity": "-" }
+```
+- `polarity` is `+` or `-`. The player flips it with `magnetic_polarity`, and each flip fires one pulse (D-026 – D-028).
+- A pulse reaches along the magnet's row and column until a wall, closed gate or solid fixture. In each line only the first block reacts, moving one cell toward (opposite) or away (like) if that cell is free.
+- Magnets are solid fixtures, with the same placement rules as emitters and reflectors.
+
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
 
@@ -155,3 +164,4 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Added in M5b (backward compatible): `portals` content and multiple route segments.
 - Added in M6a (backward compatible): `rotating_sections` content and track pieces.
 - Added in M7a (backward compatible): `energy_emitters`, `reflectors`, and switch kind `receiver`. `mechanisms.receivers` is rejected with a pointer to the switch kind.
+- Added in M8a (backward compatible): `magnetic_fields` and object `polarity`. `mechanisms.magnetic_objects` is rejected with a pointer to `polarity`.

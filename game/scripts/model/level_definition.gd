@@ -31,6 +31,8 @@ var rotating_sections: Array[RotatingSectionDefinition] = []
 var emitters: Array[EmitterDefinition] = []
 ## Sorted by id.
 var reflectors: Array[ReflectorDefinition] = []
+## Sorted by id.
+var magnets: Array[MagnetDefinition] = []
 ## Mechanisms usable before the first run (D-008).
 var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
@@ -95,9 +97,24 @@ func receiver_at(cell: Vector2i) -> SwitchDefinition:
 	return null
 
 
-## Emitters and reflectors are solid fixtures: blocks and the core cannot enter them (beams use them).
+func magnet_by_id(magnet_id: String) -> MagnetDefinition:
+	for magnet: MagnetDefinition in magnets:
+		if magnet.id == magnet_id:
+			return magnet
+	return null
+
+
+func magnet_at(cell: Vector2i) -> MagnetDefinition:
+	for magnet: MagnetDefinition in magnets:
+		if magnet.position == cell:
+			return magnet
+	return null
+
+
+## Emitters, reflectors and magnets are solid fixtures: blocks and the core cannot enter them.
+## (Beams pass reflectors and stop at emitters; magnets stop beams as walls do.)
 func is_solid_fixture(cell: Vector2i) -> bool:
-	return emitter_at(cell) != null or reflector_at(cell) != null
+	return emitter_at(cell) != null or reflector_at(cell) != null or magnet_at(cell) != null
 
 
 func rotating_section(section_id: String) -> RotatingSectionDefinition:
@@ -154,5 +171,7 @@ func create_initial_state() -> PuzzleState:
 		state.section_turns[section.id] = 0
 	for reflector: ReflectorDefinition in reflectors:
 		state.reflector_slash[reflector.id] = reflector.initially_slash
+	for magnet: MagnetDefinition in magnets:
+		state.magnet_positive[magnet.id] = magnet.initially_positive
 	EnergyResolver.update_power(self, state)
 	return state

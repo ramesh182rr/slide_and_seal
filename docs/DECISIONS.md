@@ -137,6 +137,21 @@ The core never interacts with beams.
 ### D-025 — Emitters may be switch-controlled (2026-11-15)
 An emitter is always on unless it lists `requires` switches, which must then all be on.
 
+### D-026 — Flipping a magnet fires a pulse (2026-11-15)
+The player action `FLIP_MAGNET` (mechanism `magnetic_polarity`) switches a magnet between + and −. It then immediately resolves one pulse with the new polarity, and counts as one action.
+
+### D-027 — Pulse reach and movement (2026-11-15)
+- The pulse travels along the magnet's row and column in all four directions until a wall, closed gate, solid fixture or the board edge.
+- In each line only the **first block** is affected; it shields everything behind it. A neutral block just shields.
+- A polarised block moves **one cell**: toward the magnet if the polarity is opposite, away if it matches. It moves only if that cell is free (in bounds, not a wall or solid fixture, no block, not the core, not a closed gate). Otherwise it stays.
+- The four lines never share cells, so the moves cannot conflict. Gravity then settles, and the gate rules apply.
+
+### D-028 — Pulse only, no continuous force (2026-11-15; doc 18 #7)
+Magnets act only at the moment they are flipped. Blocks moved later are not pulled back.
+
+### D-029 — Only blocks are magnetic (2026-11-15)
+Blocks may carry `polarity` `+` or `-` (unmarked = neutral). The core never reacts to magnets, and the field passes over the core's cell.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -236,6 +251,12 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
   - Mirrors are tap-only: the panel shows "Flip mirror", hold to preview and release to flip.
   - Tapping a receiver or emitter explains it.
   - The panel title avoids `/` and `\`, because grid diagonals look horizontal or vertical in the isometric view.
+
+### P-017 — Magnetic polarity details (M8a)
+- **Magnets are solid fixtures**, like emitters and reflectors: never on a route, never sharing a cell, never inside a rotating section (first version). They also stop energy beams.
+- **A flip always succeeds**, even if no block moves: the polarity changes, which matters for the next pulse.
+- **Order of a flip:** the pulse resolves first, then gravity settles and gates are re-evaluated. A result that would close a gate on something is rejected as usual.
+- Blocks keep their polarity when pushed, dropped or turned with a section.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

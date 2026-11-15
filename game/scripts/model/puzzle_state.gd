@@ -20,6 +20,8 @@ var toggle_states: Dictionary[String, bool] = {}
 var section_turns: Dictionary[String, int] = {}
 ## True while the core travels a track piece from its last node towards its first (D-017).
 var core_route_reversed: bool = false
+## Current polarity of each magnet: true = + (D-026).
+var magnet_positive: Dictionary[String, bool] = {}
 ## Current orientation of each reflector: true = "/" (D-022).
 var reflector_slash: Dictionary[String, bool] = {}
 ## Receivers currently reached by a beam (D-024). DERIVED: always recomputed by
@@ -45,6 +47,7 @@ func clone() -> PuzzleState:
 	copy.section_turns = section_turns.duplicate()
 	copy.core_route_reversed = core_route_reversed
 	copy.reflector_slash = reflector_slash.duplicate()
+	copy.magnet_positive = magnet_positive.duplicate()
 	copy.powered_receivers = powered_receivers.duplicate()
 	copy.reached_checkpoint_ids = reached_checkpoint_ids.duplicate()
 	copy.mechanism_action_count = mechanism_action_count
@@ -87,8 +90,9 @@ func has_same_object_positions(other: PuzzleState) -> bool:
 func to_key(include_counters: bool = true) -> String:
 	var object_parts := PackedStringArray()
 	for obj: MovableObject in objects:
-		object_parts.append("%s:%s@%d,%d%s%s" % [obj.id, obj.kind, obj.position.x, obj.position.y,
-			"p" if obj.pushable else "", "g" if obj.gravity_affected else ""])
+		object_parts.append("%s:%s@%d,%d%s%s%s" % [obj.id, obj.kind, obj.position.x, obj.position.y,
+			"p" if obj.pushable else "", "g" if obj.gravity_affected else "",
+			"+" if obj.polarity > 0 else ("-" if obj.polarity < 0 else "")])
 	var zone_ids: Array[String] = gravity_directions.keys()
 	zone_ids.sort()
 	var gravity_parts := PackedStringArray()
@@ -109,6 +113,11 @@ func to_key(include_counters: bool = true) -> String:
 	var reflector_parts := PackedStringArray()
 	for reflector_id: String in reflector_ids:
 		reflector_parts.append("%s:%s" % [reflector_id, "/" if reflector_slash[reflector_id] else "\\"])
+	var magnet_ids: Array[String] = magnet_positive.keys()
+	magnet_ids.sort()
+	var magnet_parts := PackedStringArray()
+	for magnet_id: String in magnet_ids:
+		magnet_parts.append("%s:%s" % [magnet_id, "+" if magnet_positive[magnet_id] else "-"])
 	var parts := PackedStringArray([
 		"phase=%d" % phase,
 		"core=%s#%d%s" % [core_route_id, core_node_index, "r" if core_route_reversed else ""],
@@ -117,6 +126,7 @@ func to_key(include_counters: bool = true) -> String:
 		"gravity=" + "|".join(gravity_parts),
 		"toggles=" + "|".join(toggle_parts),
 		"reflectors=" + "|".join(reflector_parts),
+		"magnets=" + "|".join(magnet_parts),
 		"checkpoints=" + "|".join(reached_checkpoint_ids),
 	])
 	if include_counters:

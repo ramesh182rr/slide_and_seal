@@ -182,6 +182,14 @@ func _parse_objects(level: LevelDefinition, objects: Array) -> void:
 		var obj := MovableObject.new(_string(data, "id", context), kind, position)
 		obj.pushable = _bool(data, "pushable", context, true)
 		obj.gravity_affected = _bool(data, "gravity_affected", context, true)
+		if data.has("polarity"):
+			match data["polarity"]:
+				"+":
+					obj.polarity = 1
+				"-":
+					obj.polarity = -1
+				_:
+					_error("%s.polarity must be \"+\" or \"-\"" % context)
 		level.initial_objects.append(obj)
 	level.initial_objects.sort_custom(func(a: MovableObject, b: MovableObject) -> bool: return a.id < b.id)
 
@@ -231,6 +239,13 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 				"receivers":
 					_error("mechanisms.receivers is not used: declare receivers in mechanisms.switches with kind 'receiver'")
 					break
+				"magnetic_fields":
+					var magnet := _parse_magnet(entries[i], context)
+					if magnet != null:
+						level.magnets.append(magnet)
+				"magnetic_objects":
+					_error("mechanisms.magnetic_objects is not used: give blocks a \"polarity\" of \"+\" or \"-\"")
+					break
 				_:
 					_error("mechanisms.%s is not supported by the simulation yet" % key)
 					break
@@ -241,6 +256,7 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 	level.portals.sort_custom(func(a: PortalDefinition, b: PortalDefinition) -> bool: return a.id < b.id)
 	level.emitters.sort_custom(func(a: EmitterDefinition, b: EmitterDefinition) -> bool: return a.id < b.id)
 	level.reflectors.sort_custom(func(a: ReflectorDefinition, b: ReflectorDefinition) -> bool: return a.id < b.id)
+	level.magnets.sort_custom(func(a: MagnetDefinition, b: MagnetDefinition) -> bool: return a.id < b.id)
 	level.rotating_sections.sort_custom(
 		func(a: RotatingSectionDefinition, b: RotatingSectionDefinition) -> bool: return a.id < b.id)
 
@@ -279,6 +295,24 @@ func _parse_reflector(value: Variant, context: String) -> ReflectorDefinition:
 		_:
 			_error("%s.orientation must be \"/\" or \"\\\"" % context)
 	return reflector
+
+
+func _parse_magnet(value: Variant, context: String) -> MagnetDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var magnet := MagnetDefinition.new()
+	magnet.id = _string(data, "id", context)
+	magnet.position = _cell(data.get("position"), context + ".position")
+	match data.get("polarity"):
+		"+":
+			magnet.initially_positive = true
+		"-":
+			magnet.initially_positive = false
+		_:
+			_error("%s.polarity must be \"+\" or \"-\"" % context)
+	return magnet
 
 
 func _parse_rotating_section(value: Variant, context: String) -> RotatingSectionDefinition:
@@ -616,6 +650,8 @@ func _validate_energy(level: LevelDefinition) -> void:
 				_error("emitter '%s' requires unknown switch '%s'" % [emitter.id, switch_id])
 	for reflector: ReflectorDefinition in level.reflectors:
 		fixtures.append(["reflector", reflector.id, reflector.position])
+	for magnet: MagnetDefinition in level.magnets:
+		fixtures.append(["magnet", magnet.id, magnet.position])
 	for fixture: Array in fixtures:
 		var label := "%s '%s'" % [fixture[0], fixture[1]]
 		if ids.has(fixture[1]):
@@ -663,6 +699,8 @@ func _validate_rotating_sections(level: LevelDefinition) -> void:
 			unsupported.append(["emitter '%s'" % emitter.id, emitter.position])
 		for reflector: ReflectorDefinition in level.reflectors:
 			unsupported.append(["reflector '%s'" % reflector.id, reflector.position])
+		for magnet: MagnetDefinition in level.magnets:
+			unsupported.append(["magnet '%s'" % magnet.id, magnet.position])
 		for route: RouteDefinition in level.routes.values():
 			for checkpoint: CheckpointDefinition in route.checkpoints:
 				unsupported.append(["checkpoint '%s'" % checkpoint.id, checkpoint.position])
@@ -810,6 +848,8 @@ func _validate_mechanism_availability(level: LevelDefinition) -> void:
 			_error("%s allows push_pulse but the level has no pushable objects" % context)
 		if allowed.has(MechanismIds.SWITCHES_SEALS) and not has_toggle:
 			_error("%s allows switches_seals but the level has no toggle switches" % context)
+		if allowed.has(MechanismIds.MAGNETIC_POLARITY) and level.magnets.is_empty():
+			_error("%s allows magnetic_polarity but the level has no magnets" % context)
 		if allowed.has(MechanismIds.ENERGY_ROUTING) and level.reflectors.is_empty():
 			_error("%s allows energy_routing but the level has no reflectors" % context)
 		if allowed.has(MechanismIds.ROTATING_SECTIONS) and level.rotating_sections.is_empty():

@@ -52,6 +52,8 @@ static func candidate_actions(level: LevelDefinition) -> Array[PuzzleAction]:
 			actions.append(PuzzleAction.toggle_switch(switch_def.id))
 	for reflector: ReflectorDefinition in level.reflectors:
 		actions.append(PuzzleAction.flip_reflector(reflector.id))
+	for magnet: MagnetDefinition in level.magnets:
+		actions.append(PuzzleAction.flip_magnet(magnet.id))
 	for section: RotatingSectionDefinition in level.rotating_sections:
 		if section.allow_clockwise:
 			actions.append(PuzzleAction.rotate_section(section.id, true))

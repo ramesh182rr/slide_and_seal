@@ -11,6 +11,8 @@ var position: Vector2i
 var pushable: bool = true
 ## Settles inside gravity zones (D-006). Non-affected objects act as fixed obstacles there.
 var gravity_affected: bool = true
+## Magnetic polarity (D-029): +1, -1, or 0 for neutral.
+var polarity: int = 0
 
 
 func _init(p_id: String = "", p_kind: String = KIND_BLOCK, p_position: Vector2i = Vector2i.ZERO) -> void:
@@ -23,4 +25,5 @@ func clone() -> MovableObject:
 	var copy := MovableObject.new(id, kind, position)
 	copy.pushable = pushable
 	copy.gravity_affected = gravity_affected
+	copy.polarity = polarity
 	return copy

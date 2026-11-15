@@ -169,8 +169,8 @@ func test_rejects_unsupported_object_kind() -> void:
 
 func test_rejects_unimplemented_mechanism_content() -> void:
 	var data := LevelFixtures.corridor()
-	data["mechanisms"] = {"magnetic_fields": [{"id": "m"}]}
-	_assert_rejected(data, "mechanisms.magnetic_fields is not supported by the simulation yet")
+	data["mechanisms"] = {"push_devices": [{"id": "d"}]}
+	_assert_rejected(data, "mechanisms.push_devices is not supported by the simulation yet")
 
 
 func test_rejects_unknown_mechanism_collection() -> void:
