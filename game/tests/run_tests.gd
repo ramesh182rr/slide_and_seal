@@ -32,12 +32,21 @@ class ErrorCollector:
 		return messages
 
 
-func _initialize() -> void:
+var _started := false
+
+
+## Tests run on the first frame, not in _initialize: only then is the root viewport inside the
+## tree, so scenes added by tests receive _ready like in the real game.
+func _process(_delta: float) -> bool:
+	if _started:
+		return false
+	_started = true
 	var collector := ErrorCollector.new()
 	OS.add_logger(collector)
 	var exit_code := _run_all(collector)
 	OS.remove_logger(collector)
 	quit(exit_code)
+	return false
 
 
 func _run_all(collector: ErrorCollector) -> int:

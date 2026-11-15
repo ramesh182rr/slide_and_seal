@@ -60,10 +60,36 @@ Portrait by default.
 - **After completion:** nothing is allowed.
 - Every successful mechanism action increments the action counter. Rejected actions change nothing.
 
+### D-009 — No per-checkpoint target scoping, for now (2026-11-15)
+A checkpoint's `allowed_mechanisms` applies to **every** zone or object of that mechanism. Checkpoints cannot restrict which specific zones or blocks may be used. Consequence: a player may prepare a later beat early. In the slice, the lower zone can be flipped at the gravity checkpoint. This is accepted as valid play. Target scoping may be revisited once real campaign levels show a need; it would be a schema addition.
+
+### D-010 — Vertical slice layout (2026-11-15)
+`game/data/levels/world_01_slice.json`:
+- 7×8 board.
+- Three beats: push (A), gravity (B), and combined (F/E in a full column).
+- Target: 4 mechanism actions.
+- An exhaustive search showed every shortest solution follows the intended beats. Walls at (3,5), (0,7), (6,7) and (5,6) close the skips that search found.
+
+### D-011 — Placeholder art first (2026-11-15)
+M3 builds the 3D slice with simple primitive meshes in the doc 06 palette. It aims for correctness and readability. Premium meshes, materials, shaders and effects come in the polish stage.
+
+### D-012 — Touch input: tap and swipe (2026-11-15)
+Both are supported (built in M3b):
+- **Tap:** tap a block or zone to select it (outline). A contextual panel then shows its valid directions, previews first and commits on confirm.
+- **Swipe:** swipe starting on a block to push it in the swipe direction, or on a zone to set its gravity direction. Swipe is a shortcut; it goes through exactly the same action and validation path as the panel.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
 ---
+
+## Provisional (M3b implementation choices — please review)
+
+### P-007 — How "preview, then confirm" works on touch (implements D-012)
+- **Panel:** pressing and holding an arrow shows the preview (ghost blocks at their resulting cells). Releasing on the arrow commits; dragging off cancels. The hold is the preview and the release is the confirm, so there is no separate Confirm button.
+- **Swipe:** once a drag passes 60 viewport px, the preview for that direction appears. Releasing commits. Dragging back inside the threshold cancels, and a short drag counts as a tap.
+- **Arrow layout:** arrows are drawn and placed by their **on-screen** direction. In the isometric view, grid "up" is drawn up-right. Swipe direction is classified against the same camera projection.
+- **Selection:** a block takes priority over the zone beneath it. The selection stays after a commit for follow-up moves. It is dropped when the context no longer allows its mechanism.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

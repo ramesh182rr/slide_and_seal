@@ -48,11 +48,15 @@ func undo() -> bool:
 	return true
 
 
+func is_at_initial_state() -> bool:
+	return _state.to_key() == _level.create_initial_state().to_key()
+
+
 ## Restores the exact authored initial state. Undoable; a no-op when already at the initial state.
 func restart() -> bool:
-	var initial := _level.create_initial_state()
-	if initial.to_key() == _state.to_key():
+	if is_at_initial_state():
 		return false
+	var initial := _level.create_initial_state()
 	_history.append(_state)
 	_state = initial
 	return true

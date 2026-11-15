@@ -66,7 +66,9 @@ func has_same_object_positions(other: PuzzleState) -> bool:
 
 ## Canonical serialization of every field. Two states are equal iff their keys are equal.
 ## Any new field that affects behaviour MUST be added here.
-func to_key() -> String:
+## `include_counters = false` drops the action/run counters, which do not affect future
+## behaviour: equivalent boards then share a key (used by search).
+func to_key(include_counters: bool = true) -> String:
 	var object_parts := PackedStringArray()
 	for obj: MovableObject in objects:
 		object_parts.append("%s:%s@%d,%d%s%s" % [obj.id, obj.kind, obj.position.x, obj.position.y,
@@ -82,7 +84,8 @@ func to_key() -> String:
 		"objects=" + "|".join(object_parts),
 		"gravity=" + "|".join(gravity_parts),
 		"checkpoints=" + "|".join(reached_checkpoint_ids),
-		"actions=%d" % mechanism_action_count,
-		"runs=%d" % core_run_count,
 	])
+	if include_counters:
+		parts.append("actions=%d" % mechanism_action_count)
+		parts.append("runs=%d" % core_run_count)
 	return ";".join(parts)

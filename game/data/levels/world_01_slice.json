@@ -1,0 +1,46 @@
+{
+  "schema_version": 3,
+  "id": "world_01_slice",
+  "title": "The Awakening — Vertical Slice",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": { "width": 7, "height": 8 },
+  "core": { "position": [0, 1], "route_id": "route_main" },
+  "destination": { "position": [5, 7], "seal_id": "seal_final" },
+  "terrain": {
+    "walls": [[3, 5], [5, 6], [0, 7], [6, 7]]
+  },
+  "setup": { "allowed_mechanisms": [] },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1],
+        [5, 2], [5, 3], [5, 4],
+        [4, 4], [3, 4], [2, 4], [1, 4],
+        [1, 5], [1, 6], [1, 7],
+        [2, 7], [3, 7], [4, 7], [5, 7]
+      ],
+      "checkpoints": [
+        { "id": "cp_push", "position": [2, 1], "allowed_mechanisms": ["push_pulse"] },
+        { "id": "cp_gravity", "position": [5, 3], "allowed_mechanisms": ["gravity_shift"] },
+        { "id": "cp_combined", "position": [1, 6], "allowed_mechanisms": ["push_pulse", "gravity_shift"] }
+      ]
+    }
+  },
+  "objects": [
+    { "id": "block_a", "kind": "block", "position": [3, 1] },
+    { "id": "block_b", "kind": "block", "position": [3, 4] },
+    { "id": "block_e", "kind": "block", "position": [3, 7] },
+    { "id": "block_f", "kind": "block", "position": [3, 6] }
+  ],
+  "mechanisms": {
+    "gravity_zones": [
+      { "id": "zone_upper", "position": [2, 3], "size": [3, 2], "direction": "down", "allowed_directions": ["up", "down"] },
+      { "id": "zone_lower", "position": [2, 6], "size": [3, 2], "direction": "down", "allowed_directions": ["up", "down"] }
+    ]
+  },
+  "objectives": [
+    { "type": "reach_destination", "target_id": "seal_final" }
+  ],
+  "scoring": { "target_actions": 4, "optimal_actions": null }
+}

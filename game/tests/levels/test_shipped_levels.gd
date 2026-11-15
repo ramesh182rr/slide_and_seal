@@ -1,7 +1,6 @@
 extends TestCase
-## Every level in res://data/levels must load cleanly and be completable.
-## Until mechanisms and the BFS solver exist (M4), "completable" means running the core
-## repeatedly reaches the destination. Levels with mechanisms will need the real solver here.
+## Every level in res://data/levels must load cleanly, be solvable, and have an achievable
+## designer target. Uses the test-only exhaustive search (TestSolver) until the M4 solver exists.
 
 const LEVELS_DIR := "res://data/levels"
 
@@ -16,16 +15,21 @@ func test_every_shipped_level_loads() -> void:
 		assert_eq(result.errors, PackedStringArray(), path)
 
 
-func test_every_shipped_level_is_completable() -> void:
+func test_every_shipped_level_is_solvable_within_target() -> void:
 	for path: String in _level_paths():
 		var result := LevelLoader.load_file(path)
 		if not result.is_ok():
 			continue  # Reported by test_every_shipped_level_loads.
+		var solution := TestSolver.solve(result.level)
+		assert_not_null(solution, "%s has no solution" % path)
+		if solution == null:
+			continue
+		assert_true(solution.mechanism_actions <= result.level.target_actions,
+			"%s: minimum %d mechanism actions exceeds target %d" % [path, solution.mechanism_actions, result.level.target_actions])
+		# Replay through a session: the found solution must hold under committed gameplay too.
 		var session := PuzzleSession.new(result.level)
-		var route_length := result.level.routes[result.level.start_route_id].nodes.size()
-		for i: int in route_length:
-			if not session.apply(PuzzleAction.run_core()).is_ok():
-				break
+		for action: PuzzleAction in solution.actions:
+			assert_true(session.apply(action).is_ok(), path)
 		assert_eq(session.get_state().phase, PuzzleState.Phase.LEVEL_COMPLETED, path)
 
 
