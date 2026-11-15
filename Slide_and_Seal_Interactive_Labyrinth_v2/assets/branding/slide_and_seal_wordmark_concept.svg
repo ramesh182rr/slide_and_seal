@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180">
+<rect width="720" height="180" rx="24" fill="#0A1020"/>
+<path d="M84 28L132 56V112L84 140L36 112V56Z" fill="#14243A" stroke="#38D6E8" stroke-width="5"/>
+<path d="M84 47L115 65V103L84 121L53 103V65Z" fill="#38D6E8" fill-opacity=".18" stroke="#A78BFA" stroke-width="4"/>
+<path d="M84 63L101 73V95L84 105L67 95V73Z" fill="#38D6E8"/>
+<text x="165" y="91" font-family="Arial,sans-serif" font-size="58" font-weight="700" letter-spacing="3" fill="#EAF4FF">SLIDE &amp; SEAL</text>
+<text x="169" y="129" font-family="Arial,sans-serif" font-size="18" letter-spacing="3" fill="#8EAAC8">RECONFIGURE REALITY. CONTROL THE MAZE.</text>
+</svg>

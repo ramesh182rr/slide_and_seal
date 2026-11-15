@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "timezone_policy": "UTC_DATE_KEY",
+  "entries": [
+    {
+      "date_key": "YYYY-MM-DD",
+      "level_id": "daily_001",
+      "difficulty": "introductory",
+      "mechanic_focus": [
+        "core_route",
+        "checkpoint"
+      ],
+      "validated": false
+    }
+  ]
+}
