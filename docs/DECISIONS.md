@@ -37,9 +37,35 @@ Use a small custom headless runner (`game/tests/run_tests.gd`), not GUT. Tests a
 ### D-005 — Orientation (2026-11-15; resolves doc 18 #10)
 Portrait by default.
 
+### D-006 — Gravity is a persistent field (2026-11-15; resolves doc 18 #3 for local zones)
+- A gravity zone is a rectangle with a current direction (UP/RIGHT/DOWN/LEFT) and a list of directions the player may set.
+- Every committed state is **settled**: gravity-affected objects inside a zone rest against the zone's direction.
+- Settling runs after a gravity change, after a push, and **after every core step** during travel. A cell the core vacates can let a block slide into it.
+- Objects slide cell by cell until stopped by the zone edge, a wall, another object or the core. The core is never moved by gravity.
+- Resolution order: the object farthest along the gravity direction first, then by object id ascending. One pass is then exact.
+- Initial level states must already be settled; the loader rejects them otherwise.
+- Zones may not overlap.
+
+### D-007 — Push Pulse (2026-11-15; resolves doc 18 #4)
+- The player picks any object marked `pushable`, anywhere on the board, and a cardinal direction.
+- It moves exactly one cell.
+- The push is rejected if the target cell is out of bounds, a wall, another object (no chains) or the core's cell.
+- Gravity then settles.
+- A push whose net result changes no object position is rejected. For example, pushing against a zone's gravity when the block would fall straight back.
+
+### D-008 — Mechanism availability (2026-11-15)
+- **Before the first run (`SETUP`):** the level's `setup.allowed_mechanisms` apply.
+- **Paused at a checkpoint:** that checkpoint's `allowed_mechanisms` apply.
+- **While `BLOCKED_WAITING_FOR_ACTION`:** the list from the last checkpoint the core paused at applies, or the setup list if it has not paused yet.
+- **After completion:** nothing is allowed.
+- Every successful mechanism action increments the action counter. Rejected actions change nothing.
+
+### Approval of P-001 – P-006 (2026-11-15)
+The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
+
 ---
 
-## Provisional (M1 implementation choices — please review)
+## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically
 A Run/Resume computes the whole travel segment in one simulation transition. `CORE_TRAVELLING` is therefore a presentation/controller phase (introduced with the 3D slice, during which input is locked), not a committed simulation phase. `LEVEL_FAILED` is omitted until a level defines a failure condition.

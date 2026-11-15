@@ -76,6 +76,7 @@ Never claim something works unless it was actually tested or verified. Priority:
 - `docs/DECISIONS.md`: approved and provisional decisions. Read it before changing any rule. Add new decisions there.
 - `docs/LEVEL_SCHEMA.md`: the current level JSON schema. Keep it in sync with `LevelLoader`.
 - **Run tests:** `tools/run_tests.sh` (an import pass, then the headless runner; exit code 0 means all tests passed). Run it after every change to simulation, model, data or tests.
+- `README.md` (root): a short, clean overview. Update it **only** when its content becomes wrong, such as a change to the repo layout, requirements, commands or the one-line status. Don't add milestone details there; those go in `CHANGELOG.md`.
 - Commit the `*.uid` and `*.import` files Godot generates. Never commit `.godot/`.
 
 ## Environment (verified 2026-11-15)

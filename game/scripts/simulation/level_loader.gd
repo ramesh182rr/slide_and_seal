@@ -7,11 +7,7 @@ const SUPPORTED_SCHEMA_VERSION := 3
 const MAX_BOARD_SIDE := 32
 const ACCESS_VALUES := ["free", "premium"]
 const OBJECT_KINDS := [MovableObject.KIND_BLOCK]
-const MECHANISM_NAMES := [
-	"gravity_shift", "push_pulse", "portal_network", "switches_seals",
-	"rotating_sections", "energy_routing", "magnetic_polarity",
-]
-## Collections a level may declare. Each must stay empty until its resolver exists.
+## Collections a level may declare. All except gravity_zones must stay empty until their resolver exists.
 const MECHANISM_COLLECTIONS := [
 	"gravity_zones", "push_devices", "portals", "switches", "gates", "rotating_sections",
 	"energy_emitters", "reflectors", "receivers", "magnetic_fields", "magnetic_objects",
@@ -100,8 +96,12 @@ func _parse(data: Dictionary) -> LevelDefinition:
 	_parse_walls(level, _dict(data, "terrain", ""))
 	_parse_routes(level, _dict(data, "routes", ""))
 	_parse_objects(level, _array(data, "objects", "", false))
+	if data.has("setup"):
+		var setup := _dict(data, "setup", "")
+		level.setup_allowed_mechanisms = _parse_allowed_mechanisms(
+			_array(setup, "allowed_mechanisms", "setup", false), "setup")
 	if data.has("mechanisms"):
-		_parse_mechanisms(_dict(data, "mechanisms", ""))
+		_parse_mechanisms(level, _dict(data, "mechanisms", ""))
 	_parse_objectives(level, _array(data, "objectives", ""))
 	_parse_scoring(level, _dict(data, "scoring", ""))
 	return level
@@ -147,14 +147,25 @@ func _parse_checkpoint(value: Variant, context: String) -> CheckpointDefinition:
 	checkpoint.id = _string(data, "id", context)
 	checkpoint.position = _cell(data.get("position"), context + ".position")
 	checkpoint.auto_pause = _bool(data, "auto_pause", context, true)
-	var allowed := _array(data, "allowed_mechanisms", context, false)
-	for i: int in allowed.size():
-		var mechanism: Variant = allowed[i]
-		if typeof(mechanism) != TYPE_STRING or not MECHANISM_NAMES.has(mechanism):
-			_error("%s.allowed_mechanisms[%d] is not a known mechanism" % [context, i])
-			continue
-		checkpoint.allowed_mechanisms.append(mechanism)
+	checkpoint.allowed_mechanisms = _parse_allowed_mechanisms(
+		_array(data, "allowed_mechanisms", context, false), context)
 	return checkpoint
+
+
+func _parse_allowed_mechanisms(values: Array, context: String) -> PackedStringArray:
+	var allowed := PackedStringArray()
+	for i: int in values.size():
+		var label := "%s.allowed_mechanisms[%d]" % [context, i]
+		var mechanism: Variant = values[i]
+		if typeof(mechanism) != TYPE_STRING or not MechanismIds.ALL.has(mechanism):
+			_error("%s is not a known mechanism" % label)
+		elif not MechanismIds.IMPLEMENTED.has(mechanism):
+			_error("%s '%s' is not supported by the simulation yet" % [label, mechanism])
+		elif allowed.has(mechanism):
+			_error("%s '%s' is listed twice" % [label, mechanism])
+		else:
+			allowed.append(mechanism)
+	return allowed
 
 
 func _parse_objects(level: LevelDefinition, objects: Array) -> void:
@@ -168,11 +179,14 @@ func _parse_objects(level: LevelDefinition, objects: Array) -> void:
 		if not kind.is_empty() and not OBJECT_KINDS.has(kind):
 			_error("%s.kind '%s' is not supported" % [context, kind])
 		var position := _cell(data.get("position"), context + ".position")
-		level.initial_objects.append(MovableObject.new(_string(data, "id", context), kind, position))
+		var obj := MovableObject.new(_string(data, "id", context), kind, position)
+		obj.pushable = _bool(data, "pushable", context, true)
+		obj.gravity_affected = _bool(data, "gravity_affected", context, true)
+		level.initial_objects.append(obj)
 	level.initial_objects.sort_custom(func(a: MovableObject, b: MovableObject) -> bool: return a.id < b.id)
 
 
-func _parse_mechanisms(mechanisms: Dictionary) -> void:
+func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 	var keys: Array = mechanisms.keys()
 	keys.sort()
 	for key: String in keys:
@@ -182,8 +196,34 @@ func _parse_mechanisms(mechanisms: Dictionary) -> void:
 		if typeof(mechanisms[key]) != TYPE_ARRAY:
 			_error("mechanisms.%s must be an array" % key)
 			continue
-		if not (mechanisms[key] as Array).is_empty():
+		var entries: Array = mechanisms[key]
+		if key == "gravity_zones":
+			for i: int in entries.size():
+				var zone := _parse_gravity_zone(entries[i], "mechanisms.gravity_zones[%d]" % i)
+				if zone != null:
+					level.gravity_zones.append(zone)
+		elif not entries.is_empty():
 			_error("mechanisms.%s is not supported by the simulation yet" % key)
+	level.gravity_zones.sort_custom(
+		func(a: GravityZoneDefinition, b: GravityZoneDefinition) -> bool: return a.id < b.id)
+
+
+func _parse_gravity_zone(value: Variant, context: String) -> GravityZoneDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var zone := GravityZoneDefinition.new()
+	zone.id = _string(data, "id", context)
+	zone.rect = Rect2i(_cell(data.get("position"), context + ".position"), _cell(data.get("size"), context + ".size"))
+	zone.initial_direction = _direction(data.get("direction"), context + ".direction") as Grid.Direction
+	var allowed := _array(data, "allowed_directions", context)
+	for i: int in allowed.size():
+		var direction := _direction(allowed[i], "%s.allowed_directions[%d]" % [context, i]) as Grid.Direction
+		if zone.allowed_directions.has(direction):
+			_error("%s.allowed_directions[%d] is listed twice" % [context, i])
+		zone.allowed_directions.append(direction)
+	return zone
 
 
 func _parse_objectives(level: LevelDefinition, objectives: Array) -> void:
@@ -243,6 +283,10 @@ func _validate(level: LevelDefinition) -> void:
 		if level.destination != start_route.nodes[start_route.last_index()]:
 			_error("destination.position must equal the last node of route '%s'" % start_route.id)
 	_validate_objects(level)
+	_validate_gravity_zones(level)
+	_validate_mechanism_availability(level)
+	if _errors.is_empty():
+		_validate_initial_state_settled(level)
 
 
 func _validate_route(level: LevelDefinition, route: RouteDefinition, checkpoint_ids: Dictionary[String, bool]) -> void:
@@ -294,6 +338,52 @@ func _validate_objects(level: LevelDefinition) -> void:
 		cells[obj.position] = true
 		if obj.position == level.core_start:
 			_error("object '%s' must not start on the core's cell" % obj.id)
+
+
+func _validate_gravity_zones(level: LevelDefinition) -> void:
+	var ids: Dictionary[String, bool] = {}
+	var board := Rect2i(Vector2i.ZERO, level.board_size)
+	for i: int in level.gravity_zones.size():
+		var zone := level.gravity_zones[i]
+		if ids.has(zone.id):
+			_error("duplicate gravity zone id '%s'" % zone.id)
+		ids[zone.id] = true
+		if zone.rect.size.x < 1 or zone.rect.size.y < 1:
+			_error("gravity zone '%s' must have a positive size" % zone.id)
+		elif not board.encloses(zone.rect):
+			_error("gravity zone '%s' extends outside the board" % zone.id)
+		if zone.allowed_directions.is_empty():
+			_error("gravity zone '%s' must allow at least one direction" % zone.id)
+		elif not zone.allowed_directions.has(zone.initial_direction):
+			_error("gravity zone '%s' initial direction must be one of its allowed directions" % zone.id)
+		for j: int in range(i + 1, level.gravity_zones.size()):
+			if zone.rect.intersects(level.gravity_zones[j].rect):
+				_error("gravity zones '%s' and '%s' overlap" % [zone.id, level.gravity_zones[j].id])
+
+
+## Every allowed mechanism must have something to act on.
+func _validate_mechanism_availability(level: LevelDefinition) -> void:
+	var has_pushable := false
+	for obj: MovableObject in level.initial_objects:
+		has_pushable = has_pushable or obj.pushable
+	var contexts: Dictionary[String, PackedStringArray] = {"setup": level.setup_allowed_mechanisms}
+	for route_id: String in level.routes.keys():
+		for checkpoint: CheckpointDefinition in level.routes[route_id].checkpoints:
+			contexts["checkpoint '%s'" % checkpoint.id] = checkpoint.allowed_mechanisms
+	for context: String in contexts.keys():
+		var allowed := contexts[context]
+		if allowed.has(MechanismIds.GRAVITY_SHIFT) and level.gravity_zones.is_empty():
+			_error("%s allows gravity_shift but the level has no gravity zones" % context)
+		if allowed.has(MechanismIds.PUSH_PULSE) and not has_pushable:
+			_error("%s allows push_pulse but the level has no pushable objects" % context)
+
+
+## Committed states are always settled (D-006), so the authored start must be too.
+func _validate_initial_state_settled(level: LevelDefinition) -> void:
+	var state := level.create_initial_state()
+	for move: ObjectMove in GravityResolver.settle(level, state, level.core_start):
+		_error("object '%s' is not at rest under gravity (it would slide from %s to %s)"
+			% [move.object_id, move.from_cell, move.to_cell])
 
 
 # --- Typed field helpers ------------------------------------------------------
@@ -351,6 +441,17 @@ func _int(value: Variant, label: String) -> int:
 			return int(number)
 	_error("%s must be an integer" % label)
 	return 0
+
+
+## Parses "up" / "right" / "down" / "left" into a Grid.Direction value.
+func _direction(value: Variant, label: String) -> int:
+	var direction := -1
+	if typeof(value) == TYPE_STRING:
+		direction = Grid.parse_direction(value)
+	if direction == -1:
+		_error("%s must be one of up, right, down, left" % label)
+		return Grid.Direction.UP
+	return direction
 
 
 func _cell(value: Variant, label: String) -> Vector2i:

@@ -17,6 +17,10 @@ var destination: Vector2i = Vector2i.ZERO
 var seal_id: String = ""
 ## Sorted by id.
 var initial_objects: Array[MovableObject] = []
+## Sorted by id. Never overlapping.
+var gravity_zones: Array[GravityZoneDefinition] = []
+## Mechanisms usable before the first run (D-008).
+var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
 ## -1 when no solver-proven optimum exists.
 var optimal_actions: int = -1
@@ -30,6 +34,21 @@ func is_wall(cell: Vector2i) -> bool:
 	return walls.has(cell)
 
 
+func gravity_zone(zone_id: String) -> GravityZoneDefinition:
+	for zone: GravityZoneDefinition in gravity_zones:
+		if zone.id == zone_id:
+			return zone
+	return null
+
+
+func checkpoint_by_id(checkpoint_id: String) -> CheckpointDefinition:
+	for route: RouteDefinition in routes.values():
+		for checkpoint: CheckpointDefinition in route.checkpoints:
+			if checkpoint.id == checkpoint_id:
+				return checkpoint
+	return null
+
+
 ## Returns a fresh copy of the exact authored starting state.
 func create_initial_state() -> PuzzleState:
 	var state := PuzzleState.new()
@@ -39,4 +58,6 @@ func create_initial_state() -> PuzzleState:
 	for obj: MovableObject in initial_objects:
 		state.objects.append(obj.clone())
 	state.sort_objects()
+	for zone: GravityZoneDefinition in gravity_zones:
+		state.gravity_directions[zone.id] = zone.initial_direction
 	return state

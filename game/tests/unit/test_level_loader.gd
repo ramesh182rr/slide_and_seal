@@ -167,8 +167,8 @@ func test_rejects_unsupported_object_kind() -> void:
 
 func test_rejects_unimplemented_mechanism_content() -> void:
 	var data := LevelFixtures.corridor()
-	data["mechanisms"] = {"gravity_zones": [{"id": "g"}]}
-	_assert_rejected(data, "mechanisms.gravity_zones is not supported by the simulation yet")
+	data["mechanisms"] = {"portals": [{"id": "p"}]}
+	_assert_rejected(data, "mechanisms.portals is not supported by the simulation yet")
 
 
 func test_rejects_unknown_mechanism_collection() -> void:
@@ -200,6 +200,99 @@ func test_rejects_missing_file() -> void:
 	var result := LevelLoader.load_file("res://data/levels/does_not_exist.json")
 	assert_null(result.level)
 	assert_true(result.errors.size() == 1 and result.errors[0].contains("file not found"), str(result.errors))
+
+
+# --- M2: gravity zones, object flags, mechanism availability ------------------
+
+## Corridor + column zone "g" at x = 5 pointing up, block "b" resting at its top.
+func _zone_data() -> Dictionary:
+	var data := LevelFixtures.add_block(LevelFixtures.corridor(), "b", Vector2i(5, 0))
+	return LevelFixtures.add_gravity_zone(data, "g", Vector2i(5, 0), Vector2i(1, 3), "up", ["up", "down"])
+
+
+func test_loads_gravity_zone_object_flags_and_setup() -> void:
+	var data := _zone_data()
+	LevelFixtures.add_block(data, "fixed", Vector2i(2, 0), false, false)
+	LevelFixtures.allow_everywhere(data, [MechanismIds.GRAVITY_SHIFT, MechanismIds.PUSH_PULSE])
+	var result := LevelLoader.from_dict(data)
+	assert_eq(result.errors, PackedStringArray())
+	if not result.is_ok():
+		return
+	var level := result.level
+	assert_eq(level.gravity_zones.size(), 1)
+	var zone := level.gravity_zones[0]
+	assert_eq(zone.rect, Rect2i(5, 0, 1, 3))
+	assert_eq(zone.initial_direction, Grid.Direction.UP)
+	assert_eq(zone.allowed_directions, [Grid.Direction.UP, Grid.Direction.DOWN] as Array[Grid.Direction])
+	var fixed := level.initial_objects[1]
+	assert_eq(fixed.id, "fixed")
+	assert_false(fixed.pushable)
+	assert_false(fixed.gravity_affected)
+	assert_true(level.initial_objects[0].pushable, "flags default to true")
+	assert_eq(level.setup_allowed_mechanisms, PackedStringArray(["gravity_shift", "push_pulse"]))
+
+
+func test_rejects_unsettled_initial_state() -> void:
+	var data := LevelFixtures.add_block(LevelFixtures.corridor(), "b", Vector2i(5, 2))
+	LevelFixtures.add_gravity_zone(data, "g", Vector2i(5, 0), Vector2i(1, 3), "up", ["up"])
+	_assert_rejected(data, "object 'b' is not at rest under gravity")
+
+
+func test_rejects_zone_outside_board() -> void:
+	var data := LevelFixtures.add_gravity_zone(LevelFixtures.corridor(), "g", Vector2i(5, 0), Vector2i(3, 1), "up", ["up"])
+	_assert_rejected(data, "extends outside the board")
+
+
+func test_rejects_zone_with_zero_size() -> void:
+	var data := LevelFixtures.add_gravity_zone(LevelFixtures.corridor(), "g", Vector2i(5, 0), Vector2i(0, 1), "up", ["up"])
+	_assert_rejected(data, "must have a positive size")
+
+
+func test_rejects_overlapping_zones() -> void:
+	var data := LevelFixtures.add_gravity_zone(_zone_data(), "h", Vector2i(4, 1), Vector2i(2, 1), "left", ["left"])
+	_assert_rejected(data, "gravity zones 'g' and 'h' overlap")
+
+
+func test_rejects_duplicate_zone_ids() -> void:
+	var data := LevelFixtures.add_gravity_zone(_zone_data(), "g", Vector2i(0, 0), Vector2i(1, 1), "up", ["up"])
+	_assert_rejected(data, "duplicate gravity zone id 'g'")
+
+
+func test_rejects_initial_direction_not_allowed() -> void:
+	var data := LevelFixtures.add_gravity_zone(LevelFixtures.corridor(), "g", Vector2i(5, 0), Vector2i(1, 3), "up", ["down"])
+	_assert_rejected(data, "initial direction must be one of its allowed directions")
+
+
+func test_rejects_unknown_direction_name() -> void:
+	var data := LevelFixtures.add_gravity_zone(LevelFixtures.corridor(), "g", Vector2i(5, 0), Vector2i(1, 3), "north", ["up"])
+	_assert_rejected(data, "direction must be one of up, right, down, left")
+
+
+func test_rejects_zone_without_allowed_directions() -> void:
+	var data := LevelFixtures.add_gravity_zone(LevelFixtures.corridor(), "g", Vector2i(5, 0), Vector2i(1, 3), "up", [])
+	_assert_rejected(data, "must allow at least one direction")
+
+
+func test_rejects_unimplemented_allowed_mechanism() -> void:
+	var data := LevelFixtures.corridor()
+	data["routes"]["main"]["checkpoints"][0]["allowed_mechanisms"] = ["portal_network"]
+	_assert_rejected(data, "'portal_network' is not supported by the simulation yet")
+
+
+func test_rejects_duplicate_allowed_mechanism() -> void:
+	var data := LevelFixtures.allow_everywhere(_zone_data(), [MechanismIds.GRAVITY_SHIFT, MechanismIds.GRAVITY_SHIFT])
+	_assert_rejected(data, "'gravity_shift' is listed twice")
+
+
+func test_rejects_gravity_allowed_without_zones() -> void:
+	var data := LevelFixtures.allow_everywhere(LevelFixtures.corridor(), [MechanismIds.GRAVITY_SHIFT])
+	_assert_rejected(data, "setup allows gravity_shift but the level has no gravity zones")
+
+
+func test_rejects_push_allowed_without_pushable_objects() -> void:
+	var data := LevelFixtures.add_block(LevelFixtures.corridor(), "heavy", Vector2i(2, 0), false)
+	LevelFixtures.allow_everywhere(data, [MechanismIds.PUSH_PULSE])
+	_assert_rejected(data, "checkpoint 'cp' allows push_pulse but the level has no pushable objects")
 
 
 func _assert_rejected(data: Dictionary, expected_fragment: String) -> void:

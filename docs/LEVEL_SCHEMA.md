@@ -20,7 +20,8 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `terrain` | `{walls: [cell]}` | yes | `walls` optional, unique, in bounds. |
 | `routes` | `{route_id: Route}` | yes | Exactly one segment until junctions exist (D-003). |
 | `objects` | `[Object]` | no | Movable objects. |
-| `mechanisms` | `{collection: []}` | no | Every collection must be empty until its resolver exists. |
+| `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
+| `mechanisms` | `{collection: []}` | no | Only `gravity_zones` is supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | `optimal_actions` is `null` unless proven by the solver. |
 
@@ -40,19 +41,36 @@ Route rules:
 ```
 - `position` must be on the route, but not on its first or last node.
 - `auto_pause` defaults to `true`.
-- `allowed_mechanisms` values: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
+
+### Allowed mechanisms
+These rules apply to both `setup.allowed_mechanisms` and checkpoint `allowed_mechanisms`:
+- Known names: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
+- Only `gravity_shift` and `push_pulse` are implemented. The others are rejected.
+- No name may be listed twice.
+- Allowing `gravity_shift` requires at least one gravity zone.
+- Allowing `push_pulse` requires at least one pushable object.
 
 ### Object
 ```json
-{ "id": "block_a", "kind": "block", "position": [2,3] }
+{ "id": "block_a", "kind": "block", "position": [2,3], "pushable": true, "gravity_affected": true }
 ```
 Object rules:
 - `kind` is currently `block`.
+- `pushable` and `gravity_affected` default to `true`.
 - in bounds, not on a wall
 - no two objects on one cell
 - not on the core's start cell
 
-An object on a route cell blocks the core (D-003).
+An object on a route cell blocks the core (D-003). A non-gravity object inside a zone acts as a fixed obstacle.
+
+### Gravity zone (`mechanisms.gravity_zones`)
+```json
+{ "id": "zone_upper", "position": [2,3], "size": [3,2], "direction": "down", "allowed_directions": ["up","down"] }
+```
+- `position` is the zone's top-left cell. The zone must have a positive size and lie inside the board.
+- Zone ids are unique, and zones may not overlap.
+- Directions are `up`, `right`, `down` or `left`. `allowed_directions` must be non-empty, contain no duplicates and include `direction`.
+- The authored start state must already be at rest under gravity (D-006).
 
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
@@ -62,3 +80,4 @@ An object on a route cell blocks the core (D-003).
 - Removed `terrain.walkable`. Its meaning was undefined; every non-wall cell is a board cell. Floor/void presentation will be specified with the 3D board.
 - Added top-level `objects` for movable objects.
 - Unknown mechanism collections and non-empty, unsupported ones are now load errors, not silently ignored.
+- Added in M2 (backward compatible, so still v3): `setup`, the object flags `pushable` and `gravity_affected`, and `gravity_zones` content.

@@ -45,6 +45,9 @@ func test_key_changes_when_any_field_changes() -> void:
 		"core_node_index": func(s: PuzzleState) -> void: s.core_node_index = 1,
 		"object position": func(s: PuzzleState) -> void: s.objects[0].position = Vector2i(4, 0),
 		"object kind": func(s: PuzzleState) -> void: s.objects[0].kind = "other",
+		"object pushable": func(s: PuzzleState) -> void: s.objects[0].pushable = false,
+		"object gravity_affected": func(s: PuzzleState) -> void: s.objects[0].gravity_affected = false,
+		"gravity direction": func(s: PuzzleState) -> void: s.gravity_directions["g"] = Grid.Direction.LEFT,
 		"reached checkpoints": func(s: PuzzleState) -> void: s.reached_checkpoint_ids.append("cp"),
 		"mechanism_action_count": func(s: PuzzleState) -> void: s.mechanism_action_count = 1,
 		"core_run_count": func(s: PuzzleState) -> void: s.core_run_count = 1,
@@ -53,6 +56,17 @@ func test_key_changes_when_any_field_changes() -> void:
 		var changed := base.clone()
 		mutations[field].call(changed)
 		assert_ne(changed.to_key(), base.to_key(), "key must change when %s changes" % field)
+
+
+func test_initial_state_has_zone_directions_and_clone_copies_them() -> void:
+	var data := LevelFixtures.add_block(LevelFixtures.corridor(), "b", Vector2i(5, 0))
+	LevelFixtures.add_gravity_zone(data, "g", Vector2i(5, 0), Vector2i(1, 3), "up", ["up", "down"])
+	var level := LevelFixtures.build(data)
+	var state := level.create_initial_state()
+	assert_eq(state.gravity_directions["g"], Grid.Direction.UP)
+	var copy := state.clone()
+	copy.gravity_directions["g"] = Grid.Direction.DOWN
+	assert_eq(state.gravity_directions["g"], Grid.Direction.UP, "clone must not share the direction map")
 
 
 func test_object_at_finds_objects() -> void:

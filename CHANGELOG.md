@@ -5,6 +5,47 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M2: Gravity Shift and Push Pulse
+
+**Added**
+- **Gravity Shift** (`GravityResolver`, `PuzzleAction.set_gravity`): local rectangular zones with a player-settable direction (D-006).
+  - Gravity is persistent: every committed state is settled, including after each core step during travel.
+  - Resolution order is deterministic: farthest along gravity first, then by id.
+- **Push Pulse** (`PuzzleAction.push`): moves any pushable object one cell (D-007).
+  - No chains. Pushes into walls, bounds, objects or the core are rejected.
+  - Gravity settles after each push. A push with no net effect is rejected.
+- **Mechanism availability** (`PuzzleSimulator.allowed_mechanisms`): setup, checkpoint and blocked contexts (D-008).
+- **Model:**
+  - `Grid.Direction`
+  - `MechanismIds`
+  - `GravityZoneDefinition`
+  - `ObjectMove`: per-object moves with their cause and core step, for upcoming animation
+  - object flags `pushable` and `gravity_affected`
+  - `PuzzleState.gravity_directions`, included in the state key
+- **Level schema v3 extensions:**
+  - `setup.allowed_mechanisms`, object flags and `gravity_zones`
+  - validation of zone bounds, overlap and directions
+  - mechanism availability must make sense: something to act on, implemented mechanisms only
+  - the authored start state must already be settled
+- **Tests:** 49 new, bringing the suite to 106, all passing. Covers gravity, push, mechanism context and the new loader rules. Mutation checks confirmed the ordering and in-travel settling tests fail when that logic is broken.
+- **Docs:**
+  - decisions D-006 to D-008
+  - P-001 to P-006 marked approved
+  - `docs/LEVEL_SCHEMA.md` updated
+
+**Changed**
+- New failure codes: `MECHANISM_NOT_ALLOWED`, `INVALID_TARGET`, `INVALID_DIRECTION`, `MOVE_BLOCKED`, `NO_EFFECT`.
+- Core travel now reports gravity moves triggered by the cells it vacates.
+
+**Known limitations**
+- The vertical slice level is drafted and solver-checked in a scratch script, but not yet added. It awaits layout approval.
+- There is no push-until-blocked mode (`push_devices`). That is deferred per doc 03.
+
+### 2026-11-15 — Repository README
+
+**Added**
+- Root `README.md`: a short overview covering the layout, requirements and test command. `CLAUDE.md` now says to update it only when its content becomes wrong.
+
 ### 2026-11-15 — M1: Headless simulation foundation
 
 **Added**

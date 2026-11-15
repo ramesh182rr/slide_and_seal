@@ -38,6 +38,39 @@ static func corridor_with_blocks(cells: Array[Vector2i]) -> Dictionary:
 	return data
 
 
+## Adds a block. Returns `data` for chaining.
+static func add_block(data: Dictionary, id: String, cell: Vector2i, pushable: bool = true,
+		gravity_affected: bool = true) -> Dictionary:
+	(data["objects"] as Array).append({
+		"id": id, "kind": "block", "position": [cell.x, cell.y],
+		"pushable": pushable, "gravity_affected": gravity_affected,
+	})
+	return data
+
+
+## Adds a gravity zone. Directions are names ("up", "down", ...). Returns `data` for chaining.
+static func add_gravity_zone(data: Dictionary, id: String, position: Vector2i, size: Vector2i,
+		direction: String, allowed: Array) -> Dictionary:
+	if not data.has("mechanisms"):
+		data["mechanisms"] = {}
+	if not data["mechanisms"].has("gravity_zones"):
+		data["mechanisms"]["gravity_zones"] = []
+	(data["mechanisms"]["gravity_zones"] as Array).append({
+		"id": id, "position": [position.x, position.y], "size": [size.x, size.y],
+		"direction": direction, "allowed_directions": allowed,
+	})
+	return data
+
+
+## Sets the mechanisms allowed during setup and at every checkpoint. Returns `data` for chaining.
+static func allow_everywhere(data: Dictionary, mechanisms: Array) -> Dictionary:
+	data["setup"] = {"allowed_mechanisms": mechanisms.duplicate()}
+	for route_id: String in (data["routes"] as Dictionary).keys():
+		for checkpoint: Dictionary in data["routes"][route_id]["checkpoints"]:
+			checkpoint["allowed_mechanisms"] = mechanisms.duplicate()
+	return data
+
+
 ## Loads a fixture, returning null on validation failure (the test should assert on that).
 static func build(data: Dictionary) -> LevelDefinition:
 	return LevelLoader.from_dict(data).level
