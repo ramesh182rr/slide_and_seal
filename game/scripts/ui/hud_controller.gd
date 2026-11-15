@@ -13,6 +13,7 @@ const MARGIN := 48
 const MECHANISM_LABELS := {
 	MechanismIds.PUSH_PULSE: "Push",
 	MechanismIds.GRAVITY_SHIFT: "Gravity",
+	MechanismIds.SWITCHES_SEALS: "Switches",
 }
 
 var _title := Label.new()
@@ -102,20 +103,26 @@ func set_available_mechanisms(mechanisms: PackedStringArray, completed: bool) ->
 		var names := PackedStringArray()
 		for mechanism: String in mechanisms:
 			names.append(MECHANISM_LABELS.get(mechanism, mechanism))
-		_available.text = "Available: %s. Tap or swipe a %s." % [", ".join(names), _target_noun(mechanisms)]
+		_available.text = "Available: %s. %s." % [", ".join(names), _how_to(mechanisms)]
 
 
 func available_text() -> String:
 	return _available.text
 
 
-static func _target_noun(mechanisms: PackedStringArray) -> String:
-	var nouns := PackedStringArray()
+## "Tap or swipe a block", "Tap a switch", or both joined. Switches are tap-only.
+static func _how_to(mechanisms: PackedStringArray) -> String:
+	var swipeable := PackedStringArray()
 	if mechanisms.has(MechanismIds.PUSH_PULSE):
-		nouns.append("block")
+		swipeable.append("block")
 	if mechanisms.has(MechanismIds.GRAVITY_SHIFT):
-		nouns.append("gravity zone")
-	return " or ".join(nouns)
+		swipeable.append("gravity zone")
+	var parts := PackedStringArray()
+	if not swipeable.is_empty():
+		parts.append("Tap or swipe a " + " or ".join(swipeable))
+	if mechanisms.has(MechanismIds.SWITCHES_SEALS):
+		parts.append("tap a switch" if not parts.is_empty() else "Tap a switch")
+	return "; ".join(parts)
 
 
 ## Keeps content clear of notches and system bars on mobile. Desktop uses fixed margins:

@@ -16,7 +16,8 @@ var _objects: Dictionary[String, Node3D] = {}
 ## Chevron pivots per gravity zone; rotating a pivot about +Y points its chevron.
 var _zone_chevrons: Dictionary[String, Array] = {}
 var _zone_plates: Dictionary[String, MeshInstance3D] = {}
-var _materials: Dictionary[String, StandardMaterial3D] = {}
+var _library := MaterialLibrary.new()
+var _fixtures: MechanismFixtures3D
 var _outline: MeshInstance3D
 var _preview_root: Node3D
 
@@ -36,6 +37,10 @@ func build(level: LevelDefinition, state: PuzzleState) -> void:
 	_build_route()
 	_build_markers()
 	_build_gravity_zones()
+	_fixtures = MechanismFixtures3D.new()
+	_fixtures.name = "Fixtures"
+	add_child(_fixtures)
+	_fixtures.build(level, _library)
 	_build_objects(state)
 	_build_core()
 	_preview_root = Node3D.new()
@@ -52,6 +57,15 @@ func sync_to_state(state: PuzzleState) -> void:
 	for zone_id: String in state.gravity_directions.keys():
 		for pivot: Node3D in _zone_chevrons[zone_id]:
 			pivot.rotation.y = BoardCoords.direction_yaw(state.gravity_directions[zone_id])
+	_fixtures.sync_to_state(state)
+
+
+func level() -> LevelDefinition:
+	return _level
+
+
+func fixtures() -> MechanismFixtures3D:
+	return _fixtures
 
 
 func core_node() -> Node3D:
@@ -66,8 +80,8 @@ func zone_chevrons(zone_id: String) -> Array:
 	return _zone_chevrons.get(zone_id, [])
 
 
-## Highlights the selected block (outline that travels with it) or zone. Empty ids clear it.
-func set_highlight(object_id: String, zone_id: String) -> void:
+## Highlights the selected block (outline that travels with it), zone or switch. Empty ids clear it.
+func set_highlight(object_id: String, zone_id: String, switch_id: String = "") -> void:
 	if _outline != null:
 		_outline.get_parent().remove_child(_outline)
 		_outline.free()
@@ -76,6 +90,12 @@ func set_highlight(object_id: String, zone_id: String) -> void:
 		var shell := BoxMesh.new()
 		shell.size = Vector3.ONE * (BLOCK_SIZE + 0.2)
 		_outline = _add_mesh(shell, _outline_material(), Vector3.ZERO, _objects[object_id])
+	elif switch_id != "" and _fixtures.switch_base(switch_id) != null:
+		var ring := CylinderMesh.new()
+		ring.top_radius = 0.46
+		ring.bottom_radius = 0.46
+		ring.height = 0.16
+		_outline = _add_mesh(ring, _outline_material(), Vector3.ZERO, _fixtures.switch_base(switch_id))
 	for id: String in _zone_plates.keys():
 		_zone_plates[id].material_override = _material("zone_plate_selected", Palette.CYAN_ENERGY, 0.6, 0.32) \
 			if id == zone_id else _material("zone_plate", Palette.POLARITY_BLUE, 0.3, 0.2)
@@ -100,6 +120,7 @@ func show_preview(current: PuzzleState, previewed: PuzzleState) -> void:
 		var now := current.object_by_id(obj.id)
 		if now != null and now.position != obj.position:
 			_add_mesh(ghost, material, object_world_position(obj.position), _preview_root)
+	_fixtures.add_preview_ghosts(_preview_root, current, previewed)
 
 
 func clear_preview() -> void:
@@ -256,30 +277,10 @@ func _add_mesh(mesh: Mesh, material: Material, position_value: Vector3, parent: 
 	return instance
 
 
-## Inverted-hull outline: a slightly larger shell drawn back-faces only, unshaded.
 func _outline_material() -> StandardMaterial3D:
-	if not _materials.has("outline"):
-		var material := StandardMaterial3D.new()
-		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		material.cull_mode = BaseMaterial3D.CULL_FRONT
-		material.albedo_color = Palette.CYAN_ENERGY
-		_materials["outline"] = material
-	return _materials["outline"]
+	return _library.outline()
 
 
 func _material(key: String, color: Color, emission: float = 0.0, alpha: float = 1.0,
 		metallic: float = 0.0, roughness: float = 0.8) -> StandardMaterial3D:
-	if _materials.has(key):
-		return _materials[key]
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(color, alpha)
-	material.metallic = metallic
-	material.roughness = roughness
-	if emission > 0.0:
-		material.emission_enabled = true
-		material.emission = color
-		material.emission_energy_multiplier = emission
-	if alpha < 1.0:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_materials[key] = material
-	return material
+	return _library.get_material(key, color, emission, alpha, metallic, roughness)

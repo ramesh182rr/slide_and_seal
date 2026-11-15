@@ -4,7 +4,7 @@ extends Node
 ## Every state change goes through PuzzleSession; previews use PuzzleSession.preview (same rules).
 ## Input is locked while a committed result is being played back.
 
-enum TargetKind { NONE, OBJECT, ZONE }
+enum TargetKind { NONE, OBJECT, ZONE, SWITCH }
 
 ## Emitted when the player confirms leaving the puzzle.
 signal leave_requested
@@ -31,6 +31,11 @@ func _ready() -> void:
 	var dialog := _hud.leave_dialog()
 	dialog.stay_requested.connect(dialog.hide)
 	dialog.leave_requested.connect(_confirm_leave)
+	# Development: `godot --path game -- --level=world_05_showcase` loads another level.
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--level="):
+			var name := arg.trim_prefix("--level=")
+			level_path = name if name.begins_with("res://") else "res://data/levels/%s.json" % name
 	var loaded := LevelLoader.load_file(level_path)
 	if not loaded.is_ok():
 		push_error("Level failed to load: %s" % "; ".join(loaded.errors))
@@ -53,6 +58,9 @@ func _ready() -> void:
 	panel.direction_preview_ended.connect(end_preview)
 	panel.direction_chosen.connect(commit_target_direction)
 	panel.close_requested.connect(clear_selection)
+	panel.action_preview_started.connect(func() -> void: preview_target_direction(Grid.Direction.UP))
+	panel.action_preview_ended.connect(end_preview)
+	panel.action_chosen.connect(func() -> void: commit_target_direction(Grid.Direction.UP))
 	_input.tapped.connect(_on_tapped)
 	_input.swipe_previewed.connect(_on_swipe_previewed)
 	_input.swipe_cancelled.connect(end_preview)
@@ -91,6 +99,8 @@ func selected_target() -> String:
 			return "object:" + _target_id
 		TargetKind.ZONE:
 			return "zone:" + _target_id
+		TargetKind.SWITCH:
+			return "switch:" + _target_id
 	return ""
 
 
@@ -180,6 +190,20 @@ func select_zone(zone_id: String) -> void:
 		_set_target(TargetKind.ZONE, zone_id)
 
 
+## Toggle switches open the panel; pressure plates explain themselves (they are not player-operated).
+func select_switch(switch_id: String) -> void:
+	var switch_def := _session.get_level().switch_by_id(switch_id)
+	if switch_def == null:
+		return
+	var marks := _symbol_phrase(switch_id)
+	if switch_def.kind == SwitchDefinition.Kind.PRESSURE:
+		_select_none_with_message("Pressure plate%s: on while a block rests on it." % marks)
+	elif not _allowed(MechanismIds.SWITCHES_SEALS):
+		_select_none_with_message("Switches cannot be used here.")
+	else:
+		_set_target(TargetKind.SWITCH, switch_id)
+
+
 func clear_selection() -> void:
 	_set_target(TargetKind.NONE, "")
 
@@ -203,7 +227,8 @@ func _set_target(kind: TargetKind, id: String) -> void:
 	_target_kind = kind
 	_target_id = id
 	_board.clear_preview()
-	_board.set_highlight(id if kind == TargetKind.OBJECT else "", id if kind == TargetKind.ZONE else "")
+	_board.set_highlight(id if kind == TargetKind.OBJECT else "", id if kind == TargetKind.ZONE else "",
+		id if kind == TargetKind.SWITCH else "")
 	if kind != TargetKind.NONE:
 		_hud.clear_message()
 	_refresh_panel()
@@ -218,12 +243,20 @@ func _refresh_panel() -> void:
 	var panel := _hud.mechanism_panel()
 	# Drop a selection the current context no longer supports (e.g. after the core moved on).
 	if _target_kind == TargetKind.OBJECT and not _allowed(MechanismIds.PUSH_PULSE) \
-			or _target_kind == TargetKind.ZONE and not _allowed(MechanismIds.GRAVITY_SHIFT):
+			or _target_kind == TargetKind.ZONE and not _allowed(MechanismIds.GRAVITY_SHIFT) \
+			or _target_kind == TargetKind.SWITCH and not _allowed(MechanismIds.SWITCHES_SEALS):
 		_target_kind = TargetKind.NONE
 		_target_id = ""
 		_board.set_highlight("", "")
 	if _target_kind == TargetKind.NONE:
 		panel.hide_target()
+		return
+	if _target_kind == TargetKind.SWITCH:
+		var on: bool = _session.get_state().toggle_states[_target_id]
+		panel.show_action("Switch%s · %s" % [_symbol_phrase(_target_id), "On" if on else "Off"],
+			"Hold to preview, release to switch it %s." % ("off" if on else "on"),
+			"Switch off" if on else "Switch on",
+			not _busy and _session.preview(PuzzleAction.toggle_switch(_target_id)).is_ok())
 		return
 	var directions: Array[Grid.Direction] = [Grid.Direction.UP, Grid.Direction.RIGHT, Grid.Direction.DOWN, Grid.Direction.LEFT]
 	var title := "%s · Push" % _display_name(_target_id)
@@ -249,9 +282,23 @@ func _on_tapped(screen_position: Vector2) -> void:
 	if _busy:
 		return
 	var hit := _pick(screen_position)
+	var level := _session.get_level()
 	if hit.object_id != "":
 		select_object(hit.object_id)
-	elif hit.has_cell and _zone_at(hit.cell) != "":
+	elif not hit.has_cell:
+		clear_selection()
+	elif _switch_at(hit.cell) != "":
+		select_switch(_switch_at(hit.cell))
+	elif level.gate_at(hit.cell) != null:
+		var gate := level.gate_at(hit.cell)
+		_select_none_with_message("Gate%s opens when every switch marked %s is on."
+			% [_symbol_phrase(gate.id), _board.fixtures().symbol(gate.id)])
+	elif level.portal_at(hit.cell) != null:
+		var portal := level.portal_at(hit.cell)
+		_select_none_with_message("Portal%s: carries the core from its entry to the matching exit." % _symbol_phrase(portal.id)
+			if portal.requires.is_empty() else
+			"Portal%s: works while every switch marked %s is on." % [_symbol_phrase(portal.id), _board.fixtures().symbol(portal.id)])
+	elif _zone_at(hit.cell) != "":
 		select_zone(_zone_at(hit.cell))
 	else:
 		clear_selection()
@@ -288,6 +335,19 @@ func _pick(screen_position: Vector2) -> BoardPicker.Hit:
 	return BoardPicker.pick(_camera_rig.get_camera(), screen_position, _session.get_level(), _session.get_state())
 
 
+func _switch_at(cell: Vector2i) -> String:
+	for switch_def: SwitchDefinition in _session.get_level().switches:
+		if switch_def.position == cell:
+			return switch_def.id
+	return ""
+
+
+## " A" / " 1" style suffix from the fixture's link symbol, or "".
+func _symbol_phrase(fixture_id: String) -> String:
+	var mark := _board.fixtures().symbol(fixture_id)
+	return "" if mark == "" else " " + mark
+
+
 func _zone_at(cell: Vector2i) -> String:
 	for zone: GravityZoneDefinition in _session.get_level().gravity_zones:
 		if zone.contains(cell):
@@ -303,6 +363,8 @@ func _action_for(kind: TargetKind, id: String, direction: Grid.Direction) -> Puz
 			return PuzzleAction.push(id, direction)
 		TargetKind.ZONE:
 			return PuzzleAction.set_gravity(id, direction)
+		TargetKind.SWITCH:
+			return PuzzleAction.toggle_switch(id)
 	return null
 
 

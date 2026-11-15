@@ -6,11 +6,12 @@ A mechanical labyrinth puzzle game for Android, built with Godot 4 and typed GDS
 
 ## Status
 
-Early development. The vertical slice level is playable in 3D: tap or swipe blocks and gravity zones, preview before committing, and use undo and restart. All rules are tested headless.
+Early development. Two levels are playable in 3D: the gravity/push vertical slice, and a showcase for switches, gates and portals. You can preview moves before committing them, and undo and restart. All rules are tested headless.
 
 ## Running the game
 
 Open `game/` in Godot 4.7.2 and press Play, or run `godot --path game`.
+To open another level: `godot --path game -- --level=world_05_showcase`.
 
 ## Repository
 

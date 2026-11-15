@@ -122,6 +122,22 @@ Godot's `quit_on_go_back` is off. Back unwinds one layer at a time: it closes th
 ### P-010 — Slice softlocks accepted for now
 The validator's dead ends in the slice (see the M4 changelog) are accepted for the vertical slice: undo always recovers. Revisit together with D-009 (per-checkpoint target scoping) when campaign levels are designed.
 
+### P-011 — Presenting switches, gates and portals (M5c)
+- **Link symbols** (shape and text, not colour alone, per doc 05 §4):
+  - gates get letters (A, B, … by id)
+  - each entry/exit portal pair gets a number (1, 2, …)
+  - every switch shows the symbols of everything it powers ("A", "1", or "A 1")
+- **Visuals:**
+  - closed gates stand on their cell; open gates sink to a flat plate
+  - switch lamps and pressure plates glow mint when on
+  - portals glow violet when active, and entries carry a swirl disc
+- **Interaction:**
+  - Toggle switches are **tap-only**: the panel shows one "Switch on/off" button, hold to preview, release to commit.
+  - Pressure plates, gates and portals are not player-operated; tapping one explains what powers it.
+  - Tap priority: block, then switch, gate, portal, zone.
+- **Preview:** a gate that would close shows a raised ghost; a gate that would open shows a glowing shell.
+- **Development:** `godot --path game -- --level=<id>` loads another level until menus exist.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

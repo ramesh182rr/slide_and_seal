@@ -8,6 +8,7 @@ const CORE_STEP_SECONDS := 0.16
 const PUSH_SECONDS := 0.18
 const SLIDE_SECONDS_PER_CELL := 0.08
 const ZONE_TURN_SECONDS := 0.22
+const GATE_SECONDS := 0.25
 
 ## When true, nothing animates (reduced motion; also used by tests).
 var instant: bool = false
@@ -28,6 +29,7 @@ func play(before: PuzzleState, result: ActionResult) -> void:
 		steps += _queue_travel(tween, result)
 	else:
 		steps += _queue_moves(tween, result.object_moves)
+	steps += _queue_gate_changes(tween, before, result.state)
 	if steps == 0:
 		tween.kill()
 		return
@@ -45,6 +47,21 @@ func _queue_zone_turns(tween: Tween, before: PuzzleState, after: PuzzleState) ->
 			var turn := func(t: float) -> void: pivot.rotation.y = lerp_angle(from_yaw, to_yaw, t)
 			_tweener(tween, count > 0).tween_method(turn, 0.0, 1.0, ZONE_TURN_SECONDS)
 			count += 1
+	return count
+
+
+## Gates that opened or closed rise or sink together after the moves that caused them.
+func _queue_gate_changes(tween: Tween, before: PuzzleState, after: PuzzleState) -> int:
+	var level := _board.level()
+	var count := 0
+	for gate: GateDefinition in level.gates:
+		var open_after := SwitchGateResolver.is_gate_open(level, after, gate)
+		if open_after == SwitchGateResolver.is_gate_open(level, before, gate):
+			continue
+		var node := _board.fixtures().gate_node(gate.id)
+		_tweener(tween, count > 0).tween_property(node, "position:y", MechanismFixtures3D.gate_y(open_after),
+			GATE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		count += 1
 	return count
 
 

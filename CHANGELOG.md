@@ -5,6 +5,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M5c: Switches, gates and portals in 3D, plus showcase level
+
+**Added**
+- **Showcase level** `game/data/levels/world_05_showcase.json`, "Sealed Passage — Showcase" (7×8). It has three beats: a lever opens gate A, block K pushed onto a plate opens gate B, and a lever powers portal 1 into a walled-off area with the seal. The validator proves a minimum of 3 actions with **0 dead ends**, and `optimal_actions` is 3.
+- **`MechanismFixtures3D`:**
+  - placeholder visuals for toggle levers, pressure plates, gates (closed standing / open sunk) and portals (entry swirl disc, active glow)
+  - billboard link symbols (P-011)
+  - state sync, and preview ghosts for gates a preview would change
+- **`MaterialLibrary`:** shared material cache, extracted from the board renderer.
+- **Gate animation:** gates that change rise or sink after the moves that caused them.
+- **Interaction:**
+  - tap a toggle switch to select it (cyan ring); the panel's new single-action mode gives a "Switch on/off" button with hold-to-preview / release-to-commit
+  - tapping a pressure plate, gate or portal explains what powers it
+  - the HUD availability line now separates "tap or swipe" targets from tap-only switches
+- **Development level selection:** `godot --path game -- --level=<id>`.
+- **Tests:** 7 showcase-scene tests, bringing the suite to 204. They cover:
+  - link symbols and labels
+  - fixture visuals matching state (initial, after toggle, after undo, at completion)
+  - the lever panel with its gate preview, committed through the real button signal
+  - explanatory taps, and the switch-availability message
+  - solving the full showcase through taps and swipes
+
+**Verified manually**
+- Windowed screenshots through the whole showcase with real animation: the lever ring and panel, gate A opening, the plate pressed by K, the portal powering up, and completion.
+- Review fixes: the gate-opening preview was invisible (a ghost inside the closed gate) and is now a glowing shell. The hint "Tap or swipe a switch" now reads "Tap a switch".
+
+**Known limitations**
+- Placeholder art. Gates and blocks are both cube-shaped, distinguished by colour, letter label and height.
+- No portal transit effect beyond the instant jump.
+- No level-select menu yet; other levels are opened with the `--level` argument.
+
 ### 2026-11-15 — M5b: Portal Network (rules)
 
 **Added**
