@@ -20,7 +20,7 @@ The design package in `Slide_and_Seal_Interactive_Labyrinth_v2/` is the primary 
 - **NEVER create a Git commit.** Never run `git commit`, `git commit --amend`, or create commits via scripts, extensions, APIs or other tools.
 - **Never push** to any remote. No merges, rebases or PRs.
 - **Do not stage** (`git add`) unless the user explicitly asks.
-- Inspecting `git status` / `git diff` / `git log` is fine.
+- Inspecting `git status` / `git diff` / `git log` is fine. **No other git commands**: never `stash`, `checkout`, `restore`, `reset`, `clean`, `add` or anything else that touches the index, stashes or working tree. To check that a test fails without a fix, temporarily edit the file and restore it from a scratch copy.
 - The user reviews, stages and commits everything personally.
 - When a meaningful milestone is complete, provide a **Suggested commit message** in conventional-commit style (`type(scope): description`, e.g. `feat(simulation): add gravity resolver`), plus a short summary and the affected files. Do not commit.
 

@@ -25,16 +25,17 @@ var _undo := Button.new()
 var _restart := Button.new()
 var _run := Button.new()
 var _margin := MarginContainer.new()
+var _leave_dialog := LeaveDialog.new()
 
 
 func _ready() -> void:
 	var root := Control.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = _make_theme()
 	add_child(root)
 
-	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_margin)
 	_apply_safe_area()
@@ -75,6 +76,8 @@ func _ready() -> void:
 	_run.add_theme_stylebox_override("hover", _box(Palette.NAVY_SURFACE.lightened(0.08), Palette.MINT_SUCCESS))
 	for button: Button in [_undo, _restart, _run]:
 		buttons.add_child(button)
+	# Last child of the root so it draws above, and captures input over, everything else.
+	root.add_child(_leave_dialog)
 
 
 func set_title(text: String) -> void:
@@ -83,6 +86,10 @@ func set_title(text: String) -> void:
 
 func mechanism_panel() -> MechanismPanel:
 	return _panel
+
+
+func leave_dialog() -> LeaveDialog:
+	return _leave_dialog
 
 
 ## Lists what the player may use right now (from PuzzleSimulator.allowed_mechanisms).

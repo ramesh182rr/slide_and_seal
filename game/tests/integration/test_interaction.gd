@@ -134,6 +134,23 @@ func test_hold_previews_without_committing_then_release_commits() -> void:
 	scene.free()
 
 
+func test_real_arrow_button_press_commits_cleanly() -> void:
+	# Regression: committing from the arrow's own `pressed` signal refreshes the panel, which must
+	# not free the button that is still emitting (found on the Android emulator).
+	var scene := _spawn()
+	_to_checkpoint(scene, [PuzzleAction.run_core()])
+	scene.select_object("block_a")
+	var button := scene.get_hud().mechanism_panel().option_button(UP)
+	button.button_down.emit()
+	assert_eq(scene.get_board().preview_ghost_count(), 1)
+	button.button_up.emit()
+	button.pressed.emit()
+	assert_eq(scene.get_session().get_state().object_by_id("block_a").position, Vector2i(3, 0))
+	assert_true(scene.get_hud().mechanism_panel().visible, "panel stays open and refreshed")
+	assert_false(scene.get_hud().mechanism_panel().is_option_enabled(UP), "top edge reached")
+	scene.free()
+
+
 func test_tap_empty_floor_clears_selection() -> void:
 	var scene := _spawn()
 	_to_checkpoint(scene, [PuzzleAction.run_core()])

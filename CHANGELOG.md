@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Android Back handling and panel fixes
+
+**Added**
+- **Back / Escape handling** (P-009): `application/config/quit_on_go_back=false`. `GameplayController.handle_back()` responds to `NOTIFICATION_WM_GO_BACK_REQUEST` and `ui_cancel`. It closes the leave dialog, then the mechanism panel, then asks to leave.
+- **`LeaveDialog`:** a modal "Leave this puzzle?" with Stay / Leave and a full-screen dimmer that blocks input to the board. Leave emits `leave_requested` and quits; `quit_on_leave` can be turned off for tests.
+- **Tests:** 7 Back-navigation tests (including the dialog covering the whole screen) and a regression test that presses the real arrow button. Suite: 152.
+
+**Fixed**
+- **Crash-class bug when committing from a panel arrow:** the arrow's own `pressed` signal refreshed the panel, which freed the still-emitting button ("Attempted to free a locked object"). It was found in the Android emulator's log; the tests had emitted the panel's signal instead of the button's. `MechanismPanel` now creates its 9 slot buttons once and reconfigures them in place.
+- **Leave dialog had zero size** (seen on the emulator: top-left corner, no dimming, board still touchable). The cause was `set_anchors_preset`, which keeps offsets. It now uses `set_anchors_and_offsets_preset`, and the HUD containers were switched too.
+- The arrow buttons' theme text padding no longer inflates collapsed panel rows.
+
+**Verified on the Android emulator** (Compatibility-renderer diagnostic build)
+- A real arrow tap pushes with no errors.
+- Back closes the panel, then shows the centred, dimmed dialog.
+- A tap behind the dialog is blocked, Stay closes it, and Back then Leave exits the app.
+
+**Decisions:** P-010, slice softlocks accepted for now.
+
 ### 2026-11-15 — M4: Production solver and level validator
 
 **Added**

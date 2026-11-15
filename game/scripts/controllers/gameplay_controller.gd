@@ -6,9 +6,14 @@ extends Node
 
 enum TargetKind { NONE, OBJECT, ZONE }
 
+## Emitted when the player confirms leaving the puzzle.
+signal leave_requested
+
 @export_file("*.json") var level_path: String = "res://data/levels/world_01_slice.json"
 ## Skip animations (reduced motion; also used by tests).
 @export var instant_playback: bool = false
+## Quit the app when the player confirms leaving. No menus exist yet; tests turn this off.
+@export var quit_on_leave: bool = true
 
 @onready var _board: BoardRenderer3D = $World/Board
 @onready var _camera_rig: CameraRig = $World/CameraRig
@@ -23,6 +28,9 @@ var _target_id := ""
 
 
 func _ready() -> void:
+	var dialog := _hud.leave_dialog()
+	dialog.stay_requested.connect(dialog.hide)
+	dialog.leave_requested.connect(_confirm_leave)
 	var loaded := LevelLoader.load_file(level_path)
 	if not loaded.is_ok():
 		push_error("Level failed to load: %s" % "; ".join(loaded.errors))
@@ -114,6 +122,39 @@ func request_undo() -> void:
 func request_restart() -> void:
 	if not _busy and _session.restart():
 		_snap()
+
+
+# --- Back / leave ---------------------------------------------------------------
+
+## Android Back and desktop Escape. Unwinds one layer at a time and never quits outright:
+## close the leave dialog → close the mechanism panel → ask "Leave this puzzle?".
+func handle_back() -> void:
+	var dialog := _hud.leave_dialog()
+	if dialog.visible:
+		dialog.hide()
+	elif _target_kind != TargetKind.NONE:
+		clear_selection()
+	else:
+		_board.clear_preview()
+		dialog.show()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		handle_back()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		handle_back()
+		get_viewport().set_input_as_handled()
+
+
+func _confirm_leave() -> void:
+	_hud.leave_dialog().hide()
+	leave_requested.emit()
+	if quit_on_leave:
+		get_tree().quit()
 
 
 # --- Selection and the mechanism panel -----------------------------------------

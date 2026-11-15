@@ -9,6 +9,17 @@ var screen_angle: float = 0.0:
 		queue_redraw()
 
 
+## The arrow is drawn directly, so the theme's text padding only inflates the minimum size
+## (which matters for collapsed, empty slots). Keep the look, drop the padding.
+func _ready() -> void:
+	for state: String in ["normal", "hover", "pressed", "disabled"]:
+		var box := get_theme_stylebox(state)
+		if box != null:
+			var copy := box.duplicate() as StyleBox
+			copy.set_content_margin_all(0)
+			add_theme_stylebox_override(state, copy)
+
+
 func _draw() -> void:
 	var center := size * 0.5
 	var r := minf(size.x, size.y) * 0.3

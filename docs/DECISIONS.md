@@ -104,6 +104,12 @@ The project owner approved all provisional M1 choices below. They now carry the 
 - **Softlock scan scope:** every state reachable within *(proven minimum + 1)* mechanism actions. A state is a dead end only when its whole closure is exhausted without a completion (cap 4,000 states per closure). Undecided states are reported as unknown, never guessed.
 - `optimal_actions` is filled in only from the solver's proven minimum.
 
+### P-009 — Android Back / Escape
+Godot's `quit_on_go_back` is off. Back unwinds one layer at a time: it closes the leave dialog, then closes the mechanism panel, then asks "Leave this puzzle?" (Stay / Leave). There is no "press again within N seconds" pattern, since that would be a timer. Until menus exist, Leave quits the app; later it will return to level select.
+
+### P-010 — Slice softlocks accepted for now
+The validator's dead ends in the slice (see the M4 changelog) are accepted for the vertical slice: undo always recovers. Revisit together with D-009 (per-checkpoint target scoping) when campaign levels are designed.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

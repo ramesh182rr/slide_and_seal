@@ -3,6 +3,8 @@ extends PanelContainer
 ## Contextual control panel for the selected block or gravity zone.
 ## Arrows sit in a 3x3 grid at the position matching their on-screen direction.
 ## Hold an arrow to preview, release on it to commit, drag off to cancel. Emits intent only.
+## The nine slot buttons are created once and reconfigured in place: committing from an arrow's
+## own `pressed` signal refreshes this panel, so freeing buttons here would free the emitter.
 
 signal direction_preview_started(direction: Grid.Direction)
 signal direction_preview_ended
@@ -10,10 +12,15 @@ signal direction_chosen(direction: Grid.Direction)
 signal close_requested
 
 const CELL_SIZE := Vector2(150, 118)
+## Size of an unused middle row/column, so diagonal-only layouts stay compact.
+const COLLAPSED_SIZE := Vector2(16, 8)
 
 var _title := Label.new()
 var _hint := Label.new()
 var _grid := GridContainer.new()
+var _slots: Array[ArrowButton] = []
+## Direction shown in each slot, or -1 when the slot is empty.
+var _slot_directions := PackedInt32Array()
 var _buttons: Dictionary[int, ArrowButton] = {}
 
 
@@ -53,43 +60,45 @@ func _ready() -> void:
 	_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(_grid)
 
+	for i: int in 9:
+		var button := ArrowButton.new()
+		button.focus_mode = Control.FOCUS_NONE
+		button.button_down.connect(_on_slot_down.bind(i))
+		button.button_up.connect(_on_slot_up.bind(i))
+		button.pressed.connect(_on_slot_pressed.bind(i))
+		_grid.add_child(button)
+		_slots.append(button)
+		_slot_directions.append(-1)
+
 
 ## `options`: one Dictionary per offered direction with keys
 ## direction (Grid.Direction), screen_vector (Vector2), enabled (bool).
 func show_target(title: String, hint: String, options: Array[Dictionary]) -> void:
 	_title.text = title
 	_hint.text = hint
-	for child: Node in _grid.get_children():
-		_grid.remove_child(child)
-		child.free()
 	_buttons.clear()
-	var slots: Array[Control] = []
-	slots.resize(9)
+	_slot_directions.fill(-1)
 	for option: Dictionary in options:
-		var direction: Grid.Direction = option["direction"]
 		var vector: Vector2 = option["screen_vector"]
-		var button := ArrowButton.new()
-		button.custom_minimum_size = CELL_SIZE
-		button.focus_mode = Control.FOCUS_NONE
+		var slot := slot_index(vector)
+		var button := _slots[slot]
+		_slot_directions[slot] = option["direction"]
 		button.screen_angle = vector.angle()
 		button.disabled = not option["enabled"]
-		button.button_down.connect(func() -> void: direction_preview_started.emit(direction))
-		button.button_up.connect(func() -> void: direction_preview_ended.emit())
-		button.pressed.connect(func() -> void: direction_chosen.emit(direction))
-		slots[slot_index(vector)] = button
-		_buttons[direction] = button
-	# Collapse the middle row/column when no arrow uses them (e.g. diagonal-only isometric arrows).
-	var middle_row_used := slots[3] != null or slots[4] != null or slots[5] != null
-	var middle_column_used := slots[1] != null or slots[4] != null or slots[7] != null
+		_buttons[option["direction"]] = button
+	var middle_row_used := _slot_directions[3] >= 0 or _slot_directions[4] >= 0 or _slot_directions[5] >= 0
+	var middle_column_used := _slot_directions[1] >= 0 or _slot_directions[4] >= 0 or _slot_directions[7] >= 0
 	for i: int in 9:
-		var slot := slots[i]
-		if slot == null:
-			slot = Control.new()
-			slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			slot.custom_minimum_size = Vector2(
-				CELL_SIZE.x if middle_column_used or i % 3 != 1 else 16.0,
-				CELL_SIZE.y if middle_row_used or i / 3 != 1 else 8.0)
-		_grid.add_child(slot)
+		var button := _slots[i]
+		var used := _slot_directions[i] >= 0
+		# Empty slots stay in the grid (to keep positions) but are invisible and inert.
+		button.modulate.a = 1.0 if used else 0.0
+		button.mouse_filter = Control.MOUSE_FILTER_STOP if used else Control.MOUSE_FILTER_IGNORE
+		if not used:
+			button.disabled = true
+		button.custom_minimum_size = Vector2(
+			CELL_SIZE.x if middle_column_used or i % 3 != 1 else COLLAPSED_SIZE.x,
+			CELL_SIZE.y if middle_row_used or i / 3 != 1 else COLLAPSED_SIZE.y)
 	visible = true
 
 
@@ -99,6 +108,11 @@ func hide_target() -> void:
 
 func has_option(direction: Grid.Direction) -> bool:
 	return _buttons.has(direction)
+
+
+## The arrow button for `direction`, or null (for tests driving the real button signals).
+func option_button(direction: Grid.Direction) -> ArrowButton:
+	return _buttons.get(direction)
 
 
 func is_option_enabled(direction: Grid.Direction) -> bool:
@@ -114,3 +128,18 @@ static func slot_index(vector: Vector2) -> int:
 	var column := 1 if absf(vector.x) < 0.38 else (2 if vector.x > 0.0 else 0)
 	var row := 1 if absf(vector.y) < 0.38 else (2 if vector.y > 0.0 else 0)
 	return row * 3 + column
+
+
+func _on_slot_down(slot: int) -> void:
+	if _slot_directions[slot] >= 0:
+		direction_preview_started.emit(_slot_directions[slot] as Grid.Direction)
+
+
+func _on_slot_up(slot: int) -> void:
+	if _slot_directions[slot] >= 0:
+		direction_preview_ended.emit()
+
+
+func _on_slot_pressed(slot: int) -> void:
+	if _slot_directions[slot] >= 0:
+		direction_chosen.emit(_slot_directions[slot] as Grid.Direction)
