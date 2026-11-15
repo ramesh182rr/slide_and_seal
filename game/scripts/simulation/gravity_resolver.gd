@@ -17,7 +17,8 @@ static func settle(level: LevelDefinition, state: PuzzleState, core_cell: Vector
 			var start := obj.position
 			while true:
 				var next_cell := obj.position + step
-				if not zone.contains(next_cell) or level.is_wall(next_cell) or next_cell == core_cell \
+				if not zone.contains(next_cell) or level.is_wall(next_cell) or level.is_solid_fixture(next_cell) \
+						or next_cell == core_cell \
 						or closed_cells.has(next_cell) or state.object_at(next_cell) != null:
 					break
 				obj.position = next_cell

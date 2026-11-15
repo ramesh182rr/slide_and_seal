@@ -21,7 +21,7 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `routes` | `{route_id: Route}` | yes | One or more segments, linked by portals or by track pieces in rotating sections (D-003, D-017). |
 | `objects` | `[Object]` | no | Movable objects. |
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
-| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates`, `portals` and `rotating_sections` are supported. Every other collection must be empty until its resolver exists. |
+| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates`, `portals`, `rotating_sections`, `energy_emitters` and `reflectors` are supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
@@ -41,7 +41,7 @@ Segments and connections (validated by the loader):
 - Each segment outside sections (a **fixed** segment) ends:
   - at the destination, or
   - on an **entry portal** (one with `exit`): the next segment starts on the exit portal's cell, or
-  - next to exactly one rotating section: the core continues into whichever end of a track piece is currently adjacent, then from the piece's far end into the fixed segment that starts adjacent to it.
+  - next to exactly one rotating section: the core continues into whichever end of a track piece is currently adjacent, then from the piece's far end into the fixed segment that starts adjacent to it. It enters only if it can pass straight through: the far end lines up, and the piece and the exit corridor's first cell are free (D-021). Otherwise it waits outside.
 - Two fixed segments may not start next to the same section cell.
 - Over every possible connection, the destination must be reachable, every segment must be reachable, and there must be no loops.
 
@@ -55,11 +55,12 @@ Segments and connections (validated by the loader):
 ### Allowed mechanisms
 These rules apply to both `setup.allowed_mechanisms` and checkpoint `allowed_mechanisms`:
 - Known names: `gravity_shift`, `push_pulse`, `portal_network`, `switches_seals`, `rotating_sections`, `energy_routing`, `magnetic_polarity`.
-- Only `gravity_shift`, `push_pulse`, `switches_seals` and `rotating_sections` are implemented. The others are rejected.
+- Only `gravity_shift`, `push_pulse`, `switches_seals`, `rotating_sections` and `energy_routing` are implemented. The others are rejected.
 - No name may be listed twice.
 - Allowing `gravity_shift` requires at least one gravity zone.
 - Allowing `push_pulse` requires at least one pushable object.
-- Allowing `switches_seals` requires at least one toggle switch. Pressure switches are not player-operated.
+- Allowing `switches_seals` requires at least one toggle switch. Pressure switches and receivers are not player-operated.
+- Allowing `energy_routing` requires at least one reflector, and allowing `rotating_sections` requires at least one section.
 
 ### Object
 ```json
@@ -88,7 +89,10 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 { "id": "lever_a", "kind": "toggle", "position": [5,0], "initially_on": false }
 { "id": "plate_a", "kind": "pressure", "position": [2,2] }
 ```
-- `kind` is `pressure` (on while a block rests on it; the core never presses it, D-014) or `toggle` (flipped by the player).
+- `kind` is one of:
+  - `pressure`: on while a block rests on it; the core never presses it (D-014)
+  - `toggle`: flipped by the player
+  - `receiver`: on while an energy beam reaches it (D-024)
 - `initially_on` (default `false`) applies to toggle switches only.
 - In bounds, not on a wall, and at most one switch per cell.
 
@@ -124,6 +128,20 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - `allowed_directions` is non-empty: `clockwise` and/or `counterclockwise`. One quarter turn per action. Turning is rejected while the core is inside (D-019).
 - **Not supported inside a section yet:** switches, gates, portals, checkpoints, the core start, the destination.
 
+### Energy emitter (`mechanisms.energy_emitters`)
+```json
+{ "id": "lamp", "position": [0,0], "direction": "right", "requires": ["lever_a"] }
+```
+- Fires a beam in `direction` while all `requires` switches are on (always, when empty).
+- The beam stops before walls, closed gates, blocks, other emitters and the board edge (D-023). It bends at reflectors and ends on the first receiver it reaches.
+
+### Reflector (`mechanisms.reflectors`)
+```json
+{ "id": "mirror", "position": [3,0], "orientation": "/" }
+```
+- `orientation` is `/` or `\` (written `"\\"` in JSON). The player flips it with `energy_routing` (D-022).
+- **Emitters and reflectors are solid:** in bounds, not on a wall or route, not sharing a cell with any other fixture, and not inside a rotating section. Their ids share the namespace of switches and gates.
+
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
 
@@ -136,3 +154,4 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Added in M5a (backward compatible): `switches` and `gates` content.
 - Added in M5b (backward compatible): `portals` content and multiple route segments.
 - Added in M6a (backward compatible): `rotating_sections` content and track pieces.
+- Added in M7a (backward compatible): `energy_emitters`, `reflectors`, and switch kind `receiver`. `mechanisms.receivers` is rejected with a pointer to the switch kind.

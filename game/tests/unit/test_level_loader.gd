@@ -169,8 +169,8 @@ func test_rejects_unsupported_object_kind() -> void:
 
 func test_rejects_unimplemented_mechanism_content() -> void:
 	var data := LevelFixtures.corridor()
-	data["mechanisms"] = {"reflectors": [{"id": "r"}]}
-	_assert_rejected(data, "mechanisms.reflectors is not supported by the simulation yet")
+	data["mechanisms"] = {"magnetic_fields": [{"id": "m"}]}
+	_assert_rejected(data, "mechanisms.magnetic_fields is not supported by the simulation yet")
 
 
 func test_rejects_unknown_mechanism_collection() -> void:
@@ -328,7 +328,7 @@ func test_rejects_gate_without_switches() -> void:
 
 func test_rejects_unknown_switch_kind() -> void:
 	_assert_rejected(LevelFixtures.add_switch(LevelFixtures.corridor(), "s", "lever", Vector2i(5, 0)),
-		"kind 'lever' must be pressure or toggle")
+		"kind 'lever' must be pressure, toggle or receiver")
 
 
 func test_rejects_initially_on_for_pressure_switch() -> void:

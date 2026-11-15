@@ -104,6 +104,38 @@ static func rotation_corridor() -> Dictionary:
 	return allow_everywhere(data, [MechanismIds.ROTATING_SECTIONS])
 
 
+## 7x5 board, route along y = 2 from (0,2) to (6,2), checkpoint "cp" at (1,2). Gate "g" at (5,2)
+## requires receiver "r" at (3,3). Emitter "e" at (0,0) fires right into mirror "m" at (3,0), which
+## starts "/" (beam bounces up, off the board); flipped to "\" the beam runs down column 3 to "r".
+## Energy routing allowed everywhere.
+static func energy_corridor() -> Dictionary:
+	var data := corridor()
+	data["id"] = "test_energy_corridor"
+	data["board"] = {"width": 7, "height": 5}
+	data["core"] = {"position": [0, 2], "route_id": "main"}
+	data["destination"] = {"position": [6, 2], "seal_id": "seal"}
+	data["routes"] = {"main": {
+		"nodes": [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2]],
+		"checkpoints": [{"id": "cp", "position": [1, 2], "auto_pause": true, "allowed_mechanisms": []}],
+	}}
+	add_switch(data, "r", "receiver", Vector2i(3, 3))
+	add_gate(data, "g", Vector2i(5, 2), ["r"])
+	add_emitter(data, "e", Vector2i(0, 0), "right")
+	add_reflector(data, "m", Vector2i(3, 0), "/")
+	return allow_everywhere(data, [MechanismIds.ENERGY_ROUTING])
+
+
+static func add_emitter(data: Dictionary, id: String, cell: Vector2i, direction: String, requires: Array = []) -> Dictionary:
+	_collection(data, "energy_emitters").append(
+		{"id": id, "position": [cell.x, cell.y], "direction": direction, "requires": requires})
+	return data
+
+
+static func add_reflector(data: Dictionary, id: String, cell: Vector2i, orientation: String) -> Dictionary:
+	_collection(data, "reflectors").append({"id": id, "position": [cell.x, cell.y], "orientation": orientation})
+	return data
+
+
 static func add_rotating_section(data: Dictionary, id: String, origin: Vector2i, size: int, allowed: Array) -> Dictionary:
 	_collection(data, "rotating_sections").append(
 		{"id": id, "position": [origin.x, origin.y], "size": size, "allowed_directions": allowed})

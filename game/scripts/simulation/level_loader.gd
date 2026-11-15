@@ -220,6 +220,17 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 					var section := _parse_rotating_section(entries[i], context)
 					if section != null:
 						level.rotating_sections.append(section)
+				"energy_emitters":
+					var emitter := _parse_emitter(entries[i], context)
+					if emitter != null:
+						level.emitters.append(emitter)
+				"reflectors":
+					var reflector := _parse_reflector(entries[i], context)
+					if reflector != null:
+						level.reflectors.append(reflector)
+				"receivers":
+					_error("mechanisms.receivers is not used: declare receivers in mechanisms.switches with kind 'receiver'")
+					break
 				_:
 					_error("mechanisms.%s is not supported by the simulation yet" % key)
 					break
@@ -228,8 +239,46 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 	level.switches.sort_custom(func(a: SwitchDefinition, b: SwitchDefinition) -> bool: return a.id < b.id)
 	level.gates.sort_custom(func(a: GateDefinition, b: GateDefinition) -> bool: return a.id < b.id)
 	level.portals.sort_custom(func(a: PortalDefinition, b: PortalDefinition) -> bool: return a.id < b.id)
+	level.emitters.sort_custom(func(a: EmitterDefinition, b: EmitterDefinition) -> bool: return a.id < b.id)
+	level.reflectors.sort_custom(func(a: ReflectorDefinition, b: ReflectorDefinition) -> bool: return a.id < b.id)
 	level.rotating_sections.sort_custom(
 		func(a: RotatingSectionDefinition, b: RotatingSectionDefinition) -> bool: return a.id < b.id)
+
+
+func _parse_emitter(value: Variant, context: String) -> EmitterDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var emitter := EmitterDefinition.new()
+	emitter.id = _string(data, "id", context)
+	emitter.position = _cell(data.get("position"), context + ".position")
+	emitter.direction = _direction(data.get("direction"), context + ".direction") as Grid.Direction
+	var requires := _array(data, "requires", context, false)
+	for i: int in requires.size():
+		if typeof(requires[i]) != TYPE_STRING:
+			_error("%s.requires[%d] must be a switch id" % [context, i])
+		else:
+			emitter.requires.append(requires[i])
+	return emitter
+
+
+func _parse_reflector(value: Variant, context: String) -> ReflectorDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var reflector := ReflectorDefinition.new()
+	reflector.id = _string(data, "id", context)
+	reflector.position = _cell(data.get("position"), context + ".position")
+	match data.get("orientation"):
+		"/":
+			reflector.initially_slash = true
+		"\\":
+			reflector.initially_slash = false
+		_:
+			_error("%s.orientation must be \"/\" or \"\\\"" % context)
+	return reflector
 
 
 func _parse_rotating_section(value: Variant, context: String) -> RotatingSectionDefinition:
@@ -292,9 +341,13 @@ func _parse_switch(value: Variant, context: String) -> SwitchDefinition:
 		"toggle":
 			switch_def.kind = SwitchDefinition.Kind.TOGGLE
 			switch_def.initially_on = _bool(data, "initially_on", context, false)
+		"receiver":
+			switch_def.kind = SwitchDefinition.Kind.RECEIVER
+			if data.has("initially_on"):
+				_error("%s.initially_on only applies to toggle switches" % context)
 		var other:
 			if other != "":
-				_error("%s.kind '%s' must be pressure or toggle" % [context, other])
+				_error("%s.kind '%s' must be pressure, toggle or receiver" % [context, other])
 	return switch_def
 
 
@@ -389,6 +442,7 @@ func _validate(level: LevelDefinition) -> void:
 	_validate_gravity_zones(level)
 	_validate_switches_and_gates(level)
 	_validate_portals(level)
+	_validate_energy(level)
 	_validate_rotating_sections(level)
 	if _errors.is_empty():
 		_classify_track_pieces(level)
@@ -536,6 +590,48 @@ func _validate_portals(level: LevelDefinition) -> void:
 				_error("portal '%s' lies inside route '%s'; portals must end or start a segment" % [portal.id, route.id])
 
 
+## Emitters and reflectors are solid fixtures (D-023): their own cells, off routes, never shared.
+func _validate_energy(level: LevelDefinition) -> void:
+	var ids: Dictionary[String, bool] = {}
+	for switch_def: SwitchDefinition in level.switches:
+		ids[switch_def.id] = true
+	for gate: GateDefinition in level.gates:
+		ids[gate.id] = true
+	var route_cells: Dictionary[Vector2i, bool] = {}
+	for route: RouteDefinition in level.routes.values():
+		for node: Vector2i in route.nodes:
+			route_cells[node] = true
+	var used: Dictionary[Vector2i, String] = {}
+	for switch_def: SwitchDefinition in level.switches:
+		used[switch_def.position] = "switch '%s'" % switch_def.id
+	for gate: GateDefinition in level.gates:
+		used[gate.position] = "gate '%s'" % gate.id
+	for portal: PortalDefinition in level.portals:
+		used[portal.position] = "portal '%s'" % portal.id
+	var fixtures: Array[Array] = []
+	for emitter: EmitterDefinition in level.emitters:
+		fixtures.append(["emitter", emitter.id, emitter.position])
+		for switch_id: String in emitter.requires:
+			if level.switch_by_id(switch_id) == null:
+				_error("emitter '%s' requires unknown switch '%s'" % [emitter.id, switch_id])
+	for reflector: ReflectorDefinition in level.reflectors:
+		fixtures.append(["reflector", reflector.id, reflector.position])
+	for fixture: Array in fixtures:
+		var label := "%s '%s'" % [fixture[0], fixture[1]]
+		if ids.has(fixture[1]):
+			_error("duplicate fixture id '%s'" % fixture[1])
+		ids[fixture[1]] = true
+		_validate_fixture_cell(level, label, fixture[2])
+		if route_cells.has(fixture[2]):
+			_error("%s at %s must not be on a route" % [label, fixture[2]])
+		if used.has(fixture[2]):
+			_error("%s shares a cell with %s" % [label, used[fixture[2]]])
+		used[fixture[2]] = label
+	for obj: MovableObject in level.initial_objects:
+		if level.is_solid_fixture(obj.position):
+			_error("object '%s' starts inside a solid fixture at %s" % [obj.id, obj.position])
+
+
 func _validate_rotating_sections(level: LevelDefinition) -> void:
 	var board := Rect2i(Vector2i.ZERO, level.board_size)
 	var ids: Dictionary[String, bool] = {}
@@ -563,6 +659,10 @@ func _validate_rotating_sections(level: LevelDefinition) -> void:
 			unsupported.append(["gate '%s'" % gate.id, gate.position])
 		for portal: PortalDefinition in level.portals:
 			unsupported.append(["portal '%s'" % portal.id, portal.position])
+		for emitter: EmitterDefinition in level.emitters:
+			unsupported.append(["emitter '%s'" % emitter.id, emitter.position])
+		for reflector: ReflectorDefinition in level.reflectors:
+			unsupported.append(["reflector '%s'" % reflector.id, reflector.position])
 		for route: RouteDefinition in level.routes.values():
 			for checkpoint: CheckpointDefinition in route.checkpoints:
 				unsupported.append(["checkpoint '%s'" % checkpoint.id, checkpoint.position])
@@ -710,6 +810,10 @@ func _validate_mechanism_availability(level: LevelDefinition) -> void:
 			_error("%s allows push_pulse but the level has no pushable objects" % context)
 		if allowed.has(MechanismIds.SWITCHES_SEALS) and not has_toggle:
 			_error("%s allows switches_seals but the level has no toggle switches" % context)
+		if allowed.has(MechanismIds.ENERGY_ROUTING) and level.reflectors.is_empty():
+			_error("%s allows energy_routing but the level has no reflectors" % context)
+		if allowed.has(MechanismIds.ROTATING_SECTIONS) and level.rotating_sections.is_empty():
+			_error("%s allows rotating_sections but the level has no rotating sections" % context)
 
 
 ## Committed states are always stable (D-006, D-013), so the authored start must be too.

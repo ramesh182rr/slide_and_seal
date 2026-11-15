@@ -111,6 +111,32 @@ A rotation is rejected (`MOVE_BLOCKED`) while the core is on any cell of the sec
 ### D-020 — Allowed turn directions per section (2026-11-15)
 Each section lists `allowed_directions` from `clockwise` / `counterclockwise`. A rotation is one quarter turn and counts as one action. Rotation state is `PuzzleState.section_turns` (clockwise quarter turns, mod 4).
 
+### D-021 — The core only enters a track piece it can pass straight through (2026-11-15; refines D-017)
+At a junction, the core enters a track piece only if:
+- its far end lines up with a corridor (a fixed segment starting adjacent to it), and
+- every cell of the piece, plus that corridor's first cell, is free.
+
+Otherwise the core waits **outside** the section, where it can still be turned. This removes the "stranded inside the turntable" class of softlock. D-019 stays as a safeguard. The owner approved "only enter when both ends connect"; the free-passage condition extends it, because a block on the piece or exit would otherwise strand the core the same way.
+
+### D-022 — Reflectors are flipped by tapping (2026-11-15)
+Reflectors are fixed two-sided mirrors oriented `/` or `\`. The player action `FLIP_REFLECTOR` (mechanism `energy_routing`) swaps the orientation and counts as one action.
+
+### D-023 — Blocks stop beams (2026-11-15)
+A beam stops before:
+- a wall
+- a closed gate
+- a block
+- another emitter
+- the board edge
+
+The core never interacts with beams.
+
+### D-024 — Receivers are a switch kind (2026-11-15)
+`kind: "receiver"` in `mechanisms.switches`. It is on while a beam reaches it, so gates, portals and emitters can `require` it. All gate rules apply, including never closing on an occupied cell.
+
+### D-025 — Emitters may be switch-controlled (2026-11-15)
+An emitter is always on unless it lists `requires` switches, which must then all be on.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -189,7 +215,15 @@ The validator's dead ends in the slice (see the M4 changelog) are accepted for t
   - Sections are tap-only, like switches.
 - Fixed (non-pushable) blocks are drawn grey steel, to stand apart from walls and pushable blocks.
 
-**Open question for the owner:** with D-017 the core may enter a track piece whose far end does not yet connect, and it then strands inside (undo recovers). An alternative rule, "the core enters a track piece only when both ends connect", would remove that whole class of softlock. That would be a rule change, so it is not implemented.
+The "stranded inside a section" softlock raised here was resolved by D-021.
+
+### P-015 — Energy routing details (M7a)
+- **Beams:**
+  - Receivers **absorb** the beam: it stops on the first receiver it reaches.
+  - Beams pass over route cells, portals and pressure/toggle switches.
+  - Each (cell, direction) is visited at most once, so a beam can never loop.
+- **Emitters and reflectors are solid** for blocks and the core (like walls). They may not sit on a route, share a cell with another fixture, or lie inside a rotating section (first version).
+- **Power is derived:** computed from "nothing powered" upward until stable. More power only opens gates or starts emitters, which only extends beams, so it always settles. It is re-evaluated inside every settle pass (so gravity moving a block into a beam takes effect) and is excluded from the state key, since it follows from the rest.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

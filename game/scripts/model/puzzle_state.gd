@@ -20,6 +20,11 @@ var toggle_states: Dictionary[String, bool] = {}
 var section_turns: Dictionary[String, int] = {}
 ## True while the core travels a track piece from its last node towards its first (D-017).
 var core_route_reversed: bool = false
+## Current orientation of each reflector: true = "/" (D-022).
+var reflector_slash: Dictionary[String, bool] = {}
+## Receivers currently reached by a beam (D-024). DERIVED: always recomputed by
+## EnergyResolver.update_power from the rest of the state, so it is not part of the key.
+var powered_receivers: Dictionary[String, bool] = {}
 ## Checkpoint ids in the order the core reached them.
 var reached_checkpoint_ids: PackedStringArray = PackedStringArray()
 ## Player mechanism actions committed (excludes core runs).
@@ -39,6 +44,8 @@ func clone() -> PuzzleState:
 	copy.toggle_states = toggle_states.duplicate()
 	copy.section_turns = section_turns.duplicate()
 	copy.core_route_reversed = core_route_reversed
+	copy.reflector_slash = reflector_slash.duplicate()
+	copy.powered_receivers = powered_receivers.duplicate()
 	copy.reached_checkpoint_ids = reached_checkpoint_ids.duplicate()
 	copy.mechanism_action_count = mechanism_action_count
 	copy.core_run_count = core_run_count
@@ -97,6 +104,11 @@ func to_key(include_counters: bool = true) -> String:
 	var section_parts := PackedStringArray()
 	for section_id: String in section_ids:
 		section_parts.append("%s:%d" % [section_id, section_turns[section_id]])
+	var reflector_ids: Array[String] = reflector_slash.keys()
+	reflector_ids.sort()
+	var reflector_parts := PackedStringArray()
+	for reflector_id: String in reflector_ids:
+		reflector_parts.append("%s:%s" % [reflector_id, "/" if reflector_slash[reflector_id] else "\\"])
 	var parts := PackedStringArray([
 		"phase=%d" % phase,
 		"core=%s#%d%s" % [core_route_id, core_node_index, "r" if core_route_reversed else ""],
@@ -104,6 +116,7 @@ func to_key(include_counters: bool = true) -> String:
 		"objects=" + "|".join(object_parts),
 		"gravity=" + "|".join(gravity_parts),
 		"toggles=" + "|".join(toggle_parts),
+		"reflectors=" + "|".join(reflector_parts),
 		"checkpoints=" + "|".join(reached_checkpoint_ids),
 	])
 	if include_counters:

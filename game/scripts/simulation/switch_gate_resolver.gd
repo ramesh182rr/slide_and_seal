@@ -7,6 +7,8 @@ extends RefCounted
 static func is_switch_on(state: PuzzleState, switch_def: SwitchDefinition) -> bool:
 	if switch_def.kind == SwitchDefinition.Kind.TOGGLE:
 		return state.toggle_states[switch_def.id]
+	if switch_def.kind == SwitchDefinition.Kind.RECEIVER:
+		return state.powered_receivers.has(switch_def.id)
 	var obj := state.object_at(switch_def.position)
 	return obj != null and obj.kind == MovableObject.KIND_BLOCK
 

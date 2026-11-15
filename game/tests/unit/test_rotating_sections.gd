@@ -67,16 +67,57 @@ func test_counterclockwise_turn_connects_forwards() -> void:
 
 
 func test_cannot_turn_while_core_is_inside() -> void:
-	# A block on b's first cell stops the core at the far end of the track, inside the section.
+	# D-021 keeps the core out of sections during normal play, so build the state directly
+	# to exercise the D-019 safeguard.
+	var level := _level(LevelFixtures.rotation_corridor())
+	var inside := level.create_initial_state()
+	inside.phase = PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION
+	inside.core_route_id = "t"
+	inside.core_node_index = 1
+	assert_eq(PuzzleSimulator.core_position(level, inside), Vector2i(4, 2))
+	assert_eq(_apply(level, inside, PuzzleAction.rotate_section("s", true)).failure,
+		ActionResult.Failure.MOVE_BLOCKED)
+
+
+# --- D-021: only enter a track piece the core can pass straight through -----------
+
+func test_core_waits_outside_when_exit_corridor_is_blocked() -> void:
 	var data := LevelFixtures.add_block(LevelFixtures.rotation_corridor(), "k", Vector2i(6, 2))
 	var level := _level(data)
 	var turned := _apply(level, _waiting_at_section(level), PuzzleAction.rotate_section("s", true)).state
-	var stuck := _apply(level, turned, PuzzleAction.run_core())
-	assert_eq(stuck.state.phase, PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION)
-	assert_eq(PuzzleSimulator.core_position(level, stuck.state), Vector2i(5, 2))
-	assert_true(stuck.state.core_route_reversed)
-	assert_eq(_apply(level, stuck.state, PuzzleAction.rotate_section("s", true)).failure,
-		ActionResult.Failure.MOVE_BLOCKED)
+	var result := _apply(level, turned, PuzzleAction.run_core())
+	assert_eq(result.failure, ActionResult.Failure.ROUTE_BLOCKED, "the piece lines up, but the exit is blocked")
+	assert_eq(PuzzleSimulator.core_position(level, turned), Vector2i(2, 2), "the core stays outside the section")
+
+
+func test_core_waits_outside_when_a_block_sits_on_the_piece() -> void:
+	# A crate on the centre cell lies on the piece in every orientation.
+	var data := LevelFixtures.add_block(LevelFixtures.rotation_corridor(), "k", Vector2i(4, 2))
+	var level := _level(data)
+	var paused := _apply(level, level.create_initial_state(), PuzzleAction.run_core()).state
+	var turned := _apply(level, paused, PuzzleAction.rotate_section("s", true)).state
+	var result := _apply(level, turned, PuzzleAction.run_core())
+	assert_eq(result.state.phase, PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION)
+	assert_eq(PuzzleSimulator.core_position(level, result.state), Vector2i(2, 2))
+	assert_eq(result.travel.blocked_cell, Vector2i(3, 2), "reported at the piece's near end")
+
+
+func test_quarter_turn_overshoot_no_longer_strands_the_core() -> void:
+	# Regression: three turns leave the L joined to the incoming corridor only. Before D-021 the core
+	# ran in and stranded inside the turntable; now it waits outside, still free to turn the table on
+	# round to the connecting orientation (turn 2 = three more clockwise turns from turn 3).
+	var level := LevelLoader.load_file("res://data/levels/world_06_quarter_turn.json").level
+	var state := _apply(level, level.create_initial_state(), PuzzleAction.run_core()).state
+	for i: int in 3:
+		state = _apply(level, state, PuzzleAction.rotate_section("turntable", true)).state
+	var waiting := _apply(level, state, PuzzleAction.run_core())
+	assert_eq(waiting.state.phase, PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION)
+	assert_eq(PuzzleSimulator.core_position(level, waiting.state), Vector2i(2, 3), "outside the turntable")
+	var fixed := waiting.state
+	for i: int in 3:
+		fixed = _apply(level, fixed, PuzzleAction.rotate_section("turntable", true)).state
+	assert_eq(fixed.section_turns["turntable"], 2)
+	assert_eq(_apply(level, fixed, PuzzleAction.run_core()).state.phase, PuzzleState.Phase.LEVEL_COMPLETED)
 
 
 func test_walls_inside_turn_with_the_section() -> void:
@@ -145,14 +186,14 @@ func test_four_turns_return_to_the_same_board() -> void:
 	assert_eq(state.mechanism_action_count, 4)
 
 
-func test_undo_restores_turns_and_travel_direction() -> void:
-	var session := PuzzleSession.new(_level(LevelFixtures.add_block(LevelFixtures.rotation_corridor(), "k", Vector2i(6, 2))))
+func test_undo_restores_turns_and_travel() -> void:
+	var session := PuzzleSession.new(_level(LevelFixtures.rotation_corridor()))
 	session.apply(PuzzleAction.run_core())
 	session.apply(PuzzleAction.run_core())
 	session.apply(PuzzleAction.rotate_section("s", true))
 	var before_run := session.get_state().to_key()
-	session.apply(PuzzleAction.run_core())
-	assert_true(session.get_state().core_route_reversed)
+	assert_true(session.apply(PuzzleAction.run_core()).is_ok())
+	assert_eq(session.get_state().phase, PuzzleState.Phase.LEVEL_COMPLETED)
 	assert_true(session.undo())
 	assert_eq(session.get_state().to_key(), before_run)
 	assert_true(session.undo())

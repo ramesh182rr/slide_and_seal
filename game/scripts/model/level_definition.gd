@@ -27,6 +27,10 @@ var gates: Array[GateDefinition] = []
 var portals: Array[PortalDefinition] = []
 ## Sorted by id. Never overlapping.
 var rotating_sections: Array[RotatingSectionDefinition] = []
+## Sorted by id.
+var emitters: Array[EmitterDefinition] = []
+## Sorted by id.
+var reflectors: Array[ReflectorDefinition] = []
 ## Mechanisms usable before the first run (D-008).
 var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
@@ -61,6 +65,39 @@ func gate_at(cell: Vector2i) -> GateDefinition:
 		if gate.position == cell:
 			return gate
 	return null
+
+
+func emitter_at(cell: Vector2i) -> EmitterDefinition:
+	for emitter: EmitterDefinition in emitters:
+		if emitter.position == cell:
+			return emitter
+	return null
+
+
+func reflector_at(cell: Vector2i) -> ReflectorDefinition:
+	for reflector: ReflectorDefinition in reflectors:
+		if reflector.position == cell:
+			return reflector
+	return null
+
+
+func reflector_by_id(reflector_id: String) -> ReflectorDefinition:
+	for reflector: ReflectorDefinition in reflectors:
+		if reflector.id == reflector_id:
+			return reflector
+	return null
+
+
+func receiver_at(cell: Vector2i) -> SwitchDefinition:
+	for switch_def: SwitchDefinition in switches:
+		if switch_def.kind == SwitchDefinition.Kind.RECEIVER and switch_def.position == cell:
+			return switch_def
+	return null
+
+
+## Emitters and reflectors are solid fixtures: blocks and the core cannot enter them (beams use them).
+func is_solid_fixture(cell: Vector2i) -> bool:
+	return emitter_at(cell) != null or reflector_at(cell) != null
 
 
 func rotating_section(section_id: String) -> RotatingSectionDefinition:
@@ -115,4 +152,7 @@ func create_initial_state() -> PuzzleState:
 			state.toggle_states[switch_def.id] = switch_def.initially_on
 	for section: RotatingSectionDefinition in rotating_sections:
 		state.section_turns[section.id] = 0
+	for reflector: ReflectorDefinition in reflectors:
+		state.reflector_slash[reflector.id] = reflector.initially_slash
+	EnergyResolver.update_power(self, state)
 	return state

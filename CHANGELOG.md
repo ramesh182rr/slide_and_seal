@@ -5,6 +5,52 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M7a: Energy Routing (rules)
+
+**Added**
+- **`EnergyResolver`:** traces beams from active emitters.
+  - Beams stop at walls (including turned section walls), closed gates, blocks, emitters and the board edge.
+  - They bend at reflectors (`ReflectorDefinition.reflect`) and end on the first receiver.
+  - A loop guard and a step bound mean tracing can never hang.
+- **Power:** powered receivers are computed bottom-up to a stable result (`update_power`), so chains work: a receiver can open a gate on another beam's path or start another emitter. Power is re-evaluated in every settle pass and in the initial state.
+- **Switch kind `receiver`** (D-024): on while powered, so gates, portals and emitters can require it. All gate rules apply.
+- **Emitters** (`mechanisms.energy_emitters`) with optional `requires` (D-025); **reflectors** (`mechanisms.reflectors`, `/` or `\`).
+- **`PuzzleAction.flip_reflector`** (mechanism `energy_routing`, D-022), counted as one action. Mirror orientation is in the state key.
+- **Solid fixtures:** emitters and reflectors block blocks and the core (`LevelDefinition.is_solid_fixture`, used by `is_wall_at` and gravity). Beams use the separate `is_terrain_wall_at`.
+- **Loader:** energy fixtures validated (cells, routes, sharing, requires, blocks inside fixtures, sections). Allowing `energy_routing` requires a reflector, and allowing `rotating_sections` requires a section.
+- The solver includes reflector flips.
+- **Tests:** 20 new, bringing the suite to 278. They cover:
+  - the reflection table, initial and flipped beams, flipping opening the gate and completing the level
+  - blocks and closed gates stopping beams, switch-controlled emitters, power chains
+  - solidity, never closing a gate on the core when a beam is cut
+  - rejections, undo/preview/key, the solver minimum
+  - 8 loader rules
+
+**Changed**
+- Two loader tests updated: the switch-kind message now lists `receiver`, and the "unsupported mechanism" example now uses `magnetic_fields`.
+
+**Verified**
+- Mutation checks: transparent blocks, single-pass power and no power refresh in settling are each caught.
+- All four shipped levels validate unchanged.
+
+**Known limitations**
+- Rules only: beams, emitters, mirrors and receivers are not drawn or interactive in 3D yet.
+- Energy fixtures inside rotating sections are not supported yet.
+
+### 2026-11-15 — D-021: track pieces are entered only when passable
+
+**Changed**
+- **Rule:** at a junction the core enters a track piece only if it can pass straight through:
+  - the piece's far end lines up with a corridor, and
+  - every piece cell plus that corridor's first cell is free.
+
+  Otherwise it waits outside the section, where it can still be turned (`PuzzleSimulator._can_pass_through`). The owner approved "enter only when both ends connect"; the free-passage condition extends it so a block cannot strand the core either.
+- **Quarter Turn** now validates with **0 dead ends**. The overshoot trap is gone.
+- **Tests:** the D-019 safeguard ("no turning with the core inside") is now tested with a hand-built state, since normal play can no longer put the core inside a section. The undo test no longer relies on a stranded core.
+
+**Added**
+- 3 tests: waiting outside when the exit corridor is blocked; waiting outside when a block sits on the piece; regression test for the Quarter Turn overshoot. Suite: 258. A mutation check confirmed that disabling the rule fails exactly these three.
+
 ### 2026-11-15 — M6b: Rotating sections in 3D, plus "Quarter Turn"
 
 **Added**

@@ -22,6 +22,8 @@ static func apply_action(level: LevelDefinition, state: PuzzleState, action: Puz
 			return _toggle_switch(level, state, action)
 		PuzzleAction.Kind.ROTATE_SECTION:
 			return _rotate_section(level, state, action)
+		PuzzleAction.Kind.FLIP_REFLECTOR:
+			return _flip_reflector(level, state, action)
 	return ActionResult.rejected(ActionResult.Failure.UNKNOWN_ACTION, "Unknown action kind %d." % action.kind)
 
 
@@ -43,8 +45,13 @@ static func route_cell(level: LevelDefinition, state: PuzzleState, route: RouteD
 	return level.rotating_section(route.section_id).rotate_cell(node, state.section_turns[route.section_id])
 
 
-## Walls inside rotating sections turn with them (D-018); others are static.
+## Solid for blocks and the core: terrain walls plus emitters and reflectors (D-023).
 static func is_wall_at(level: LevelDefinition, state: PuzzleState, cell: Vector2i) -> bool:
+	return level.is_solid_fixture(cell) or is_terrain_wall_at(level, state, cell)
+
+
+## Terrain walls only. Walls inside rotating sections turn with them (D-018); others are static.
+static func is_terrain_wall_at(level: LevelDefinition, state: PuzzleState, cell: Vector2i) -> bool:
 	var section := level.section_at(cell)
 	if section == null:
 		return level.is_wall(cell)
@@ -77,6 +84,7 @@ static func stabilize(level: LevelDefinition, state: PuzzleState, core_cell: Vec
 	var moves: Array[ObjectMove] = []
 	var by_object: Dictionary[String, ObjectMove] = {}
 	for pass_index: int in MAX_STABILIZE_PASSES:
+		EnergyResolver.update_power(level, state)
 		var closed := SwitchGateResolver.closed_gate_cells(level, state)
 		var pass_moves := GravityResolver.settle(level, state, core_cell, core_step, closed)
 		if pass_moves.is_empty():
@@ -225,7 +233,8 @@ static func _junction_step(level: LevelDefinition, state: PuzzleState, current: 
 		else:
 			continue
 		var entry := route_cell(level, state, candidate, step.index)
-		if is_cell_blocked(level, state, entry):
+		if is_cell_blocked(level, state, entry) \
+				or candidate.section_id != "" and not _can_pass_through(level, state, candidate, step.reversed, route_ids):
 			step.blocked = true
 			step.blocked_cell = entry
 		return step
@@ -233,6 +242,21 @@ static func _junction_step(level: LevelDefinition, state: PuzzleState, current: 
 	step.blocked = true
 	step.blocked_cell = here + _heading(level, state, current)
 	return step
+
+
+## D-021: a track piece may be entered only if the core can pass straight through it: the far end
+## lines up with a fixed segment's start, and every piece cell plus that start cell is free.
+static func _can_pass_through(level: LevelDefinition, state: PuzzleState, piece: RouteDefinition,
+		reversed: bool, route_ids: Array) -> bool:
+	for index: int in piece.nodes.size():
+		if is_cell_blocked(level, state, route_cell(level, state, piece, index)):
+			return false
+	var far := route_cell(level, state, piece, 0 if reversed else piece.last_index())
+	for route_id: String in route_ids:
+		var exit_route: RouteDefinition = level.routes[route_id]
+		if exit_route.section_id == "" and Grid.are_orthogonal_neighbours(far, exit_route.nodes[0]):
+			return not is_cell_blocked(level, state, exit_route.nodes[0])
+	return false
 
 
 ## Direction of travel at the end of the current segment (for reporting the blocked cell).
@@ -345,6 +369,24 @@ static func _rotate_section(level: LevelDefinition, state: PuzzleState, action: 
 			obj.position = section.rotate_cell(from, quarter)
 			moves.append(ObjectMove.new(obj.id, from, obj.position, ObjectMove.Cause.ROTATION))
 	moves.append_array(stabilize(level, next, core_cell))
+	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
+	if gate_rejection != null:
+		return gate_rejection
+	next.mechanism_action_count += 1
+	return ActionResult.success(next, null, moves)
+
+
+static func _flip_reflector(level: LevelDefinition, state: PuzzleState, action: PuzzleAction) -> ActionResult:
+	var rejection := _check_mechanism_available(level, state, MechanismIds.ENERGY_ROUTING)
+	if rejection != null:
+		return rejection
+	var reflector := level.reflector_by_id(action.target_id)
+	if reflector == null:
+		return ActionResult.rejected(ActionResult.Failure.INVALID_TARGET, "No reflector '%s'." % action.target_id)
+	var next := state.clone()
+	next.reflector_slash[reflector.id] = not state.reflector_slash[reflector.id]
+	var core_cell := core_position(level, state)
+	var moves := stabilize(level, next, core_cell)
 	var gate_rejection := _reject_if_gate_occupied(level, next, core_cell)
 	if gate_rejection != null:
 		return gate_rejection
