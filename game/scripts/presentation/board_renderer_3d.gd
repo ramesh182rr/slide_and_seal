@@ -141,6 +141,9 @@ func show_preview(current: PuzzleState, previewed: PuzzleState) -> void:
 		if now != null and now.position != obj.position:
 			_add_mesh(ghost, material, object_world_position(obj.position), _preview_root)
 	_fixtures.add_preview_ghosts(_preview_root, current, previewed)
+	# Where the beams would run (docs/03 §6: "beam preview should show the full route").
+	if _fixtures.beam_signature(current) != _fixtures.beam_signature(previewed):
+		_fixtures.add_beams(_preview_root, previewed, true)
 	# Where each track piece would lie after a previewed turn.
 	var pad := BoxMesh.new()
 	pad.size = Vector3(0.3, 0.06, 0.3)

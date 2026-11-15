@@ -5,6 +5,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M7b: Energy routing in 3D, plus "Reflector Logic"
+
+**Added**
+- **Level** `game/data/levels/world_05_reflector_logic.json`, "Reflector Logic" (doc 09 #28), placed after the showcase in "The Sealed Chambers":
+  - an emitter, two mirrors that both need flipping, and a receiver powering the gate on the core's corridor
+  - the validator proves a minimum of 2 with 0 dead ends
+- **`MechanismFixtures3D`:**
+  - emitter (block plus nozzle), mirror (slab on a base, turned per orientation), receiver (pedestal plus crystal lamp)
+  - beams drawn from `EnergyResolver.trace`, rebuilt after every committed state, with a stub to the obstacle that stopped them
+  - `beam_signature` for preview comparison
+- **Preview:** ghost beam paths (mint) whenever a previewed action changes the beams.
+- **Playback:** mirrors swing to their new diagonal.
+- **Interaction:**
+  - tap a mirror for a "Flip mirror" panel (hold to preview, release to flip)
+  - tapping a receiver or emitter explains it
+  - HUD: "Energy" and "Tap a mirror"
+- **Tests:** 5 scene tests, bringing the suite to 283. They cover:
+  - mirrors, receiver lamp and beam drawing matching state, including after undo
+  - the explanatory taps and "not before the checkpoint"
+  - the flip panel with its beam preview, committed through the real button signal
+  - solving the full level through taps
+
+**Changed**
+- Catalog: Reflector Logic inserted before Quarter Turn, and the navigation tests updated.
+- The mirror panel title no longer shows `/` or `\`, since the isometric view would make it misleading.
+
+**Verified**
+- Windowed screenshots: the initial beam, the ghost preview of the new path, both mirrors flipped with receiver A lit and gate A open, and completion.
+- All five levels validate.
+
+**Known limitations**
+- Placeholder art. Beams are plain glowing boxes, with no particles or animated flow.
+- Beams redraw once a playback finishes rather than animating along their new path.
+
 ### 2026-11-15 — M7a: Energy Routing (rules)
 
 **Added**

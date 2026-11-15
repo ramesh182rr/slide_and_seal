@@ -4,7 +4,7 @@ extends Node
 ## Every state change goes through PuzzleSession; previews use PuzzleSession.preview (same rules).
 ## Input is locked while a committed result is being played back.
 
-enum TargetKind { NONE, OBJECT, ZONE, SWITCH, SECTION }
+enum TargetKind { NONE, OBJECT, ZONE, SWITCH, SECTION, REFLECTOR }
 
 ## Emitted when the player confirms leaving the puzzle.
 signal leave_requested
@@ -111,6 +111,8 @@ func selected_target() -> String:
 			return "switch:" + _target_id
 		TargetKind.SECTION:
 			return "section:" + _target_id
+		TargetKind.REFLECTOR:
+			return "reflector:" + _target_id
 	return ""
 
 
@@ -208,10 +210,21 @@ func select_switch(switch_id: String) -> void:
 	var marks := _symbol_phrase(switch_id)
 	if switch_def.kind == SwitchDefinition.Kind.PRESSURE:
 		_select_none_with_message("Pressure plate%s: on while a block rests on it." % marks)
+	elif switch_def.kind == SwitchDefinition.Kind.RECEIVER:
+		_select_none_with_message("Receiver%s: on while an energy beam reaches it." % marks)
 	elif not _allowed(MechanismIds.SWITCHES_SEALS):
 		_select_none_with_message("Switches cannot be used here.")
 	else:
 		_set_target(TargetKind.SWITCH, switch_id)
+
+
+func select_reflector(reflector_id: String) -> void:
+	if _session.get_level().reflector_by_id(reflector_id) == null:
+		return
+	if not _allowed(MechanismIds.ENERGY_ROUTING):
+		_select_none_with_message("Mirrors cannot be flipped here.")
+	else:
+		_set_target(TargetKind.REFLECTOR, reflector_id)
 
 
 func select_section(section_id: String) -> void:
@@ -258,7 +271,7 @@ func _set_target(kind: TargetKind, id: String) -> void:
 	_target_id = id
 	_board.clear_preview()
 	_board.set_highlight(id if kind == TargetKind.OBJECT else "", id if kind == TargetKind.ZONE else "",
-		id if kind == TargetKind.SWITCH else "", id if kind == TargetKind.SECTION else "")
+		id if kind == TargetKind.SWITCH or kind == TargetKind.REFLECTOR else "", id if kind == TargetKind.SECTION else "")
 	if kind != TargetKind.NONE:
 		_hud.clear_message()
 	_refresh_panel()
@@ -275,12 +288,20 @@ func _refresh_panel() -> void:
 	if _target_kind == TargetKind.OBJECT and not _allowed(MechanismIds.PUSH_PULSE) \
 			or _target_kind == TargetKind.ZONE and not _allowed(MechanismIds.GRAVITY_SHIFT) \
 			or _target_kind == TargetKind.SWITCH and not _allowed(MechanismIds.SWITCHES_SEALS) \
-			or _target_kind == TargetKind.SECTION and not _allowed(MechanismIds.ROTATING_SECTIONS):
+			or _target_kind == TargetKind.SECTION and not _allowed(MechanismIds.ROTATING_SECTIONS) \
+			or _target_kind == TargetKind.REFLECTOR and not _allowed(MechanismIds.ENERGY_ROUTING):
 		_target_kind = TargetKind.NONE
 		_target_id = ""
 		_board.set_highlight("", "")
 	if _target_kind == TargetKind.NONE:
 		panel.hide_target()
+		return
+	if _target_kind == TargetKind.REFLECTOR:
+		# No "/" or "\\" in the title: in the isometric view a grid diagonal is drawn near-horizontal
+		# or near-vertical, so the symbol would mislead. The mirror itself shows its angle.
+		panel.show_action("Mirror",
+			"Hold to preview the new beam path, release to flip the mirror.", "Flip mirror",
+			not _busy and _session.preview(PuzzleAction.flip_reflector(_target_id)).is_ok())
 		return
 	if _target_kind == TargetKind.SECTION:
 		var options: Array = []
@@ -333,6 +354,13 @@ func _on_tapped(screen_position: Vector2) -> void:
 		clear_selection()
 	elif _switch_at(hit.cell) != "":
 		select_switch(_switch_at(hit.cell))
+	elif level.reflector_at(hit.cell) != null:
+		select_reflector(level.reflector_at(hit.cell).id)
+	elif level.emitter_at(hit.cell) != null:
+		var emitter := level.emitter_at(hit.cell)
+		var needs := ", ".join(emitter.requires)
+		_select_none_with_message("Emitter: fires an energy beam%s." % ("" if emitter.requires.is_empty()
+			else " while its switches are on (%s)" % needs))
 	elif level.gate_at(hit.cell) != null:
 		var gate := level.gate_at(hit.cell)
 		_select_none_with_message("Gate%s opens when every switch marked %s is on."
@@ -400,6 +428,8 @@ func _panel_action(index: int) -> PuzzleAction:
 			var options := _section_turn_options(_target_id)
 			if index < options.size():
 				return PuzzleAction.rotate_section(_target_id, options[index])
+		TargetKind.REFLECTOR:
+			return PuzzleAction.flip_reflector(_target_id)
 	return null
 
 

@@ -15,6 +15,7 @@ const MECHANISM_LABELS := {
 	MechanismIds.GRAVITY_SHIFT: "Gravity",
 	MechanismIds.SWITCHES_SEALS: "Switches",
 	MechanismIds.ROTATING_SECTIONS: "Rotation",
+	MechanismIds.ENERGY_ROUTING: "Energy",
 }
 
 var _title := Label.new()
@@ -131,6 +132,8 @@ static func _how_to(mechanisms: PackedStringArray) -> String:
 		tap_only.append("switch")
 	if mechanisms.has(MechanismIds.ROTATING_SECTIONS):
 		tap_only.append("rotating section")
+	if mechanisms.has(MechanismIds.ENERGY_ROUTING):
+		tap_only.append("mirror")
 	if not tap_only.is_empty():
 		var phrase := "a " + " or ".join(tap_only)
 		parts.append(("tap " if not parts.is_empty() else "Tap ") + phrase)

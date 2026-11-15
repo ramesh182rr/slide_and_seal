@@ -225,6 +225,18 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Emitters and reflectors are solid** for blocks and the core (like walls). They may not sit on a route, share a cell with another fixture, or lie inside a rotating section (first version).
 - **Power is derived:** computed from "nothing powered" upward until stable. More power only opens gates or starts emitters, which only extends beams, so it always settles. It is re-evaluated inside every settle pass (so gravity moving a block into a beam takes effect) and is excluded from the state key, since it follows from the rest.
 
+### P-016 — Presenting energy routing (M7b)
+- **Visuals:**
+  - Emitters are a block with a glowing nozzle facing the firing direction.
+  - Mirrors are a slab on a base, turned to `/` or `\`. They swing when flipped.
+  - Receivers are a pedestal with a crystal lamp that glows mint when powered.
+- **Beams** are glowing cyan lines rebuilt from `EnergyResolver.trace` after every committed state. A beam stopped by an obstacle shows a short stub reaching its face.
+- **Preview:** flipping previews the new beam path as a mint ghost, plus gate ghosts.
+- **Interaction:**
+  - Mirrors are tap-only: the panel shows "Flip mirror", hold to preview and release to flip.
+  - Tapping a receiver or emitter explains it.
+  - The panel title avoids `/` and `\`, because grid diagonals look horizontal or vertical in the isometric view.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

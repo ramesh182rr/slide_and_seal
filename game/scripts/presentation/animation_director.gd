@@ -10,6 +10,7 @@ const SLIDE_SECONDS_PER_CELL := 0.08
 const ZONE_TURN_SECONDS := 0.22
 const GATE_SECONDS := 0.25
 const SECTION_TURN_SECONDS := 0.4
+const MIRROR_FLIP_SECONDS := 0.25
 
 ## When true, nothing animates (reduced motion; also used by tests).
 var instant: bool = false
@@ -27,6 +28,7 @@ func play(before: PuzzleState, result: ActionResult) -> void:
 	var tween := create_tween()
 	var steps := _queue_zone_turns(tween, before, result.state)
 	steps += _queue_section_turns(tween, before, result)
+	steps += _queue_mirror_flips(tween, before, result.state)
 	if result.travel != null:
 		steps += _queue_travel(tween, result)
 	else:
@@ -49,6 +51,20 @@ func _queue_zone_turns(tween: Tween, before: PuzzleState, after: PuzzleState) ->
 			var turn := func(t: float) -> void: pivot.rotation.y = lerp_angle(from_yaw, to_yaw, t)
 			_tweener(tween, count > 0).tween_method(turn, 0.0, 1.0, ZONE_TURN_SECONDS)
 			count += 1
+	return count
+
+
+## Flipped mirrors swing to their new diagonal. Beams are redrawn when the board snaps afterwards.
+func _queue_mirror_flips(tween: Tween, before: PuzzleState, after: PuzzleState) -> int:
+	var count := 0
+	for reflector_id: String in after.reflector_slash.keys():
+		if before.reflector_slash[reflector_id] == after.reflector_slash[reflector_id]:
+			continue
+		var pivot := _board.fixtures().reflector_pivot(reflector_id)
+		var target := MechanismFixtures3D.reflector_yaw(after.reflector_slash[reflector_id])
+		_tweener(tween, count > 0).tween_property(pivot, "rotation:y", target, MIRROR_FLIP_SECONDS) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		count += 1
 	return count
 
 

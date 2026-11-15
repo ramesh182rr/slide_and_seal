@@ -13,7 +13,8 @@
       "id": "world_05_sealed_chambers",
       "title": "The Sealed Chambers",
       "levels": [
-        "world_05_showcase"
+        "world_05_showcase",
+        "world_05_reflector_logic"
       ]
     },
     {

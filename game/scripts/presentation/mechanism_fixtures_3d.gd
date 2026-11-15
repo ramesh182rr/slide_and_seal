@@ -7,6 +7,8 @@ extends Node3D
 
 const GATE_HEIGHT := 0.72
 const LABEL_HEIGHT := 1.15
+const BEAM_HEIGHT := 0.36
+const BEAM_THICKNESS := 0.07
 
 var _level: LevelDefinition
 var _library: MaterialLibrary
@@ -17,6 +19,8 @@ var _switch_bases: Dictionary[String, MeshInstance3D] = {}
 var _portal_rings: Dictionary[String, MeshInstance3D] = {}
 var _labels: Dictionary[String, Label3D] = {}
 var _lit: Dictionary[String, bool] = {}
+var _reflector_pivots: Dictionary[String, Node3D] = {}
+var _beam_root: Node3D
 
 
 func build(level: LevelDefinition, library: MaterialLibrary) -> void:
@@ -29,6 +33,13 @@ func build(level: LevelDefinition, library: MaterialLibrary) -> void:
 		_build_gate(gate)
 	for portal: PortalDefinition in level.portals:
 		_build_portal(portal)
+	for emitter: EmitterDefinition in level.emitters:
+		_build_emitter(emitter)
+	for reflector: ReflectorDefinition in level.reflectors:
+		_build_reflector(reflector)
+	_beam_root = Node3D.new()
+	_beam_root.name = "Beams"
+	add_child(_beam_root)
 
 
 func sync_to_state(state: PuzzleState) -> void:
@@ -43,6 +54,67 @@ func sync_to_state(state: PuzzleState) -> void:
 		var active := _portal_active(state, portal)
 		_lit[portal.id] = active
 		_portal_rings[portal.id].material_override = _portal_material(active)
+	for reflector: ReflectorDefinition in _level.reflectors:
+		_reflector_pivots[reflector.id].rotation.y = reflector_yaw(state.reflector_slash[reflector.id])
+	for child: Node in _beam_root.get_children():
+		_beam_root.remove_child(child)
+		child.free()
+	add_beams(_beam_root, state, false)
+
+
+## Draws every beam the state's simulation traces. Ghost beams (previews) are translucent mint.
+func add_beams(parent: Node3D, state: PuzzleState, ghost: bool) -> void:
+	var material := _library.get_material("beam_ghost", Palette.MINT_SUCCESS, 1.2, 0.45) if ghost \
+		else _library.get_material("beam", Palette.CYAN_ENERGY, 3.0)
+	for beam: EnergyResolver.Beam in EnergyResolver.trace(_level, state):
+		var emitter := _emitter(beam.emitter_id)
+		var points: Array[Vector3] = [BoardCoords.cell_to_world(emitter.position, BEAM_HEIGHT)]
+		for cell: Vector2i in beam.cells:
+			points.append(BoardCoords.cell_to_world(cell, BEAM_HEIGHT))
+		if beam.receiver_id == "":
+			# Show the beam reaching the face of whatever stopped it.
+			var last_direction := Grid.offset(emitter.direction)
+			if beam.cells.size() >= 1:
+				var reflector := _level.reflector_at(beam.cells.back())
+				var before := emitter.position if beam.cells.size() == 1 else beam.cells[beam.cells.size() - 2]
+				last_direction = beam.cells.back() - before
+				if reflector != null:
+					last_direction = Grid.offset(ReflectorDefinition.reflect(
+						_direction_of(last_direction), state.reflector_slash[reflector.id]))
+			points.append(points.back() + Vector3(last_direction.x, 0, last_direction.y) * 0.5)
+		for i: int in range(1, points.size()):
+			var a := points[i - 1]
+			var b := points[i]
+			var segment := BoxMesh.new()
+			var length := a.distance_to(b)
+			segment.size = Vector3(length, BEAM_THICKNESS, BEAM_THICKNESS) if absf(a.x - b.x) > 0.001 \
+				else Vector3(BEAM_THICKNESS, BEAM_THICKNESS, length)
+			var instance := MeshInstance3D.new()
+			instance.mesh = segment
+			instance.material_override = material
+			instance.position = (a + b) * 0.5
+			parent.add_child(instance)
+
+
+## Compact description of the traced beams, to tell whether a preview changes them.
+func beam_signature(state: PuzzleState) -> String:
+	var parts := PackedStringArray()
+	for beam: EnergyResolver.Beam in EnergyResolver.trace(_level, state):
+		parts.append("%s:%s>%s" % [beam.emitter_id, str(beam.cells), beam.receiver_id])
+	return ";".join(parts)
+
+
+func beam_segment_count() -> int:
+	return _beam_root.get_child_count()
+
+
+func reflector_pivot(reflector_id: String) -> Node3D:
+	return _reflector_pivots.get(reflector_id)
+
+
+## The mirror slab's long axis lies along "/" or "\" (grid y down = world +Z).
+static func reflector_yaw(slash: bool) -> float:
+	return PI / 4.0 if slash else -PI / 4.0
 
 
 ## Ghosts for gates a preview would change: a raised ghost where an open gate would close, and a
@@ -114,7 +186,20 @@ static func compute_symbols(level: LevelDefinition) -> Dictionary[String, String
 
 func _build_switch(switch_def: SwitchDefinition) -> void:
 	var at := BoardCoords.cell_to_world(switch_def.position)
-	if switch_def.kind == SwitchDefinition.Kind.PRESSURE:
+	if switch_def.kind == SwitchDefinition.Kind.RECEIVER:
+		# A pedestal with a crystal lamp that lights while a beam reaches it.
+		var pedestal := CylinderMesh.new()
+		pedestal.top_radius = 0.22
+		pedestal.bottom_radius = 0.32
+		pedestal.height = 0.24
+		var base := _mesh(pedestal, at + Vector3(0, 0.12, 0))
+		base.material_override = _library.get_material("lever_base", Palette.WALL.lightened(0.25), 0.0, 1.0, 0.5, 0.4)
+		var crystal := SphereMesh.new()
+		crystal.radius = 0.17
+		crystal.height = 0.34
+		_switch_lamps[switch_def.id] = _mesh(crystal, at + Vector3(0, BEAM_HEIGHT, 0))
+		_switch_bases[switch_def.id] = base
+	elif switch_def.kind == SwitchDefinition.Kind.PRESSURE:
 		# A square plate that lights up while pressed: the plate is its own lamp.
 		var plate := BoxMesh.new()
 		plate.size = Vector3(0.72, 0.05, 0.72)
@@ -146,6 +231,58 @@ func _build_gate(gate: GateDefinition) -> void:
 	node.name = "Gate_%s" % gate.id
 	_gates[gate.id] = node
 	_label(gate.id, BoardCoords.cell_to_world(gate.position, LABEL_HEIGHT), Palette.MECHANISM_AMBER)
+
+
+func _build_emitter(emitter: EmitterDefinition) -> void:
+	var at := BoardCoords.cell_to_world(emitter.position)
+	var body := BoxMesh.new()
+	body.size = Vector3(0.7, 0.55, 0.7)
+	var node := _mesh(body, at + Vector3(0, 0.27, 0))
+	node.material_override = _library.get_material("emitter", Palette.WALL.lightened(0.2), 0.0, 1.0, 0.6, 0.35)
+	var nozzle := BoxMesh.new()
+	nozzle.size = Vector3(0.24, 0.24, 0.24)
+	var step := Grid.offset(emitter.direction)
+	var tip := _mesh(nozzle, at + Vector3(step.x * 0.38, BEAM_HEIGHT, step.y * 0.38))
+	tip.material_override = _library.get_material("emitter_nozzle", Palette.CYAN_ENERGY, 2.0)
+
+
+func _build_reflector(reflector: ReflectorDefinition) -> void:
+	var pivot := Node3D.new()
+	pivot.name = "Mirror_%s" % reflector.id
+	pivot.position = BoardCoords.cell_to_world(reflector.position)
+	add_child(pivot)
+	_reflector_pivots[reflector.id] = pivot
+	var base := CylinderMesh.new()
+	base.top_radius = 0.34
+	base.bottom_radius = 0.38
+	base.height = 0.1
+	var base_node := MeshInstance3D.new()
+	base_node.mesh = base
+	base_node.position = Vector3(0, 0.05, 0)
+	base_node.material_override = _library.get_material("lever_base", Palette.WALL.lightened(0.25), 0.0, 1.0, 0.5, 0.4)
+	pivot.add_child(base_node)
+	_switch_bases[reflector.id] = base_node
+	var slab := BoxMesh.new()
+	slab.size = Vector3(1.0, 0.55, 0.08)
+	var mirror := MeshInstance3D.new()
+	mirror.mesh = slab
+	mirror.position = Vector3(0, 0.33, 0)
+	mirror.material_override = _library.get_material("mirror", Palette.METAL_HIGHLIGHT, 0.4, 1.0, 0.9, 0.08)
+	pivot.add_child(mirror)
+
+
+func _emitter(emitter_id: String) -> EmitterDefinition:
+	for emitter: EmitterDefinition in _level.emitters:
+		if emitter.id == emitter_id:
+			return emitter
+	return null
+
+
+static func _direction_of(step: Vector2i) -> Grid.Direction:
+	for direction: int in 4:
+		if Grid.offset(direction as Grid.Direction) == step:
+			return direction as Grid.Direction
+	return Grid.Direction.UP
 
 
 func _build_portal(portal: PortalDefinition) -> void:
