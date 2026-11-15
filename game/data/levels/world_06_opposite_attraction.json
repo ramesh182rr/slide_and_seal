@@ -1,0 +1,41 @@
+{
+  "schema_version": 3,
+  "id": "world_06_opposite_attraction",
+  "title": "Opposite Attraction",
+  "world_id": "world_06_shifting_labyrinth",
+  "access": "free",
+  "board": { "width": 7, "height": 6 },
+  "core": { "position": [0, 4], "route_id": "route_main" },
+  "destination": { "position": [6, 4], "seal_id": "seal_final" },
+  "terrain": {
+    "walls": [[0, 2], [6, 2]]
+  },
+  "setup": { "allowed_mechanisms": [] },
+  "routes": {
+    "route_main": {
+      "nodes": [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4]],
+      "checkpoints": [
+        { "id": "cp_magnets", "position": [1, 4], "allowed_mechanisms": ["magnetic_polarity"] }
+      ]
+    }
+  },
+  "objects": [
+    { "id": "block_k", "kind": "block", "position": [4, 1], "pushable": false, "gravity_affected": false, "polarity": "+" }
+  ],
+  "mechanisms": {
+    "magnetic_fields": [
+      { "id": "magnet_west", "position": [0, 1], "polarity": "+" },
+      { "id": "magnet_east", "position": [6, 1], "polarity": "-" }
+    ],
+    "switches": [
+      { "id": "plate_gate", "kind": "pressure", "position": [2, 1] }
+    ],
+    "gates": [
+      { "id": "gate_seal", "position": [4, 4], "requires": ["plate_gate"] }
+    ]
+  },
+  "objectives": [
+    { "type": "reach_destination", "target_id": "seal_final" }
+  ],
+  "scoring": { "target_actions": 2, "optimal_actions": 2 }
+}

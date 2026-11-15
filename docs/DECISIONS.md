@@ -258,6 +258,17 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Order of a flip:** the pulse resolves first, then gravity settles and gates are re-evaluated. A result that would close a gate on something is rejected as usual.
 - Blocks keep their polarity when pushed, dropped or turned with a section.
 
+### P-018 — Presenting magnetic polarity (M8b)
+- **Polarity is always shown by colour and symbol** (doc 05 §4): + is red, − is blue (doc 06 palette).
+  - Magnets have a coloured cap and a large billboard symbol.
+  - Polarised blocks have a coloured band and a symbol.
+  - The display uses the true minus sign U+2212, which the built-in Open Sans renders as wide as "+"; a hyphen read as a dot. Level data keeps ASCII `+` / `-`.
+- **Interaction:**
+  - Tap a magnet for a panel titled "Magnet (+)" with a "Switch to −" button (hold to preview, release to flip). The hint states which blocks will be attracted and which repelled.
+  - Tapping a polarised block that cannot be pushed explains how magnets act on it.
+- **Playback:** blocks moved by one pulse move together.
+- **Labels:** switch and portal labels sit above block height, so a block resting on them never collides with its own label.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

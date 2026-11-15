@@ -271,10 +271,27 @@ func _build_objects(state: PuzzleState) -> void:
 	cube.size = Vector3.ONE * BLOCK_SIZE
 	var pushable_material := _material("block", Palette.METAL_HIGHLIGHT, 0.0, 1.0, 0.5, 0.35)
 	var fixed_material := _material("block_fixed", Palette.METAL_HIGHLIGHT.darkened(0.3), 0.0, 1.0, 0.7, 0.3)
+	var band := BoxMesh.new()
+	band.size = Vector3(BLOCK_SIZE + 0.02, 0.12, BLOCK_SIZE + 0.02)
 	for obj: MovableObject in state.objects:
 		var node := _add_mesh(cube, pushable_material if obj.pushable else fixed_material, Vector3.ZERO)
 		node.name = "Object_%s" % obj.id
 		_objects[obj.id] = node
+		if obj.polarity != 0:
+			# Magnetic blocks: a coloured band and a +/- symbol (colour is never the only cue).
+			var positive := obj.polarity > 0
+			_add_mesh(band, MechanismFixtures3D.polarity_material(_library, positive), Vector3(0, 0.2, 0), node)
+			var label := Label3D.new()
+			label.name = "Polarity"
+			label.text = MechanismFixtures3D.polarity_symbol(positive)
+			label.modulate = MechanismFixtures3D.polarity_color(positive)
+			label.position = Vector3(0, BLOCK_SIZE * 0.5 + 0.2, 0)
+			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			label.no_depth_test = true
+			label.font_size = 130
+			label.pixel_size = 0.005
+			label.outline_size = 14
+			node.add_child(label)
 
 
 func _build_core() -> void:

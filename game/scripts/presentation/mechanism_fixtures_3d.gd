@@ -20,6 +20,8 @@ var _portal_rings: Dictionary[String, MeshInstance3D] = {}
 var _labels: Dictionary[String, Label3D] = {}
 var _lit: Dictionary[String, bool] = {}
 var _reflector_pivots: Dictionary[String, Node3D] = {}
+var _magnet_caps: Dictionary[String, MeshInstance3D] = {}
+var _magnet_labels: Dictionary[String, Label3D] = {}
 var _beam_root: Node3D
 
 
@@ -37,6 +39,8 @@ func build(level: LevelDefinition, library: MaterialLibrary) -> void:
 		_build_emitter(emitter)
 	for reflector: ReflectorDefinition in level.reflectors:
 		_build_reflector(reflector)
+	for magnet: MagnetDefinition in level.magnets:
+		_build_magnet(magnet)
 	_beam_root = Node3D.new()
 	_beam_root.name = "Beams"
 	add_child(_beam_root)
@@ -56,6 +60,11 @@ func sync_to_state(state: PuzzleState) -> void:
 		_portal_rings[portal.id].material_override = _portal_material(active)
 	for reflector: ReflectorDefinition in _level.reflectors:
 		_reflector_pivots[reflector.id].rotation.y = reflector_yaw(state.reflector_slash[reflector.id])
+	for magnet: MagnetDefinition in _level.magnets:
+		var positive: bool = state.magnet_positive[magnet.id]
+		_magnet_caps[magnet.id].material_override = polarity_material(_library, positive)
+		_magnet_labels[magnet.id].text = polarity_symbol(positive)
+		_magnet_labels[magnet.id].modulate = polarity_color(positive)
 	for child: Node in _beam_root.get_children():
 		_beam_root.remove_child(child)
 		child.free()
@@ -102,6 +111,30 @@ func beam_signature(state: PuzzleState) -> String:
 	for beam: EnergyResolver.Beam in EnergyResolver.trace(_level, state):
 		parts.append("%s:%s>%s" % [beam.emitter_id, str(beam.cells), beam.receiver_id])
 	return ";".join(parts)
+
+
+func magnet_label(magnet_id: String) -> String:
+	return _magnet_labels[magnet_id].text if _magnet_labels.has(magnet_id) else ""
+
+
+func magnet_cap(magnet_id: String) -> MeshInstance3D:
+	return _magnet_caps.get(magnet_id)
+
+
+## Polarity is always shown by colour AND symbol (docs/05 §4): + red, − blue (doc 06 palette).
+## Uses the true minus sign U+2212 (as wide as "+" in the built-in Open Sans; a hyphen is a short dash).
+## Level data keeps ASCII "+" / "-".
+static func polarity_symbol(positive: bool) -> String:
+	return "+" if positive else "\u2212"
+
+
+static func polarity_color(positive: bool) -> Color:
+	return Palette.POLARITY_RED if positive else Palette.POLARITY_BLUE
+
+
+static func polarity_material(library: MaterialLibrary, positive: bool) -> StandardMaterial3D:
+	return library.get_material("polarity_plus", Palette.POLARITY_RED, 1.0) if positive \
+		else library.get_material("polarity_minus", Palette.POLARITY_BLUE, 1.0)
 
 
 func beam_segment_count() -> int:
@@ -220,7 +253,8 @@ func _build_switch(switch_def: SwitchDefinition) -> void:
 		knob.height = 0.3
 		_switch_lamps[switch_def.id] = _mesh(knob, at + Vector3(0, 0.27, 0))
 		_switch_bases[switch_def.id] = base
-	_label(switch_def.id, at + Vector3(0, 0.7, 0), Palette.TEXT)
+	# Above block height, so a block resting on the switch never hides or collides with the label.
+	_label(switch_def.id, at + Vector3(0, LABEL_HEIGHT + 0.1, 0), Palette.TEXT)
 
 
 func _build_gate(gate: GateDefinition) -> void:
@@ -271,6 +305,31 @@ func _build_reflector(reflector: ReflectorDefinition) -> void:
 	pivot.add_child(mirror)
 
 
+func _build_magnet(magnet: MagnetDefinition) -> void:
+	var at := BoardCoords.cell_to_world(magnet.position)
+	var body := CylinderMesh.new()
+	body.top_radius = 0.3
+	body.bottom_radius = 0.36
+	body.height = 0.5
+	var base := _mesh(body, at + Vector3(0, 0.25, 0))
+	base.material_override = _library.get_material("magnet_body", Palette.WALL.lightened(0.3), 0.0, 1.0, 0.7, 0.3)
+	_switch_bases[magnet.id] = base
+	var cap := CylinderMesh.new()
+	cap.top_radius = 0.3
+	cap.bottom_radius = 0.3
+	cap.height = 0.12
+	_magnet_caps[magnet.id] = _mesh(cap, at + Vector3(0, 0.56, 0))
+	var label := Label3D.new()
+	label.position = at + Vector3(0, 1.0, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.font_size = 150
+	label.pixel_size = 0.005
+	label.outline_size = 16
+	add_child(label)
+	_magnet_labels[magnet.id] = label
+
+
 func _emitter(emitter_id: String) -> EmitterDefinition:
 	for emitter: EmitterDefinition in _level.emitters:
 		if emitter.id == emitter_id:
@@ -299,7 +358,7 @@ func _build_portal(portal: PortalDefinition) -> void:
 		disc.height = 0.02
 		var swirl := _mesh(disc, at + Vector3(0, 0.03, 0))
 		swirl.material_override = _library.get_material("portal_disc", Palette.PORTAL_VIOLET, 0.8, 0.45)
-	_label(portal.id, at + Vector3(0, 0.7, 0), Palette.PORTAL_VIOLET)
+	_label(portal.id, at + Vector3(0, LABEL_HEIGHT + 0.1, 0), Palette.PORTAL_VIOLET)
 
 
 func _portal_active(state: PuzzleState, portal: PortalDefinition) -> bool:

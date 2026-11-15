@@ -5,6 +5,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M8b: Magnets in 3D, plus "Opposite Attraction" — every mechanic playable
+
+**Added**
+- **Level** `game/data/levels/world_06_opposite_attraction.json`, "Opposite Attraction" (doc 09 #34), in "The Shifting Labyrinth":
+  - block K (+) must reach a plate two cells away
+  - each flip moves it one cell and one magnet only alternates attract/repel, so both magnets are needed
+  - the validator proves a minimum of 2 with 0 dead ends
+- **Visuals:**
+  - magnets (body plus polarity-coloured cap plus large symbol)
+  - polarised blocks (coloured band plus symbol)
+  - colour is always paired with + / − (true minus sign U+2212)
+- **Interaction:**
+  - tap a magnet for "Magnet (±)" with "Switch to ∓" (hold to preview, release to flip); the hint states the effect
+  - tapping a magnetic block explains it
+  - HUD: "Magnetism" and "Tap a magnet"
+- **Playback:** one pulse's moves play together.
+- **Tests:** 5 Opposite Attraction scene tests, bringing the suite to 308. They cover:
+  - symbol and colour on magnets and blocks
+  - explanatory taps
+  - the magnet panel with preview, committed through the real button signal, refreshing in place
+  - solving through taps
+  - one magnet alone only alternating
+
+**Changed**
+- **Navigation tests are now catalog-driven** (order, next-level chain, level-select listing, and the "last level" check playing the solver's own solution) instead of hard-coding the level list, which broke with every new level.
+- Switch and portal labels moved above block height, after screenshots showed a block's polarity label colliding with the plate label beneath it.
+
+**Verified**
+- Windowed screenshots: the initial board, the flip preview, both magnets flipped with K on the plate and gate A open, and completion. Review led to the larger U+2212 minus and the label heights.
+- All six levels validate.
+
+**Known limitations**
+- Placeholder art. There is no pulse effect beyond the block moves.
+
 ### 2026-11-15 — M8a: Magnetic Polarity (rules) — all eight mechanics now in the rules engine
 
 **Added**

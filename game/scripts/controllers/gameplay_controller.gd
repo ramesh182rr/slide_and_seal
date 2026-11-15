@@ -4,7 +4,7 @@ extends Node
 ## Every state change goes through PuzzleSession; previews use PuzzleSession.preview (same rules).
 ## Input is locked while a committed result is being played back.
 
-enum TargetKind { NONE, OBJECT, ZONE, SWITCH, SECTION, REFLECTOR }
+enum TargetKind { NONE, OBJECT, ZONE, SWITCH, SECTION, REFLECTOR, MAGNET }
 
 ## Emitted when the player confirms leaving the puzzle.
 signal leave_requested
@@ -113,6 +113,8 @@ func selected_target() -> String:
 			return "section:" + _target_id
 		TargetKind.REFLECTOR:
 			return "reflector:" + _target_id
+		TargetKind.MAGNET:
+			return "magnet:" + _target_id
 	return ""
 
 
@@ -185,7 +187,10 @@ func select_object(object_id: String) -> void:
 	var obj := _session.get_state().object_by_id(object_id)
 	if obj == null:
 		return
-	if not obj.pushable:
+	if obj.polarity != 0 and (not obj.pushable or not _allowed(MechanismIds.PUSH_PULSE)):
+		_select_none_with_message("Magnetic block (%s): magnets attract the opposite sign and repel the same."
+			% MechanismFixtures3D.polarity_symbol(obj.polarity > 0))
+	elif not obj.pushable:
 		_select_none_with_message("This block cannot be pushed.")
 	elif not _allowed(MechanismIds.PUSH_PULSE):
 		_select_none_with_message("Push is not available here.")
@@ -216,6 +221,15 @@ func select_switch(switch_id: String) -> void:
 		_select_none_with_message("Switches cannot be used here.")
 	else:
 		_set_target(TargetKind.SWITCH, switch_id)
+
+
+func select_magnet(magnet_id: String) -> void:
+	if _session.get_level().magnet_by_id(magnet_id) == null:
+		return
+	if not _allowed(MechanismIds.MAGNETIC_POLARITY):
+		_select_none_with_message("Magnets cannot be flipped here.")
+	else:
+		_set_target(TargetKind.MAGNET, magnet_id)
 
 
 func select_reflector(reflector_id: String) -> void:
@@ -271,7 +285,8 @@ func _set_target(kind: TargetKind, id: String) -> void:
 	_target_id = id
 	_board.clear_preview()
 	_board.set_highlight(id if kind == TargetKind.OBJECT else "", id if kind == TargetKind.ZONE else "",
-		id if kind == TargetKind.SWITCH or kind == TargetKind.REFLECTOR else "", id if kind == TargetKind.SECTION else "")
+		id if kind in [TargetKind.SWITCH, TargetKind.REFLECTOR, TargetKind.MAGNET] else "",
+		id if kind == TargetKind.SECTION else "")
 	if kind != TargetKind.NONE:
 		_hud.clear_message()
 	_refresh_panel()
@@ -289,12 +304,22 @@ func _refresh_panel() -> void:
 			or _target_kind == TargetKind.ZONE and not _allowed(MechanismIds.GRAVITY_SHIFT) \
 			or _target_kind == TargetKind.SWITCH and not _allowed(MechanismIds.SWITCHES_SEALS) \
 			or _target_kind == TargetKind.SECTION and not _allowed(MechanismIds.ROTATING_SECTIONS) \
-			or _target_kind == TargetKind.REFLECTOR and not _allowed(MechanismIds.ENERGY_ROUTING):
+			or _target_kind == TargetKind.REFLECTOR and not _allowed(MechanismIds.ENERGY_ROUTING) \
+			or _target_kind == TargetKind.MAGNET and not _allowed(MechanismIds.MAGNETIC_POLARITY):
 		_target_kind = TargetKind.NONE
 		_target_id = ""
 		_board.set_highlight("", "")
 	if _target_kind == TargetKind.NONE:
 		panel.hide_target()
+		return
+	if _target_kind == TargetKind.MAGNET:
+		var positive: bool = _session.get_state().magnet_positive[_target_id]
+		var next := MechanismFixtures3D.polarity_symbol(not positive)
+		panel.show_action("Magnet (%s)" % MechanismFixtures3D.polarity_symbol(positive),
+			"Hold to preview, release to switch to %s and pulse: %s blocks are attracted, %s blocks repelled, one cell."
+				% [next, MechanismFixtures3D.polarity_symbol(positive), next],
+			"Switch to %s" % next,
+			not _busy and _session.preview(PuzzleAction.flip_magnet(_target_id)).is_ok())
 		return
 	if _target_kind == TargetKind.REFLECTOR:
 		# No "/" or "\\" in the title: in the isometric view a grid diagonal is drawn near-horizontal
@@ -354,6 +379,8 @@ func _on_tapped(screen_position: Vector2) -> void:
 		clear_selection()
 	elif _switch_at(hit.cell) != "":
 		select_switch(_switch_at(hit.cell))
+	elif level.magnet_at(hit.cell) != null:
+		select_magnet(level.magnet_at(hit.cell).id)
 	elif level.reflector_at(hit.cell) != null:
 		select_reflector(level.reflector_at(hit.cell).id)
 	elif level.emitter_at(hit.cell) != null:
@@ -430,6 +457,8 @@ func _panel_action(index: int) -> PuzzleAction:
 				return PuzzleAction.rotate_section(_target_id, options[index])
 		TargetKind.REFLECTOR:
 			return PuzzleAction.flip_reflector(_target_id)
+		TargetKind.MAGNET:
+			return PuzzleAction.flip_magnet(_target_id)
 	return null
 
 

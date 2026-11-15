@@ -21,7 +21,8 @@
       "id": "world_06_shifting_labyrinth",
       "title": "The Shifting Labyrinth",
       "levels": [
-        "world_06_quarter_turn"
+        "world_06_quarter_turn",
+        "world_06_opposite_attraction"
       ]
     }
   ]

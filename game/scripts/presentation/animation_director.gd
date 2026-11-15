@@ -138,11 +138,15 @@ func _queue_travel(tween: Tween, result: ActionResult) -> int:
 func _queue_moves(tween: Tween, moves: Array[ObjectMove]) -> int:
 	var gravity_started := false
 	var count := 0
+	var magnet_started := false
 	for move: ObjectMove in moves:
 		if move.cause == ObjectMove.Cause.ROTATION:
 			continue
 		count += 1
-		var parallel := move.cause == ObjectMove.Cause.GRAVITY and gravity_started
+		# One pulse moves its blocks together; gravity slides then play together.
+		var parallel := move.cause == ObjectMove.Cause.GRAVITY and gravity_started \
+			or move.cause == ObjectMove.Cause.MAGNET and magnet_started
+		magnet_started = magnet_started or move.cause == ObjectMove.Cause.MAGNET
 		_queue_move(tween, move, parallel)
 		gravity_started = gravity_started or move.cause == ObjectMove.Cause.GRAVITY
 	return count

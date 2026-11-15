@@ -35,18 +35,25 @@ func _solve(gameplay: GameplayController, actions: Array[PuzzleAction]) -> void:
 
 # --- Catalog ------------------------------------------------------------------
 
-func test_catalog_loads_in_order_without_errors() -> void:
-	var catalog := LevelCatalog.load_default()
-	assert_eq(catalog.errors, PackedStringArray())
+func _catalog_ids(catalog: LevelCatalog) -> PackedStringArray:
 	var ids := PackedStringArray()
 	for entry: LevelCatalog.Entry in catalog.entries:
 		ids.append(entry.level_id)
-	assert_eq(ids, PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase", "world_05_reflector_logic", "world_06_quarter_turn"]))
+	return ids
+
+
+## Order-independent of how many levels exist: checks structure, not a hard-coded list.
+func test_catalog_loads_in_order_without_errors() -> void:
+	var catalog := LevelCatalog.load_default()
+	assert_eq(catalog.errors, PackedStringArray())
+	var ids := _catalog_ids(catalog)
+	assert_true(ids.size() >= 2)
+	assert_eq(ids[0], "world_01_level_001", "campaign starts with The First Signal")
 	assert_eq(catalog.worlds[0].title, "The Awakening")
-	assert_eq(catalog.next_after("world_01_slice").level_id, "world_05_showcase")
-	assert_eq(catalog.next_after("world_05_showcase").level_id, "world_05_reflector_logic")
-	assert_eq(catalog.next_after("world_05_reflector_logic").level_id, "world_06_quarter_turn")
-	assert_null(catalog.next_after("world_06_quarter_turn"))
+	for i: int in ids.size() - 1:
+		assert_eq(catalog.next_after(ids[i]).level_id, ids[i + 1])
+		assert_eq(catalog.entry(ids[i]).order, i)
+	assert_null(catalog.next_after(ids[ids.size() - 1]))
 
 
 func test_every_level_file_is_in_the_catalog() -> void:
@@ -64,7 +71,7 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	(app.current_screen() as HomeScreen).play_requested.emit()
 	assert_eq(app.current_screen_name(), AppRoot.LEVEL_SELECT)
 	var screen := app.current_screen() as LevelSelectScreen
-	assert_eq(screen.listed_level_ids(), PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase", "world_05_reflector_logic", "world_06_quarter_turn"]))
+	assert_eq(screen.listed_level_ids(), _catalog_ids(app.catalog()), "level select lists the catalog, in order")
 	assert_eq(screen.row_texts("world_01_slice")[0], "2.  The Awakening — Vertical Slice")
 	app.free()
 
@@ -129,15 +136,15 @@ func test_completion_card_offers_next_level() -> void:
 
 func test_last_level_has_no_next_button_and_returns_to_levels() -> void:
 	var app := _spawn()
-	app.start_level("world_06_quarter_turn")
+	var ids := _catalog_ids(app.catalog())
+	var last := ids[ids.size() - 1]
+	app.start_level(last)
 	var gameplay := _gameplay(app)
-	_solve(gameplay, [
-		PuzzleAction.run_core(), PuzzleAction.rotate_section("turntable", true),
-		PuzzleAction.rotate_section("turntable", true), PuzzleAction.run_core(),
-	])
+	# Play the solver's own solution, whatever the last level currently is.
+	_solve(gameplay, PuzzleSolver.solve(gameplay.get_session().get_level()).solution)
 	var card := gameplay.get_hud().completion_card()
 	assert_true(card.visible)
-	assert_false(card.has_next_button())
+	assert_false(card.has_next_button(), "%s is the last level" % last)
 	card.levels_button().pressed.emit()
 	assert_eq(app.current_screen_name(), AppRoot.LEVEL_SELECT)
 	app.free()
