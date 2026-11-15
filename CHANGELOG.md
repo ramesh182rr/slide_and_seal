@@ -5,6 +5,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Save data, progress and unlocking
+
+**Added**
+- **`ProgressStore`** (`user://progress.json`, versioned):
+  - records per-level completion and best action count
+  - crash-safe writes (temp file, then backup, then rename)
+  - on load, unreadable or unsupported files are set aside as `.corrupt`, with fallback to the backup, then to a fresh start (P-013)
+- **`Progression`:** sequential unlocking in catalog order (D-016) and stars per doc 01 §10. Three stars only when a solver-proven optimum exists.
+- **Level select:** locked levels are disabled and marked "Locked"; completed levels show "Best N" and drawn stars (`StarRating`, no font-glyph dependency).
+- **Completion card:** stars for this run and "New best!". `AppRoot` saves on each completion (`GameplayController.level_completed`) and passes the previous best to gameplay.
+- `LevelCatalog.Entry` carries `target_actions` / `optimal_actions`.
+- **Test infrastructure:**
+  - `TestCase.after_each()` hook, called by the runner after every test
+  - `TestFiles.remove_progress()`, which refuses to touch the real save file
+- **Tests:** 13 new, bringing the suite to 227:
+  - `ProgressStore`: best tracking, round trip, backup on save, recovery from a corrupt save via the backup, fresh start without a backup, unsupported schema
+  - `Progression`: unlocking and stars
+  - end-to-end: locks on a fresh profile, completion saving and unlocking the next level, persistence across app restarts, a worse replay keeping the record with no "New best!"
+
+**Fixed** (during this milestone)
+- The navigation tests briefly wrote to the real `user://progress.json`, once completions started saving. The files created by that run held only test completions and were removed. All app tests now use scratch save paths cleaned after each test.
+
+**Verified**
+- Windowed screenshots: a fresh level list with locks, the completion card with three stars and "New best!", and the level list afterwards (Best 0 ★★★, level 2 unlocked, level 3 locked).
+
+**Known limitations**
+- No "reset progress" option yet (a settings screen does not exist).
+- Premium access (`access: "premium"`) is not enforced; all catalog levels follow the same unlock rule.
+- No cloud sync (doc 17 post-launch).
+
 ### 2026-11-15 — Menu skeleton
 
 **Added**

@@ -2,6 +2,8 @@ extends TestCase
 ## Menu skeleton (P-012): catalog integrity, Home → Level select → Gameplay, completion card, Back.
 
 const APP_SCENE := "res://scenes/app/app_root.tscn"
+## Tests never touch the player's real save.
+const TEST_PROGRESS := "user://test_progress_navigation.json"
 
 var _exits := 0
 
@@ -10,10 +12,16 @@ func _spawn() -> AppRoot:
 	var app: AppRoot = (load(APP_SCENE) as PackedScene).instantiate()
 	app.instant_playback = true
 	app.quit_on_exit = false
+	TestFiles.remove_progress(TEST_PROGRESS)
+	app.progress_path = TEST_PROGRESS
 	(Engine.get_main_loop() as SceneTree).root.add_child(app)
 	_exits = 0
 	app.exit_requested.connect(func() -> void: _exits += 1)
 	return app
+
+
+func after_each() -> void:
+	TestFiles.remove_progress(TEST_PROGRESS)
 
 
 func _gameplay(app: AppRoot) -> GameplayController:
@@ -55,7 +63,7 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	assert_eq(app.current_screen_name(), AppRoot.LEVEL_SELECT)
 	var screen := app.current_screen() as LevelSelectScreen
 	assert_eq(screen.listed_level_ids(), PackedStringArray(["world_01_level_001", "world_01_slice", "world_05_showcase"]))
-	assert_eq(screen.level_button("world_01_slice").text, "2.  The Awakening — Vertical Slice")
+	assert_eq(screen.row_texts("world_01_slice")[0], "2.  The Awakening — Vertical Slice")
 	app.free()
 
 

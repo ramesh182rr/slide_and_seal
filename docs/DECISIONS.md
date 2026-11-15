@@ -90,6 +90,9 @@ The core passing over or resting on a switch does nothing. Toggle switches flip 
 ### D-015 — Portals carry the core only, for now (2026-11-15)
 Blocks treat portal cells as ordinary floor. Portal-compatible blocks may come later with a level that needs them.
 
+### D-016 — Sequential unlocking (2026-11-15)
+The first level in catalog order is always open. Completing a level unlocks the next one in catalog order, across worlds. Stars never gate progression (doc 01 §10).
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -145,6 +148,16 @@ The validator's dead ends in the slice (see the M4 changelog) are accepted for t
 - **Completion card:** after the completing travel plays back, it shows actions against the target, plus "Level select" and "Next level" (hidden on the last level). Undo hides it again.
 - **Back / Escape:** gameplay handles its own (P-009), and Leave there returns to level select. Level select → Home; Home → exit app.
 - Placeholder screens built in code with the shared `UiTheme`. The doc 06 world-select dioramas, splash and store come later.
+
+### P-013 — Progress, save data and stars
+- **Saved per level:** completed, and best mechanism actions (fewest across completions).
+- **Save file:** `user://progress.json` with `schema_version` 1. Writes go to `.tmp`, the previous save is copied to `.bak`, then the temp file is renamed into place. On load, an unreadable or unsupported file is renamed `.corrupt` (never deleted), then the backup is tried, then progress starts empty.
+- **Stars** follow doc 01 §10, computed from the best result:
+  - 1 for completing
+  - 2 for meeting `target_actions`
+  - 3 for matching the solver-proven `optimal_actions` (never awarded when no optimum is recorded)
+- **Completion card:** shows the stars for this run and "New best!" on the first completion or an improvement.
+- **Tests never touch the real save:** they use `user://test_*.json` scratch files cleaned in `after_each()`, and `TestFiles.remove_progress` refuses the real path.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

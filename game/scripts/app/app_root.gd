@@ -14,8 +14,11 @@ const GAMEPLAY := "gameplay"
 @export var instant_playback: bool = false
 ## Quit the app on Back from home. Tests turn this off and listen to `exit_requested`.
 @export var quit_on_exit: bool = true
+## Where progress is saved. Tests point this at a scratch file.
+@export var progress_path: String = ProgressStore.DEFAULT_PATH
 
 var _catalog: LevelCatalog
+var _progress: ProgressStore
 var _screen: Node
 var _screen_name := ""
 var _current_level_id := ""
@@ -25,6 +28,10 @@ func _ready() -> void:
 	_catalog = LevelCatalog.load_default()
 	for message: String in _catalog.errors:
 		push_error("Level catalog: " + message)
+	_progress = ProgressStore.new(progress_path)
+	_progress.load_from_disk()
+	for note: String in _progress.load_notes:
+		push_warning("Progress: " + note)
 	# Development: `godot --path game -- --level=world_05_showcase` jumps straight into a level.
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--level=") and _catalog.entry(arg.trim_prefix("--level=")) != null:
@@ -35,6 +42,10 @@ func _ready() -> void:
 
 func catalog() -> LevelCatalog:
 	return _catalog
+
+
+func progress() -> ProgressStore:
+	return _progress
 
 
 func current_screen_name() -> String:
@@ -57,7 +68,7 @@ func show_home() -> void:
 
 func show_level_select() -> void:
 	var screen := LevelSelectScreen.new()
-	screen.setup(_catalog)
+	screen.setup(_catalog, _progress)
 	screen.level_chosen.connect(start_level)
 	screen.back_requested.connect(show_home)
 	_set_screen(screen, LEVEL_SELECT)
@@ -73,6 +84,8 @@ func start_level(level_id: String) -> void:
 	gameplay.instant_playback = instant_playback
 	gameplay.quit_on_leave = false
 	gameplay.next_level_available = _catalog.next_after(level_id) != null
+	gameplay.previous_best_actions = _progress.best_actions(level_id)
+	gameplay.level_completed.connect(_on_level_completed.bind(gameplay, level_id))
 	gameplay.leave_requested.connect(show_level_select)
 	gameplay.level_select_requested.connect(show_level_select)
 	gameplay.next_level_requested.connect(_start_next_level)
@@ -100,6 +113,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _screen_name != GAMEPLAY and event.is_action_pressed("ui_cancel"):
 		handle_back()
 		get_viewport().set_input_as_handled()
+
+
+func _on_level_completed(actions: int, gameplay: GameplayController, level_id: String) -> void:
+	_progress.record_completion(level_id, actions)
+	if not _progress.save_to_disk():
+		push_error("Progress could not be saved to %s" % _progress.path)
+	gameplay.previous_best_actions = _progress.best_actions(level_id)
 
 
 func _start_next_level() -> void:

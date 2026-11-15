@@ -16,6 +16,9 @@ class Entry:
 	var world_title: String = ""
 	## Position in play order across all worlds, starting at 0.
 	var order: int = 0
+	var target_actions: int = 0
+	## -1 when no proven optimum is recorded.
+	var optimal_actions: int = -1
 
 
 class World:
@@ -97,5 +100,7 @@ func _load_entry(level_id: String, world: World, seen: Dictionary[String, bool])
 	result.title = loaded.level.title
 	result.world_title = world.title
 	result.order = entries.size()
+	result.target_actions = loaded.level.target_actions
+	result.optimal_actions = loaded.level.optimal_actions
 	entries.append(result)
 	return result

@@ -7,6 +7,8 @@ signal next_requested
 signal levels_requested
 
 var _summary := Label.new()
+var _stars := StarRating.new()
+var _best := Label.new()
 var _next := Button.new()
 var _levels := Button.new()
 
@@ -25,12 +27,18 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	add_child(column)
+	var header := HBoxContainer.new()
+	column.add_child(header)
 	var title := Label.new()
 	title.text = "Seal complete"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiTheme.style_label(title, 44, Palette.MINT_SUCCESS)
-	column.add_child(title)
+	header.add_child(title)
+	header.add_child(_stars)
 	UiTheme.style_label(_summary, 30, Palette.TEXT_MUTED)
 	column.add_child(_summary)
+	UiTheme.style_label(_best, 28, Palette.MECHANISM_AMBER)
+	column.add_child(_best)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 20)
 	column.add_child(buttons)
@@ -46,10 +54,21 @@ func _ready() -> void:
 	UiTheme.make_primary(_next)
 
 
-func show_result(actions: int, target: int, has_next: bool) -> void:
+func show_result(actions: int, target: int, stars: int, new_best: bool, has_next: bool) -> void:
 	_summary.text = "Actions %d  ·  Target %d%s" % [actions, target, "  ·  Target met" if actions <= target else ""]
+	_stars.earned = stars
+	_best.text = "New best!" if new_best else ""
+	_best.visible = new_best
 	_next.visible = has_next
 	visible = true
+
+
+func stars_shown() -> int:
+	return _stars.earned
+
+
+func is_new_best_shown() -> bool:
+	return _best.visible
 
 
 func summary_text() -> String:

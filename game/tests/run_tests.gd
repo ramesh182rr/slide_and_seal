@@ -73,6 +73,7 @@ func _run_all(collector: ErrorCollector) -> int:
 		for method_name: String in _test_methods(test_case):
 			test_case.begin_test()
 			test_case.call(method_name)
+			test_case.after_each()
 			var failures := test_case.get_failures()
 			failures.append_array(collector.take())
 			if failures.is_empty():

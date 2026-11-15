@@ -11,6 +11,8 @@ signal leave_requested
 ## Completion card choices; handled by AppRoot.
 signal next_level_requested
 signal level_select_requested
+## Emitted once per completion, after the completing travel has played back (AppRoot saves it).
+signal level_completed(actions: int)
 
 @export_file("*.json") var level_path: String = "res://data/levels/world_01_slice.json"
 ## Skip animations (reduced motion; also used by tests).
@@ -20,6 +22,9 @@ signal level_select_requested
 @export var quit_on_leave: bool = true
 ## Whether the completion card offers "Next level" (set by AppRoot from the catalog).
 var next_level_available: bool = false
+## Best previous result for this level (-1 = never completed), for the "New best!" note.
+var previous_best_actions: int = -1
+var _completion_new_best := false
 
 @onready var _board: BoardRenderer3D = $World/Board
 @onready var _camera_rig: CameraRig = $World/CameraRig
@@ -393,6 +398,10 @@ func _play_back(before: PuzzleState, result: ActionResult) -> void:
 	_board.sync_to_state(_session.get_state())
 	_busy = false
 	_input.enabled = true
+	if result.state.phase == PuzzleState.Phase.LEVEL_COMPLETED and before.phase != PuzzleState.Phase.LEVEL_COMPLETED:
+		var actions := result.state.mechanism_action_count
+		_completion_new_best = previous_best_actions < 0 or actions < previous_best_actions
+		level_completed.emit(actions)
 	_refresh()
 
 
@@ -414,7 +423,11 @@ func _refresh() -> void:
 	# The card appears once the completing travel has finished playing back.
 	var card := _hud.completion_card()
 	if state.phase == PuzzleState.Phase.LEVEL_COMPLETED and not _busy:
-		card.show_result(state.mechanism_action_count, _session.get_level().target_actions, next_level_available)
+		var level := _session.get_level()
+		var actions := state.mechanism_action_count
+		card.show_result(actions, level.target_actions,
+			Progression.stars(actions, level.target_actions, level.optimal_actions), _completion_new_best,
+			next_level_available)
 	else:
 		card.hide()
 

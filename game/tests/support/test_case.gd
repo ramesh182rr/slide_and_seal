@@ -10,6 +10,11 @@ func begin_test() -> void:
 	_failures = PackedStringArray()
 
 
+## Override to clean up after every test (called by the runner even when assertions failed).
+func after_each() -> void:
+	pass
+
+
 func get_failures() -> PackedStringArray:
 	return _failures
 
