@@ -24,7 +24,8 @@ func after_each() -> void:
 func _complete_level_one(app: AppRoot) -> GameplayController:
 	app.start_level("world_01_level_001")
 	var gameplay := app.current_screen() as GameplayController
-	assert_true(gameplay.request_action(PuzzleAction.run_core()).is_ok(), "level 1 is one straight run")
+	for i: int in 2:
+		assert_true(gameplay.request_action(PuzzleAction.run_core()).is_ok(), "level 1: run, then resume")
 	return gameplay
 
 
@@ -71,9 +72,9 @@ func test_progress_survives_a_restart_of_the_app() -> void:
 
 
 func test_worse_replay_is_not_a_new_best_and_keeps_the_record() -> void:
-	# "The Awakening": levers A and B are needed; lever C opens a gate off the route (a wasted move).
+	# "Lever and Gate": levers A and B are needed; lever C opens a gate off the route (a wasted move).
 	var app := _spawn()
-	app.start_level("world_01_level_006")
+	app.start_level("world_01_level_003")
 	var gameplay := app.current_screen() as GameplayController
 	var optimal: Array[PuzzleAction] = [
 		PuzzleAction.run_core(), PuzzleAction.toggle_switch("lever_a"), PuzzleAction.run_core(),
@@ -81,7 +82,7 @@ func test_worse_replay_is_not_a_new_best_and_keeps_the_record() -> void:
 	]
 	for action: PuzzleAction in optimal:
 		gameplay.request_action(action)
-	assert_eq(app.progress().best_actions("world_01_level_006"), 2)
+	assert_eq(app.progress().best_actions("world_01_level_003"), 2)
 	gameplay.request_restart()
 	var wasteful: Array[PuzzleAction] = [
 		PuzzleAction.run_core(), PuzzleAction.toggle_switch("lever_a"), PuzzleAction.run_core(),
@@ -94,5 +95,5 @@ func test_worse_replay_is_not_a_new_best_and_keeps_the_record() -> void:
 	assert_eq(gameplay.get_session().get_state().mechanism_action_count, 3)
 	assert_false(card.is_new_best_shown())
 	assert_eq(card.stars_shown(), 1, "3 actions is above target 2")
-	assert_eq(app.progress().best_actions("world_01_level_006"), 2, "the record is kept")
+	assert_eq(app.progress().best_actions("world_01_level_003"), 2, "the record is kept")
 	app.free()

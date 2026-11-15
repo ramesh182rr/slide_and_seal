@@ -12,16 +12,17 @@ func test_loads_world_01_level_001() -> void:
 	var level := result.level
 	assert_eq(level.id, "world_01_level_001")
 	assert_eq(level.title, "The First Signal")
-	assert_eq(level.board_size, Vector2i(7, 7))
-	assert_eq(level.core_start, Vector2i(0, 3))
-	assert_eq(level.destination, Vector2i(6, 3))
+	assert_eq(level.board_size, Vector2i(7, 9))
+	assert_eq(level.core_start, Vector2i(1, 1))
+	assert_eq(level.destination, Vector2i(1, 8))
 	assert_eq(level.seal_id, "seal_final")
-	assert_eq(level.walls.size(), 6)
-	assert_true(level.is_wall(Vector2i(3, 2)))
+	assert_eq(level.walls.size(), 4)
+	assert_true(level.is_wall(Vector2i(5, 2)))
 	assert_eq(level.optimal_actions, 0)
 	var route := level.routes["route_main"]
-	assert_eq(route.nodes.size(), 7)
-	assert_eq(route.checkpoints.size(), 0, "the first level is just route, core and seal")
+	assert_eq(route.nodes.size(), 16)
+	assert_eq(route.checkpoints.size(), 1, "the first level: route, core, seal and one checkpoint")
+	assert_true(route.checkpoints[0].allowed_mechanisms.is_empty(), "no mechanisms yet")
 
 
 func test_fixture_is_valid() -> void:

@@ -7,6 +7,8 @@ extends CanvasLayer
 signal run_requested
 signal undo_requested
 signal restart_requested
+## The on-screen Back button (top left), the same way out as the system Back gesture.
+signal back_requested
 ## View controls (D-032): presentation only.
 signal view_turn_requested(clockwise: bool)
 signal view_zoom_requested(factor: float)
@@ -35,6 +37,7 @@ var _completion := CompletionCard.new()
 var _undo := Button.new()
 var _restart := Button.new()
 var _run := Button.new()
+var _back := Button.new()
 var _margin := MarginContainer.new()
 var _leave_dialog := LeaveDialog.new()
 var _view_buttons: Dictionary[IconButton.Icon, IconButton] = {}
@@ -63,7 +66,19 @@ func _ready() -> void:
 	UiTheme.style_label(_status, 32, Palette.CYAN_ENERGY)
 	UiTheme.style_label(_actions, 28, Palette.TEXT_MUTED)
 	UiTheme.style_label(_available, 28, Palette.MECHANISM_AMBER)
-	for label: Label in [_title, _status, _actions, _available]:
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_theme_constant_override("separation", 24)
+	column.add_child(header)
+	_back.text = "Back"
+	_back.focus_mode = Control.FOCUS_NONE
+	_back.custom_minimum_size = Vector2(150, 88)
+	_back.pressed.connect(func() -> void: back_requested.emit())
+	header.add_child(_back)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title.clip_text = true
+	header.add_child(_title)
+	for label: Label in [_status, _actions, _available]:
 		column.add_child(label)
 
 	var spacer := Control.new()
@@ -116,6 +131,10 @@ func _build_view_controls() -> void:
 		button.pressed.connect(spec[1] as Callable)
 		cluster.add_child(button)
 		_view_buttons[spec[0] as IconButton.Icon] = button
+
+
+func back_button() -> Button:
+	return _back
 
 
 func view_button(icon: IconButton.Icon) -> IconButton:

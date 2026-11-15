@@ -5,38 +5,25 @@
   "world_id": "world_02_gravity_works",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 8
+    "width": 11,
+    "height": 11
   },
   "core": {
     "position": [
-      0,
-      1
+      1,
+      2
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      6
+      1,
+      10
     ],
     "seal_id": "seal_final"
   },
   "terrain": {
-    "walls": [
-      [
-        2,
-        3
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        6,
-        1
-      ]
-    ]
+    "walls": []
   },
   "setup": {
     "allowed_mechanisms": []
@@ -45,56 +32,72 @@
     "route_main": {
       "nodes": [
         [
-          0,
-          1
-        ],
-        [
           1,
-          1
+          2
         ],
         [
           2,
-          1
+          2
         ],
         [
           3,
-          1
+          2
         ],
         [
           4,
-          1
-        ],
-        [
-          5,
-          1
+          2
         ],
         [
           5,
           2
         ],
         [
-          5,
+          6,
+          2
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          8,
           3
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          6,
+          4
         ],
         [
           5,
           4
         ],
         [
-          5,
-          5
-        ],
-        [
           4,
-          5
+          4
         ],
         [
           3,
-          5
+          4
         ],
         [
           2,
-          5
+          4
+        ],
+        [
+          1,
+          4
         ],
         [
           1,
@@ -123,28 +126,106 @@
         [
           6,
           6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          1,
+          10
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_first_crossing",
+          "id": "cp_one",
           "position": [
-            1,
-            1
+            2,
+            2
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         },
         {
-          "id": "cp_second_crossing",
+          "id": "cp_two",
           "position": [
-            5,
-            3
+            8,
+            4
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_three",
+          "position": [
+            2,
+            6
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_four",
+          "position": [
+            8,
+            8
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         }
@@ -153,11 +234,38 @@
   },
   "objects": [
     {
-      "id": "block_column",
+      "id": "block_e",
+      "kind": "block",
+      "position": [
+        6,
+        4
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_u",
+      "kind": "block",
+      "position": [
+        6,
+        1
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_v",
       "kind": "block",
       "position": [
         3,
-        1
+        9
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_w",
+      "kind": "block",
+      "position": [
+        3,
+        4
       ],
       "pushable": false
     }
@@ -165,19 +273,75 @@
   "mechanisms": {
     "gravity_zones": [
       {
-        "id": "zone_column",
+        "id": "zone_west",
         "position": [
           3,
           1
         ],
         "size": [
           1,
-          5
+          9
+        ],
+        "direction": "down",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      },
+      {
+        "id": "zone_east",
+        "position": [
+          6,
+          1
+        ],
+        "size": [
+          1,
+          9
         ],
         "direction": "up",
         "allowed_directions": [
           "up",
           "down"
+        ]
+      }
+    ],
+    "switches": [
+      {
+        "id": "lever_a",
+        "kind": "toggle",
+        "position": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": "lever_b",
+        "kind": "toggle",
+        "position": [
+          7,
+          5
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          3,
+          5
+        ],
+        "requires": [
+          "lever_a"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          6,
+          3
+        ],
+        "requires": [
+          "lever_b"
         ]
       }
     ]
@@ -189,7 +353,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 2,
-    "optimal_actions": 2
+    "target_actions": 4,
+    "optimal_actions": 3
   }
 }

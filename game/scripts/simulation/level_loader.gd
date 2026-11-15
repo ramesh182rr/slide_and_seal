@@ -399,6 +399,7 @@ func _parse_gate(value: Variant, context: String) -> GateDefinition:
 			_error("%s.requires[%d] must be a switch id" % [context, i])
 		else:
 			gate.requires.append(requires[i])
+	gate.inverted = _bool(data, "inverted", context, false)
 	return gate
 
 

@@ -197,7 +197,8 @@ static func gate_y(open: bool) -> float:
 static func compute_symbols(level: LevelDefinition) -> Dictionary[String, String]:
 	var symbols: Dictionary[String, String] = {}
 	for i: int in level.gates.size():
-		symbols[level.gates[i].id] = String.chr("A".unicode_at(0) + i)
+		# Inverted gates (D-035) carry a "¬" so the difference reads without colour.
+		symbols[level.gates[i].id] = ("¬" if level.gates[i].inverted else "") + String.chr("A".unicode_at(0) + i)
 	var number := 1
 	for portal: PortalDefinition in level.portals:
 		if portal.exit_id != "":
@@ -261,10 +262,11 @@ func _build_gate(gate: GateDefinition) -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3(0.86, GATE_HEIGHT, 0.86)
 	var node := _mesh(box, BoardCoords.cell_to_world(gate.position))
-	node.material_override = _library.get_material("gate", Palette.MECHANISM_AMBER, 0.35, 1.0, 0.6, 0.35)
+	var color := Palette.GATE_INVERTED if gate.inverted else Palette.MECHANISM_AMBER
+	node.material_override = _library.get_material("gate_inverted" if gate.inverted else "gate", color, 0.35, 1.0, 0.6, 0.35)
 	node.name = "Gate_%s" % gate.id
 	_gates[gate.id] = node
-	_label(gate.id, BoardCoords.cell_to_world(gate.position, LABEL_HEIGHT), Palette.MECHANISM_AMBER)
+	_label(gate.id, BoardCoords.cell_to_world(gate.position, LABEL_HEIGHT), color)
 
 
 func _build_emitter(emitter: EmitterDefinition) -> void:

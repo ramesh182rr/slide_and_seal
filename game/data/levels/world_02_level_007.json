@@ -5,40 +5,36 @@
   "world_id": "world_02_gravity_works",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 7
+    "width": 8,
+    "height": 8
   },
   "core": {
     "position": [
-      0,
-      3
+      1,
+      1
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      3
+      1,
+      6
     ],
     "seal_id": "seal_final"
   },
   "terrain": {
     "walls": [
       [
-        2,
+        1,
         2
       ],
       [
-        4,
-        2
+        1,
+        3
       ],
       [
-        2,
-        4
-      ],
-      [
-        4,
-        4
+        6,
+        5
       ]
     ]
   },
@@ -49,40 +45,87 @@
     "route_main": {
       "nodes": [
         [
-          0,
-          3
-        ],
-        [
           1,
-          3
+          1
         ],
         [
           2,
-          3
+          1
         ],
         [
           3,
-          3
+          1
         ],
         [
           4,
-          3
+          1
         ],
         [
           5,
-          3
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          2
         ],
         [
           6,
           3
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_drop",
+          "id": "cp_above",
           "position": [
-            1,
-            3
+            2,
+            1
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_below",
+          "position": [
+            5,
+            4
           ],
           "allowed_mechanisms": [
             "gravity_shift"
@@ -94,11 +137,11 @@
   },
   "objects": [
     {
-      "id": "block_drop",
+      "id": "block_k",
       "kind": "block",
       "position": [
         3,
-        3
+        1
       ],
       "pushable": false
     }
@@ -109,11 +152,11 @@
         "id": "zone_drop",
         "position": [
           3,
-          3
+          1
         ],
         "size": [
-          1,
-          3
+          2,
+          4
         ],
         "direction": "up",
         "allowed_directions": [
@@ -130,7 +173,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 1,
-    "optimal_actions": 1
+    "target_actions": 2,
+    "optimal_actions": 2
   }
 }

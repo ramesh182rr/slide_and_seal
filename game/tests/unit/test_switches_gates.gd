@@ -230,3 +230,66 @@ func test_solver_uses_toggles() -> void:
 	var result := PuzzleSolver.solve(_toggle_gate_level())
 	assert_true(result.solvable)
 	assert_eq(result.minimum_actions, 1)
+
+
+# --- D-035: inverted gates ----------------------------------------------------------
+
+func test_inverted_gate_is_open_until_its_switch_turns_on() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(4, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 1), ["t"], true)
+	var level := _level(LevelFixtures.allow_everywhere(data, [SWITCHES]))
+	var gate := level.gate_at(Vector2i(5, 1))
+	assert_true(gate.inverted)
+	var start := level.create_initial_state()
+	assert_true(SwitchGateResolver.is_gate_open(level, start, gate), "open while the switch is off")
+	var on := PuzzleSimulator.apply_action(level, start, PuzzleAction.toggle_switch("t")).state
+	assert_false(SwitchGateResolver.is_gate_open(level, on, gate), "closed while the switch is on")
+	var to_checkpoint := PuzzleSimulator.apply_action(level, on, PuzzleAction.run_core()).state
+	var waiting := PuzzleSimulator.apply_action(level, to_checkpoint, PuzzleAction.run_core()).state
+	assert_eq(PuzzleSimulator.core_position(level, waiting), Vector2i(4, 1), "a closed inverted gate blocks the core")
+
+
+func test_inverted_gate_with_two_switches_closes_only_when_both_are_on() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t1", "toggle", Vector2i(4, 0))
+	LevelFixtures.add_switch(data, "t2", "toggle", Vector2i(6, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 2), ["t1", "t2"], true)
+	var level := _level(LevelFixtures.allow_everywhere(data, [SWITCHES]))
+	var gate := level.gate_at(Vector2i(5, 2))
+	var one := PuzzleSimulator.apply_action(level, level.create_initial_state(), PuzzleAction.toggle_switch("t1")).state
+	assert_true(SwitchGateResolver.is_gate_open(level, one, gate))
+	var both := PuzzleSimulator.apply_action(level, one, PuzzleAction.toggle_switch("t2")).state
+	assert_false(SwitchGateResolver.is_gate_open(level, both, gate))
+
+
+func test_one_switch_opens_a_gate_and_closes_an_inverted_one() -> void:
+	# Gate A (4,1) needs "t" on; inverted gate B (2,1) needs it off. The core passes B first, so
+	# "t" must stay off until the core waits between them (at checkpoint (3,1)).
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(3, 0))
+	LevelFixtures.add_gate(data, "a", Vector2i(4, 1), ["t"])
+	LevelFixtures.add_gate(data, "b", Vector2i(2, 1), ["t"], true)
+	var level := _level(LevelFixtures.allow_everywhere(data, [SWITCHES]))
+	var early := PuzzleSimulator.apply_action(level, level.create_initial_state(), PuzzleAction.toggle_switch("t")).state
+	var blocked := PuzzleSimulator.apply_action(level, early, PuzzleAction.run_core())
+	assert_true(blocked.is_ok())
+	assert_eq(PuzzleSimulator.core_position(level, blocked.state), Vector2i(1, 1), "waits before inverted gate B")
+	var solution := PuzzleSolver.solve(level)
+	assert_true(solution.solvable)
+	assert_eq(solution.minimum_actions, 1)
+
+
+func test_rejects_closing_an_inverted_gate_on_the_core() -> void:
+	# The checkpoint (3,1) is an inverted gate cell: turning its switch on would close it on the core.
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(3, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(3, 1), ["t"], true)
+	var level := _level(LevelFixtures.allow_everywhere(data, [SWITCHES]))
+	var paused := PuzzleSimulator.apply_action(level, level.create_initial_state(), PuzzleAction.run_core()).state
+	assert_eq(PuzzleSimulator.core_position(level, paused), Vector2i(3, 1))
+	assert_eq(PuzzleSimulator.apply_action(level, paused, PuzzleAction.toggle_switch("t")).failure,
+		ActionResult.Failure.GATE_OCCUPIED)
+
+
+func test_loader_rejects_non_boolean_inverted() -> void:
+	var data := LevelFixtures.add_switch(LevelFixtures.corridor(), "t", "toggle", Vector2i(4, 0))
+	LevelFixtures.add_gate(data, "g", Vector2i(5, 2), ["t"])
+	data["mechanisms"]["gates"][0]["inverted"] = "yes"
+	assert_false(LevelLoader.from_dict(data).is_ok())

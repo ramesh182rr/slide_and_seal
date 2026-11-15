@@ -124,7 +124,7 @@ func test_completion_card_offers_next_level() -> void:
 	var gameplay := _gameplay(app)
 	var card := gameplay.get_hud().completion_card()
 	assert_false(card.visible)
-	_solve(gameplay, [PuzzleAction.run_core()])
+	_solve(gameplay, [PuzzleAction.run_core(), PuzzleAction.run_core()])
 	assert_true(card.visible)
 	assert_eq(card.summary_text(), "Actions 0  ·  Target 0  ·  Target met")
 	assert_true(card.has_next_button())

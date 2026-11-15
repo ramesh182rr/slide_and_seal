@@ -14,10 +14,13 @@ static func is_switch_on(state: PuzzleState, switch_def: SwitchDefinition) -> bo
 
 
 static func is_gate_open(level: LevelDefinition, state: PuzzleState, gate: GateDefinition) -> bool:
+	var all_on := true
 	for switch_id: String in gate.requires:
 		if not is_switch_on(state, level.switch_by_id(switch_id)):
-			return false
-	return true
+			all_on = false
+			break
+	# An inverted gate (D-035) closes exactly when a normal gate with the same switches would open.
+	return all_on != gate.inverted
 
 
 ## A portal carries the core only while all its required switches are on (empty = always).

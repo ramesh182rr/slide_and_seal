@@ -5,40 +5,40 @@
   "world_id": "world_02_gravity_works",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 7
+    "width": 9,
+    "height": 9
   },
   "core": {
     "position": [
       0,
-      3
+      2
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      3
+      1,
+      8
     ],
     "seal_id": "seal_final"
   },
   "terrain": {
     "walls": [
       [
-        1,
-        2
+        2,
+        3
+      ],
+      [
+        3,
+        3
       ],
       [
         5,
-        2
-      ],
-      [
-        1,
-        4
+        3
       ],
       [
         5,
-        4
+        5
       ]
     ]
   },
@@ -50,39 +50,102 @@
       "nodes": [
         [
           0,
+          2
+        ],
+        [
+          0,
           3
+        ],
+        [
+          0,
+          4
         ],
         [
           1,
-          3
+          4
         ],
         [
           2,
-          3
+          4
         ],
         [
           3,
-          3
+          4
         ],
         [
           4,
-          3
+          4
         ],
         [
           5,
-          3
+          4
         ],
         [
           6,
-          3
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_field",
+          "id": "cp_enter",
           "position": [
             1,
-            3
+            4
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_return",
+          "position": [
+            7,
+            5
           ],
           "allowed_mechanisms": [
             "gravity_shift"
@@ -94,11 +157,20 @@
   },
   "objects": [
     {
-      "id": "block_side",
+      "id": "block_p",
       "kind": "block",
       "position": [
-        4,
-        3
+        3,
+        4
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_q",
+      "kind": "block",
+      "position": [
+        5,
+        4
       ],
       "pushable": false
     }
@@ -106,20 +178,21 @@
   "mechanisms": {
     "gravity_zones": [
       {
-        "id": "zone_side",
+        "id": "zone_chamber",
         "position": [
           2,
           2
         ],
         "size": [
-          3,
-          3
+          5,
+          5
         ],
-        "direction": "right",
+        "direction": "up",
         "allowed_directions": [
+          "up",
           "right",
-          "left",
-          "up"
+          "down",
+          "left"
         ]
       }
     ]
@@ -131,7 +204,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 1,
-    "optimal_actions": 1
+    "target_actions": 4,
+    "optimal_actions": 3
   }
 }

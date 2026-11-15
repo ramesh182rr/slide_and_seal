@@ -10,6 +10,8 @@ const CYAN_ENERGY := Color("#38D6E8")
 const MINT_SUCCESS := Color("#64E6A5")
 const PORTAL_VIOLET := Color("#A78BFA")
 const MECHANISM_AMBER := Color("#F4B860")
+## Inverted gates (D-035): open while their switches are off.
+const GATE_INVERTED := Color("#E58FD0")
 const POLARITY_RED := Color("#F16F72")
 const POLARITY_BLUE := Color("#5B9CFF")
 

@@ -178,6 +178,14 @@ The player can rotate the board **view** to any angle around the board centre. T
 - World 1 levels 1–2 stay gentle route/checkpoint introductions. The rest teach levers and gates in depth: symbols, multi-lever gates, lever order across checkpoints, and gates never closing on the core.
 - World 5 then focuses on pressure plates and energy.
 
+### D-035 — Inverted gates (2026-11-15)
+- A gate may be marked `inverted`. It is the exact opposite of a normal gate with the same switches: **closed while all its switches are on, open otherwise**.
+- Why: with normal gates only, switching a lever on can never hurt, so every lever level has one trivial answer ("turn on the right levers"). Inverted gates make one lever open one gate and close another, so the order of lever moves across checkpoints matters (D-034).
+- All existing rules apply unchanged:
+  - a closed gate blocks the core, pushes and gravity
+  - no action may close a gate on the core or a block
+- **Presentation:** inverted gates are pink instead of amber, and their symbol carries a "¬" (e.g. "¬C"), so the difference reads without colour. A lever's label lists every gate it affects (e.g. "A ¬C").
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -304,7 +312,7 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - The toggle shows "On"/"Off" in text, since the default switch icon is unreadably small.
 - Back closes the confirmation first, then returns home.
 
-### P-020 — World 1 "The Awakening" design (awaiting review)
+### P-020 — World 1 "The Awakening" design (superseded by P-023 on 2026-11-15)
 - **Levels 1–4 have no mechanisms:** route, core and seal (1); reading a winding route (2); first checkpoint (3); two checkpoints (4).
 - **No decisions are possible without a mechanism** (a level with none offers only Run), so "small decisions" start where doc 09 itself asks for an interaction: #5 "Resume after a simple interaction".
   - Levels 5 and 6 use a lever opening a gate. This introduces the toggle switch in World 1, earlier than doc 03's teaching order (switches in World 5), as the simplest possible interaction.
@@ -312,7 +320,7 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - Proven minimums are 0, 0, 0, 0, 1 and 2, with 0 dead ends in all six.
 - Level 6's decoy gate was moved off the route after a screenshot showed that, in the isometric view, it appeared to sit on the path.
 
-### P-021 — World 2 "Gravity Works" design (awaiting review)
+### P-021 — World 2 "Gravity Works" design (superseded by P-024 on 2026-11-15)
 - **Gravity-only puzzles** (doc 09 #7–12). Gravity never moves a block out of its zone, so each level is built around one real gravity decision:
   - drop (7)
   - flip a stacked pair (8)
@@ -333,6 +341,36 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **View changes work during move playback** (they are presentation only). The arrow pad and swipe directions update live.
 - **Desktop:** the mouse wheel zooms ×1.1, Q/E turn the view, R resets, and trackpad pinch and scroll zoom and pan.
 - The view is not saved; each level opens at the default view.
+
+### P-023 — World 1 "The Awakening" redesign (M10, awaiting review; implements D-033, D-034, D-035)
+- **Boards grow** through the world: 7×9, 8×8, 8×9, 9×10, 10×9 and 11×11. Every level has two to four checkpoints.
+- **Hooks**, one per level:
+  1. The First Signal: route, core and seal, and the first pause.
+  2. Dormant Path: three checkpoints on a long winding route.
+  3. Lever and Gate: one lever per gate, at two checkpoints, plus a decoy lever whose gate is off the route.
+  4. Two Keys: gates that need two levers, one lever already on, and a decoy.
+  5. Opposite Doors: inverted gates. A lever opens one gate and closes another, and the core can wait in front of a closed gate while you change the levers.
+  6. The Awakening: three levers and nine gates over four checkpoints, one of them on a gate (it cannot close under the core). The best line needs the core to wait on an inverted gate.
+- **Proven minimums:** 0, 0, 2, 3, 5 and 8, with 0 dead ends in all six.
+- **Scoring:** targets are the minimum for minimums up to 2, minimum + 1 for 3–5, and minimum + 2 from 6.
+
+### P-024 — World 2 "Gravity Works" redesign (M10, awaiting review; implements D-033)
+- **Boards grow** through the world: 8×8 up to 11×13. Gravity is combined with the levers and gates taught in World 1.
+- **Hooks**, one per level:
+  7. Downward Pull: one block blocks the route twice, above and below.
+  8. Shift the Weight: two fields (a column and a row) over four checkpoints.
+  9. Sideways Field: a tilt chamber with inner walls. The obvious tilt traps a block; the answer is left, then down, then up.
+  10. Held by Gates: closed gates hold blocks up a shaft, and opening one lets a block move past it. One lever is a decoy.
+  11. Stable Position: two shafts, one pulling up and one down, each split by a gate, over four checkpoints.
+  12. Gravity Works: a tilt chamber and a gated shaft. Lever A frees the shaft, but it also closes an inverted gate on the last row, so it must be switched off again.
+- **Proven minimums:** 2, 4, 3, 3, 3 and 5, with 0 dead ends in all six.
+- To keep the solver fast, the chamber in level 12 allows up, down and left only. A fourth direction added nothing to the solution and made validation take over a minute.
+- Known art gap (from P-021): gravity blocks still look like fixed steel.
+
+### P-025 — On-screen Back in gameplay
+- A **Back** button sits at the top left of the gameplay HUD, as on Level select and Settings.
+- Unfinished level: it asks "Leave this puzzle?" straight away, closing any open panel behind the dialog. Finished level: it leaves at once, since the result is already saved.
+- The system Back keeps its layered unwinding (P-009).
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

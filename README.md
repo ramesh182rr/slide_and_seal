@@ -6,7 +6,7 @@ A mechanical labyrinth puzzle game for Android, built with Godot 4 and typed GDS
 
 ## Status
 
-Early development. Six levels are playable in 3D from a home screen and level list, covering all eight designed mechanics: core travel, gravity, push, switches and gates, portals, rotating sections, energy beams and magnets. Progress is saved: completing a level unlocks the next, and your best result earns up to three stars. All rules are tested headless.
+Early development. Two worlds (levers and gates, then gravity) and three demo levels (energy beams, rotating sections, magnets) are playable in 3D, with free rotate, zoom and pan of the board. All eight designed mechanics are implemented; push and portals have no campaign level yet. Progress is saved: completing a level unlocks the next, and your best result earns up to three stars. All rules are tested headless.
 
 ## Running the game
 

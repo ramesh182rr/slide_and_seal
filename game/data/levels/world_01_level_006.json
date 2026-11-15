@@ -5,20 +5,20 @@
   "world_id": "world_01_awakening",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 9
+    "width": 11,
+    "height": 11
   },
   "core": {
     "position": [
-      0,
+      1,
       1
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      7
+      9,
+      9
     ],
     "seal_id": "seal_final"
   },
@@ -26,35 +26,23 @@
     "walls": [
       [
         3,
-        2
+        4
       ],
       [
-        3,
-        3
-      ],
-      [
-        5,
-        2
-      ],
-      [
-        5,
-        3
+        9,
+        4
       ],
       [
         1,
         6
       ],
       [
-        3,
-        6
-      ],
-      [
-        1,
+        2,
         8
       ],
       [
-        6,
-        6
+        7,
+        8
       ]
     ]
   },
@@ -64,10 +52,6 @@
   "routes": {
     "route_main": {
       "nodes": [
-        [
-          0,
-          1
-        ],
         [
           1,
           1
@@ -85,43 +69,123 @@
           1
         ],
         [
-          4,
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
           2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          5,
+          3
         ],
         [
           4,
           3
         ],
         [
-          4,
-          4
-        ],
-        [
           3,
-          4
+          3
         ],
         [
           2,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
           4
+        ],
+        [
+          1,
+          5
         ],
         [
           2,
           5
         ],
         [
-          2,
-          6
-        ],
-        [
-          2,
-          7
-        ],
-        [
           3,
-          7
+          5
         ],
         [
           4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          6,
           7
         ],
         [
@@ -129,13 +193,65 @@
           7
         ],
         [
-          6,
+          4,
           7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          9,
+          9
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_first_lever",
+          "id": "cp_start",
           "position": [
             2,
             1
@@ -146,10 +262,32 @@
           "auto_pause": true
         },
         {
-          "id": "cp_two_levers",
+          "id": "cp_on_gate",
           "position": [
-            2,
+            7,
+            3
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_middle",
+          "position": [
+            3,
             5
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_last",
+          "position": [
+            5,
+            7
           ],
           "allowed_mechanisms": [
             "switches_seals"
@@ -166,25 +304,26 @@
         "id": "lever_a",
         "kind": "toggle",
         "position": [
-          2,
-          0
+          3,
+          2
         ]
       },
       {
         "id": "lever_b",
         "kind": "toggle",
         "position": [
-          1,
-          5
+          5,
+          4
         ]
       },
       {
         "id": "lever_c",
         "kind": "toggle",
         "position": [
-          3,
-          5
-        ]
+          8,
+          2
+        ],
+        "initially_on": true
       }
     ],
     "gates": [
@@ -192,7 +331,7 @@
         "id": "gate_a",
         "position": [
           4,
-          2
+          1
         ],
         "requires": [
           "lever_a"
@@ -201,22 +340,88 @@
       {
         "id": "gate_b",
         "position": [
-          3,
-          7
+          7,
+          1
+        ],
+        "requires": [
+          "lever_c"
+        ],
+        "inverted": true
+      },
+      {
+        "id": "gate_c",
+        "position": [
+          7,
+          3
+        ],
+        "requires": [
+          "lever_a"
+        ]
+      },
+      {
+        "id": "gate_d",
+        "position": [
+          6,
+          3
+        ],
+        "requires": [
+          "lever_a",
+          "lever_b"
+        ],
+        "inverted": true
+      },
+      {
+        "id": "gate_e",
+        "position": [
+          5,
+          3
         ],
         "requires": [
           "lever_b"
         ]
       },
       {
-        "id": "gate_c",
+        "id": "gate_f",
         "position": [
-          0,
-          4
+          5,
+          5
         ],
         "requires": [
           "lever_c"
         ]
+      },
+      {
+        "id": "gate_g",
+        "position": [
+          7,
+          5
+        ],
+        "requires": [
+          "lever_b"
+        ],
+        "inverted": true
+      },
+      {
+        "id": "gate_h",
+        "position": [
+          8,
+          7
+        ],
+        "requires": [
+          "lever_a",
+          "lever_c"
+        ]
+      },
+      {
+        "id": "gate_j",
+        "position": [
+          3,
+          7
+        ],
+        "requires": [
+          "lever_c"
+        ],
+        "inverted": true
       }
     ]
   },
@@ -227,7 +432,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 2,
-    "optimal_actions": 2
+    "target_actions": 10,
+    "optimal_actions": 8
   }
 }

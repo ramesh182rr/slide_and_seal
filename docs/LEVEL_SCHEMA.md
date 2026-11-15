@@ -100,8 +100,10 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 ### Gate (`mechanisms.gates`)
 ```json
 { "id": "gate_a", "position": [5,1], "requires": ["lever_a", "plate_a"] }
+{ "id": "gate_b", "position": [6,1], "requires": ["lever_a"], "inverted": true }
 ```
 - The gate is open when **all** `requires` switches are on (D-013). A closed gate blocks the core, pushes and gravity.
+- `inverted` (optional boolean, default `false`, D-035): the opposite of a normal gate. The gate is closed while all `requires` switches are on, and open otherwise.
 - `requires` is non-empty, lists existing switch ids, and has no duplicates.
 - In bounds, not on a wall, not on a switch, and at most one gate per cell.
 - Switch and gate ids share one namespace.

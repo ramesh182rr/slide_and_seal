@@ -186,8 +186,11 @@ static func add_switch(data: Dictionary, id: String, kind: String, cell: Vector2
 
 
 ## Adds a gate that opens when all `requires` switches are on. Returns `data` for chaining.
-static func add_gate(data: Dictionary, id: String, cell: Vector2i, requires: Array) -> Dictionary:
-	_collection(data, "gates").append({"id": id, "position": [cell.x, cell.y], "requires": requires})
+static func add_gate(data: Dictionary, id: String, cell: Vector2i, requires: Array, inverted: bool = false) -> Dictionary:
+	var gate := {"id": id, "position": [cell.x, cell.y], "requires": requires}
+	if inverted:
+		gate["inverted"] = true
+	_collection(data, "gates").append(gate)
 	return data
 
 

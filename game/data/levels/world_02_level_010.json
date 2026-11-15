@@ -1,46 +1,29 @@
 {
   "schema_version": 3,
   "id": "world_02_level_010",
-  "title": "Gravity Chamber",
+  "title": "Held by Gates",
   "world_id": "world_02_gravity_works",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 9
+    "width": 9,
+    "height": 10
   },
   "core": {
     "position": [
-      0,
-      2
+      1,
+      3
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      0,
-      6
+      8,
+      7
     ],
     "seal_id": "seal_final"
   },
   "terrain": {
-    "walls": [
-      [
-        6,
-        2
-      ],
-      [
-        6,
-        6
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        2,
-        4
-      ]
-    ]
+    "walls": []
   },
   "setup": {
     "allowed_mechanisms": []
@@ -49,86 +32,136 @@
     "route_main": {
       "nodes": [
         [
-          0,
-          2
-        ],
-        [
           1,
-          2
+          3
         ],
         [
           2,
-          2
+          3
         ],
         [
           3,
-          2
+          3
         ],
         [
           4,
-          2
-        ],
-        [
-          5,
-          2
+          3
         ],
         [
           5,
           3
         ],
         [
-          5,
+          6,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
           4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          6,
+          5
         ],
         [
           5,
           5
         ],
         [
-          5,
-          6
-        ],
-        [
           4,
-          6
+          5
         ],
         [
           3,
-          6
+          5
         ],
         [
           2,
-          6
+          5
+        ],
+        [
+          1,
+          5
         ],
         [
           1,
           6
         ],
         [
-          0,
-          6
+          1,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          8,
+          7
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_upper",
+          "id": "cp_top",
           "position": [
-            1,
-            2
+            2,
+            3
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         },
         {
-          "id": "cp_lower",
+          "id": "cp_middle",
           "position": [
-            5,
-            4
+            6,
+            5
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_bottom",
+          "position": [
+            2,
+            7
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         }
@@ -137,20 +170,29 @@
   },
   "objects": [
     {
-      "id": "block_upper",
+      "id": "block_k",
       "kind": "block",
       "position": [
-        3,
-        2
+        4,
+        3
       ],
       "pushable": false
     },
     {
-      "id": "block_lower",
+      "id": "block_m",
       "kind": "block",
       "position": [
-        3,
-        6
+        4,
+        5
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_n",
+      "kind": "block",
+      "position": [
+        4,
+        8
       ],
       "pushable": false
     }
@@ -158,35 +200,59 @@
   "mechanisms": {
     "gravity_zones": [
       {
-        "id": "zone_upper",
+        "id": "zone_shaft",
         "position": [
-          3,
-          2
+          4,
+          1
         ],
         "size": [
           1,
-          3
+          8
         ],
-        "direction": "up",
+        "direction": "down",
         "allowed_directions": [
           "up",
           "down"
         ]
-      },
+      }
+    ],
+    "switches": [
       {
-        "id": "zone_lower",
+        "id": "lever_a",
+        "kind": "toggle",
         "position": [
           3,
+          4
+        ]
+      },
+      {
+        "id": "lever_b",
+        "kind": "toggle",
+        "position": [
+          6,
+          6
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          4,
+          4
+        ],
+        "requires": [
+          "lever_a"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          4,
           6
         ],
-        "size": [
-          1,
-          3
-        ],
-        "direction": "up",
-        "allowed_directions": [
-          "up",
-          "down"
+        "requires": [
+          "lever_b"
         ]
       }
     ]
@@ -198,7 +264,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 2,
-    "optimal_actions": 2
+    "target_actions": 4,
+    "optimal_actions": 3
   }
 }

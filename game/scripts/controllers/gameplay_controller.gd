@@ -42,6 +42,7 @@ func _ready() -> void:
 	var dialog := _hud.leave_dialog()
 	dialog.stay_requested.connect(dialog.hide)
 	dialog.leave_requested.connect(_confirm_leave)
+	_hud.back_requested.connect(request_leave)  # Before loading: Back must work even if the level fails.
 	var loaded := LevelLoader.load_file(level_path)
 	if not loaded.is_ok():
 		push_error("Level failed to load: %s" % "; ".join(loaded.errors))
@@ -171,6 +172,17 @@ func handle_back() -> void:
 	else:
 		_board.clear_preview()
 		dialog.show()
+
+
+## The on-screen Back button. A finished level leaves at once (its result is already saved);
+## otherwise it asks first, like the system Back does once the panel is closed.
+func request_leave() -> void:
+	if _session == null or _session.get_state().phase == PuzzleState.Phase.LEVEL_COMPLETED:
+		_confirm_leave()
+		return
+	clear_selection()
+	_board.clear_preview()
+	_hud.leave_dialog().show()
 
 
 func _notification(what: int) -> void:
@@ -400,8 +412,8 @@ func _on_tapped(screen_position: Vector2) -> void:
 			else " while its switches are on (%s)" % needs))
 	elif level.gate_at(hit.cell) != null:
 		var gate := level.gate_at(hit.cell)
-		_select_none_with_message("Gate%s opens when every switch marked %s is on."
-			% [_symbol_phrase(gate.id), _board.fixtures().symbol(gate.id)])
+		_select_none_with_message("Gate%s %s when every switch marked %s is on."
+			% [_symbol_phrase(gate.id), "closes" if gate.inverted else "opens", _board.fixtures().symbol(gate.id)])
 	elif level.section_at(hit.cell) != null:
 		select_section(level.section_at(hit.cell).id)
 	elif level.portal_at(hit.cell) != null:

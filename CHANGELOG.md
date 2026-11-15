@@ -5,6 +5,43 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M10: Worlds 1–2 redesigned; inverted gates; gameplay Back button
+
+**Added**
+- **Inverted gates** (D-035): the optional `inverted` gate field in schema v3. An inverted gate is closed while all its switches are on, and open otherwise.
+  - The simulator, solver and validator needed no change in shape; `SwitchGateResolver.is_gate_open` negates the result.
+  - Inverted gates are pink and labelled with "¬" (e.g. "¬C"), and tapping one explains it.
+  - 5 new unit tests.
+- **Back button** in the gameplay HUD (P-025). It asks before leaving an unfinished level and leaves a finished one at once. 3 new tests.
+
+**Changed**
+- **World 1 "The Awakening" redesigned** (D-033, D-034, P-023). Six levels on boards from 7×9 to 11×11, 1–4 checkpoints each, teaching levers, two-lever gates and inverted gates. Proven minimums 0/0/2/3/5/8.
+- **World 2 "Gravity Works" redesigned** (D-033, P-024). Six levels on boards from 8×8 to 11×13 with column, row and tilt-chamber zones, combined with levers and gates. Proven minimums 2/4/3/3/3/5.
+- All twelve levels are validator-proven with 0 dead ends. `target_actions` is the minimum up to 2, +1 for 3–5 and +2 from 6.
+  - Titles follow doc 09 where the content still fits ("The First Signal", "Dormant Path", "Downward Pull", "Shift the Weight", "Sideways Field", "Stable Position", "Gravity Works").
+  - New titles: "Lever and Gate", "Two Keys", "Opposite Doors" and "Held by Gates".
+- Tests updated for the new level data:
+  - level 1 now has a checkpoint
+  - the "worse replay" progress test moved to level 3, which has the old level 6's two levers and decoy
+- README status updated.
+
+**Removed**
+- The previous World 1–2 drafts (P-020, P-021) were replaced in place. The level ids are unchanged, so saved progress still maps to the same slots, but saved best scores now refer to the new puzzles.
+
+**Verified**
+- 334 tests pass. `tools/validate_levels.sh`: 15 levels, 0 failed.
+- The Android debug APK (`build/android/slide_and_seal_debug.apk`, Vulkan/Mobile) contains the 15 catalog levels and no retired levels or tests. It starts on the Pixel 8 emulator with no script errors; the emulator still cannot display Vulkan.
+- With the Compatibility diagnostic build on the emulator:
+  - The level list shows the new titles, with only level 1 open on a fresh profile.
+  - In level 1, real taps on rotate and zoom in changed the view.
+  - Back opened "Leave this puzzle?", and Leave returned to the level list.
+  - Godot logged 0 errors.
+
+**Known limitations**
+- At the default 45° view, boards are limited by screen width, so there is unused space below the board. Zoom helps.
+- Lever labels that list many gates (e.g. "A D ¬C ¬F") are small at the default zoom.
+- Gravity blocks still look like fixed steel (art gap from P-021).
+
 ### 2026-11-15 — M9a: board view controls (rotate, zoom, pan)
 
 **Added**

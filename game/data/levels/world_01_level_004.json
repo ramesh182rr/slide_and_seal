@@ -1,24 +1,24 @@
 {
   "schema_version": 3,
   "id": "world_01_level_004",
-  "title": "Safe Stop",
+  "title": "Two Keys",
   "world_id": "world_01_awakening",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 8
+    "width": 9,
+    "height": 10
   },
   "core": {
     "position": [
-      0,
-      6
+      1,
+      1
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      1
+      1,
+      8
     ],
     "seal_id": "seal_final"
   },
@@ -26,27 +26,19 @@
     "walls": [
       [
         1,
-        4
-      ],
-      [
-        3,
-        4
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        5,
-        2
+        3
       ],
       [
         1,
-        2
+        4
       ],
       [
-        5,
+        6,
         4
+      ],
+      [
+        1,
+        5
       ]
     ]
   },
@@ -57,40 +49,16 @@
     "route_main": {
       "nodes": [
         [
-          0,
-          6
-        ],
-        [
           1,
-          6
+          1
         ],
         [
           2,
-          6
-        ],
-        [
-          2,
-          5
-        ],
-        [
-          2,
-          4
-        ],
-        [
-          2,
-          3
+          1
         ],
         [
           3,
-          3
-        ],
-        [
-          4,
-          3
-        ],
-        [
-          4,
-          2
+          1
         ],
         [
           4,
@@ -103,32 +71,211 @@
         [
           6,
           1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          8
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_low",
+          "id": "cp_gate",
           "position": [
-            2,
-            4
+            3,
+            1
           ],
-          "allowed_mechanisms": [],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
           "auto_pause": true
         },
         {
-          "id": "cp_high",
+          "id": "cp_two_keys",
           "position": [
-            4,
-            2
+            5,
+            3
           ],
-          "allowed_mechanisms": [],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
           "auto_pause": true
         }
       ]
     }
   },
   "objects": [],
-  "mechanisms": {},
+  "mechanisms": {
+    "switches": [
+      {
+        "id": "lever_a",
+        "kind": "toggle",
+        "position": [
+          2,
+          2
+        ]
+      },
+      {
+        "id": "lever_b",
+        "kind": "toggle",
+        "position": [
+          5,
+          2
+        ],
+        "initially_on": true
+      },
+      {
+        "id": "lever_c",
+        "kind": "toggle",
+        "position": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "lever_d",
+        "kind": "toggle",
+        "position": [
+          4,
+          6
+        ]
+      },
+      {
+        "id": "lever_e",
+        "kind": "toggle",
+        "position": [
+          3,
+          7
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          5,
+          1
+        ],
+        "requires": [
+          "lever_a",
+          "lever_b"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          5,
+          5
+        ],
+        "requires": [
+          "lever_c",
+          "lever_d"
+        ]
+      },
+      {
+        "id": "gate_c",
+        "position": [
+          1,
+          7
+        ],
+        "requires": [
+          "lever_b",
+          "lever_e"
+        ]
+      }
+    ]
+  },
   "objectives": [
     {
       "type": "reach_destination",
@@ -136,7 +283,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 0,
-    "optimal_actions": 0
+    "target_actions": 4,
+    "optimal_actions": 3
   }
 }

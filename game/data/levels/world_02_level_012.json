@@ -5,40 +5,32 @@
   "world_id": "world_02_gravity_works",
   "access": "free",
   "board": {
-    "width": 7,
-    "height": 9
+    "width": 11,
+    "height": 13
   },
   "core": {
     "position": [
-      0,
+      1,
       1
     ],
     "route_id": "route_main"
   },
   "destination": {
     "position": [
-      6,
-      7
+      1,
+      11
     ],
     "seal_id": "seal_final"
   },
   "terrain": {
     "walls": [
       [
-        6,
-        1
-      ],
-      [
         2,
-        3
+        2
       ],
       [
         4,
-        3
-      ],
-      [
-        0,
-        6
+        4
       ]
     ]
   },
@@ -49,10 +41,6 @@
     "route_main": {
       "nodes": [
         [
-          0,
-          1
-        ],
-        [
           1,
           1
         ],
@@ -73,28 +61,60 @@
           1
         ],
         [
-          5,
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
           2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          6,
+          3
         ],
         [
           5,
           3
         ],
         [
-          5,
-          4
-        ],
-        [
           4,
-          4
+          3
         ],
         [
           3,
-          4
+          3
         ],
         [
           2,
-          4
+          3
+        ],
+        [
+          1,
+          3
         ],
         [
           1,
@@ -105,23 +125,55 @@
           5
         ],
         [
-          1,
-          6
-        ],
-        [
-          1,
-          7
-        ],
-        [
           2,
-          7
+          5
         ],
         [
           3,
-          7
+          5
         ],
         [
           4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          6,
           7
         ],
         [
@@ -129,41 +181,160 @@
           7
         ],
         [
-          6,
+          4,
           7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          1,
+          11
         ]
       ],
       "checkpoints": [
         {
-          "id": "cp_start",
+          "id": "cp_chamber",
           "position": [
-            1,
-            1
-          ],
-          "allowed_mechanisms": [
-            "gravity_shift"
-          ],
-          "auto_pause": true
-        },
-        {
-          "id": "cp_turn",
-          "position": [
-            5,
+            8,
             3
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         },
         {
-          "id": "cp_chamber",
+          "id": "cp_chamber_again",
           "position": [
             1,
-            6
+            4
           ],
           "allowed_mechanisms": [
-            "gravity_shift"
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_shaft",
+          "position": [
+            8,
+            7
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_shaft_again",
+          "position": [
+            3,
+            9
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_last",
+          "position": [
+            8,
+            11
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift",
+            "switches_seals"
           ],
           "auto_pause": true
         }
@@ -172,20 +343,38 @@
   },
   "objects": [
     {
-      "id": "block_column",
+      "id": "block_p",
       "kind": "block",
       "position": [
-        3,
-        1
+        2,
+        3
       ],
       "pushable": false
     },
     {
-      "id": "block_chamber",
+      "id": "block_q",
       "kind": "block",
       "position": [
-        4,
+        2,
+        5
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_x",
+      "kind": "block",
+      "position": [
+        6,
         7
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_y",
+      "kind": "block",
+      "position": [
+        6,
+        9
       ],
       "pushable": false
     }
@@ -193,37 +382,88 @@
   "mechanisms": {
     "gravity_zones": [
       {
-        "id": "zone_column",
+        "id": "zone_chamber",
         "position": [
-          3,
-          1
+          2,
+          2
+        ],
+        "size": [
+          4,
+          4
+        ],
+        "direction": "left",
+        "allowed_directions": [
+          "up",
+          "down",
+          "left"
+        ]
+      },
+      {
+        "id": "zone_shaft",
+        "position": [
+          6,
+          6
         ],
         "size": [
           1,
-          4
+          6
         ],
-        "direction": "up",
+        "direction": "down",
         "allowed_directions": [
           "up",
           "down"
         ]
+      }
+    ],
+    "switches": [
+      {
+        "id": "lever_a",
+        "kind": "toggle",
+        "position": [
+          5,
+          8
+        ]
       },
       {
-        "id": "zone_chamber",
+        "id": "lever_b",
+        "kind": "toggle",
         "position": [
-          2,
-          6
-        ],
-        "size": [
-          3,
-          3
-        ],
-        "direction": "right",
-        "allowed_directions": [
-          "right",
-          "left",
-          "up"
+          8,
+          10
         ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          6,
+          8
+        ],
+        "requires": [
+          "lever_a"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          6,
+          10
+        ],
+        "requires": [
+          "lever_b"
+        ]
+      },
+      {
+        "id": "gate_c",
+        "position": [
+          3,
+          11
+        ],
+        "requires": [
+          "lever_a"
+        ],
+        "inverted": true
       }
     ]
   },
@@ -234,7 +474,7 @@
     }
   ],
   "scoring": {
-    "target_actions": 3,
-    "optimal_actions": 3
+    "target_actions": 6,
+    "optimal_actions": 5
   }
 }
