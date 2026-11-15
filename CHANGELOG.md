@@ -5,6 +5,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Menu skeleton
+
+**Added**
+- **`AppRoot`** (`game/scenes/app/app_root.tscn`, now the main scene): Home → Level select → Gameplay, one screen at a time.
+  - Leave and the completion card return to level select.
+  - The dev `--level=<id>` option moved here.
+- **`LevelCatalog`** with `game/data/catalog.json`: play order and world grouping. Each entry is loaded through `LevelLoader`, and duplicates or mismatched ids are reported.
+- **Screens:** `HomeScreen` (title, tagline, Play) and `LevelSelectScreen` (levels numbered in play order under world headings; all open until save data exists).
+- **`CompletionCard`** in the HUD: actions against target ("Target met" when achieved), Level select, and Next level (hidden on the last level). It appears after the completing playback, and Undo hides it.
+- **Back / Escape:** level select → home, home → exit. Gameplay keeps its own Back handling.
+- **`UiTheme`:** shared styling, extracted from the HUD, including `apply_safe_margins`, which level select now uses too.
+- **Tests:** 10 navigation tests, bringing the suite to 214. They cover:
+  - the catalog order, and every level file being listed
+  - Home → Level select → Gameplay with the right level, and Leave → level select
+  - the Back chain, and Back in gameplay being left to the gameplay controller
+  - Next level, no Next on the last level, and Undo hiding the card
+
+**Fixed** (during this milestone)
+- The level-select resize listener was first connected through a static function, so it outlived the screen and collided on the second visit. Caught by the tests; it is now an instance method.
+
+**Verified**
+- Windowed screenshots of Home, Level select and the completion card.
+- The Android export still builds, and `catalog.json` is packaged.
+
+**Known limitations**
+- No save data, progress, stars or unlocking yet.
+- Placeholder screens. The doc 06 world dioramas, splash, settings and store are not built.
+
 ### 2026-11-15 — M5c: Switches, gates and portals in 3D, plus showcase level
 
 **Added**

@@ -138,6 +138,14 @@ The validator's dead ends in the slice (see the M4 changelog) are accepted for t
 - **Preview:** a gate that would close shows a raised ghost; a gate that would open shows a glowing shell.
 - **Development:** `godot --path game -- --level=<id>` loads another level until menus exist.
 
+### P-012 — Menu skeleton and navigation
+- `AppRoot` is the main scene and owns one screen at a time: Home → Level select → Gameplay.
+- **Level order and world grouping** come from `game/data/catalog.json`, not from file names. Every level file must be listed (a test enforces it), and every entry is loaded through `LevelLoader`.
+- **All levels are open** until save data and unlocking exist.
+- **Completion card:** after the completing travel plays back, it shows actions against the target, plus "Level select" and "Next level" (hidden on the last level). Undo hides it again.
+- **Back / Escape:** gameplay handles its own (P-009), and Leave there returns to level select. Level select → Home; Home → exit app.
+- Placeholder screens built in code with the shared `UiTheme`. The doc 06 world-select dioramas, splash and store come later.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

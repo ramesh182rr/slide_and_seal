@@ -10,8 +10,8 @@ Early development. Two levels are playable in 3D: the gravity/push vertical slic
 
 ## Running the game
 
-Open `game/` in Godot 4.7.2 and press Play, or run `godot --path game`.
-To open another level: `godot --path game -- --level=world_05_showcase`.
+Open `game/` in Godot 4.7.2 and press Play, or run `godot --path game`. The game starts at the home screen.
+To jump straight into a level: `godot --path game -- --level=world_05_showcase`.
 
 ## Repository
 

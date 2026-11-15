@@ -1,0 +1,121 @@
+class_name AppRoot
+extends Node
+## Top-level navigation: Home → Level select → Gameplay (P-012). Owns exactly one screen at a time.
+## Android Back / Escape: gameplay handles its own (P-009); level select → home; home → exit.
+
+signal exit_requested
+
+const GAMEPLAY_SCENE := preload("res://scenes/gameplay/gameplay_root.tscn")
+const HOME := "home"
+const LEVEL_SELECT := "level_select"
+const GAMEPLAY := "gameplay"
+
+## Passed to gameplay (reduced motion; tests).
+@export var instant_playback: bool = false
+## Quit the app on Back from home. Tests turn this off and listen to `exit_requested`.
+@export var quit_on_exit: bool = true
+
+var _catalog: LevelCatalog
+var _screen: Node
+var _screen_name := ""
+var _current_level_id := ""
+
+
+func _ready() -> void:
+	_catalog = LevelCatalog.load_default()
+	for message: String in _catalog.errors:
+		push_error("Level catalog: " + message)
+	# Development: `godot --path game -- --level=world_05_showcase` jumps straight into a level.
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--level=") and _catalog.entry(arg.trim_prefix("--level=")) != null:
+			start_level(arg.trim_prefix("--level="))
+			return
+	show_home()
+
+
+func catalog() -> LevelCatalog:
+	return _catalog
+
+
+func current_screen_name() -> String:
+	return _screen_name
+
+
+func current_screen() -> Node:
+	return _screen
+
+
+func current_level_id() -> String:
+	return _current_level_id
+
+
+func show_home() -> void:
+	var home := HomeScreen.new()
+	home.play_requested.connect(show_level_select)
+	_set_screen(home, HOME)
+
+
+func show_level_select() -> void:
+	var screen := LevelSelectScreen.new()
+	screen.setup(_catalog)
+	screen.level_chosen.connect(start_level)
+	screen.back_requested.connect(show_home)
+	_set_screen(screen, LEVEL_SELECT)
+
+
+func start_level(level_id: String) -> void:
+	var entry := _catalog.entry(level_id)
+	if entry == null:
+		push_error("Unknown level '%s'" % level_id)
+		return
+	var gameplay: GameplayController = GAMEPLAY_SCENE.instantiate()
+	gameplay.level_path = entry.path
+	gameplay.instant_playback = instant_playback
+	gameplay.quit_on_leave = false
+	gameplay.next_level_available = _catalog.next_after(level_id) != null
+	gameplay.leave_requested.connect(show_level_select)
+	gameplay.level_select_requested.connect(show_level_select)
+	gameplay.next_level_requested.connect(_start_next_level)
+	_current_level_id = level_id
+	_set_screen(gameplay, GAMEPLAY)
+
+
+func handle_back() -> void:
+	match _screen_name:
+		LEVEL_SELECT:
+			show_home()
+		HOME:
+			exit_requested.emit()
+			if quit_on_exit:
+				get_tree().quit()
+		# GAMEPLAY: the gameplay controller handles Back itself.
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		handle_back()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _screen_name != GAMEPLAY and event.is_action_pressed("ui_cancel"):
+		handle_back()
+		get_viewport().set_input_as_handled()
+
+
+func _start_next_level() -> void:
+	var next := _catalog.next_after(_current_level_id)
+	if next != null:
+		start_level(next.level_id)
+
+
+## Swaps screens. Navigation is often triggered from a signal emitted inside the old screen,
+## so the old screen is removed from the tree now and deleted at the end of the frame.
+func _set_screen(screen: Node, screen_name: String) -> void:
+	if _screen != null:
+		remove_child(_screen)
+		_screen.queue_free()
+	_screen = screen
+	_screen_name = screen_name
+	if screen_name != GAMEPLAY:
+		_current_level_id = ""
+	add_child(screen)

@@ -8,12 +8,18 @@ enum TargetKind { NONE, OBJECT, ZONE, SWITCH }
 
 ## Emitted when the player confirms leaving the puzzle.
 signal leave_requested
+## Completion card choices; handled by AppRoot.
+signal next_level_requested
+signal level_select_requested
 
 @export_file("*.json") var level_path: String = "res://data/levels/world_01_slice.json"
 ## Skip animations (reduced motion; also used by tests).
 @export var instant_playback: bool = false
-## Quit the app when the player confirms leaving. No menus exist yet; tests turn this off.
+## Quit the app when the player confirms leaving. AppRoot and tests turn this off and listen to
+## `leave_requested` instead.
 @export var quit_on_leave: bool = true
+## Whether the completion card offers "Next level" (set by AppRoot from the catalog).
+var next_level_available: bool = false
 
 @onready var _board: BoardRenderer3D = $World/Board
 @onready var _camera_rig: CameraRig = $World/CameraRig
@@ -31,11 +37,6 @@ func _ready() -> void:
 	var dialog := _hud.leave_dialog()
 	dialog.stay_requested.connect(dialog.hide)
 	dialog.leave_requested.connect(_confirm_leave)
-	# Development: `godot --path game -- --level=world_05_showcase` loads another level.
-	for arg: String in OS.get_cmdline_user_args():
-		if arg.begins_with("--level="):
-			var name := arg.trim_prefix("--level=")
-			level_path = name if name.begins_with("res://") else "res://data/levels/%s.json" % name
 	var loaded := LevelLoader.load_file(level_path)
 	if not loaded.is_ok():
 		push_error("Level failed to load: %s" % "; ".join(loaded.errors))
@@ -58,6 +59,8 @@ func _ready() -> void:
 	panel.direction_preview_ended.connect(end_preview)
 	panel.direction_chosen.connect(commit_target_direction)
 	panel.close_requested.connect(clear_selection)
+	_hud.completion_card().next_requested.connect(func() -> void: next_level_requested.emit())
+	_hud.completion_card().levels_requested.connect(func() -> void: level_select_requested.emit())
 	panel.action_preview_started.connect(func() -> void: preview_target_direction(Grid.Direction.UP))
 	panel.action_preview_ended.connect(end_preview)
 	panel.action_chosen.connect(func() -> void: commit_target_direction(Grid.Direction.UP))
@@ -408,6 +411,12 @@ func _refresh() -> void:
 	_hud.set_available_mechanisms(PuzzleSimulator.allowed_mechanisms(_session.get_level(), state),
 		state.phase == PuzzleState.Phase.LEVEL_COMPLETED)
 	_refresh_panel()
+	# The card appears once the completing travel has finished playing back.
+	var card := _hud.completion_card()
+	if state.phase == PuzzleState.Phase.LEVEL_COMPLETED and not _busy:
+		card.show_result(state.mechanism_action_count, _session.get_level().target_actions, next_level_available)
+	else:
+		card.hide()
 
 
 func _update_swipe_vectors() -> void:

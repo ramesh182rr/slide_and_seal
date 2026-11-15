@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "worlds": [
+    {
+      "id": "world_01_awakening",
+      "title": "The Awakening",
+      "levels": ["world_01_level_001", "world_01_slice"]
+    },
+    {
+      "id": "world_05_sealed_chambers",
+      "title": "The Sealed Chambers",
+      "levels": ["world_05_showcase"]
+    }
+  ]
+}

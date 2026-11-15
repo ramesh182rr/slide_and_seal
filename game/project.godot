@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Slide & Seal"
 config/description="Reconfigure reality. Control the maze. Complete the seal."
-run/main_scene="res://scenes/gameplay/gameplay_root.tscn"
+run/main_scene="res://scenes/app/app_root.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/quit_on_go_back=false
 
