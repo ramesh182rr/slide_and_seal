@@ -1,0 +1,138 @@
+{
+  "schema_version": 3,
+  "id": "world_01_level_005",
+  "title": "Resume Sequence",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 7
+  },
+  "core": {
+    "position": [
+      0,
+      2
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      4
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        3
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          6,
+          4
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_lever",
+          "position": [
+            2,
+            3
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {
+    "switches": [
+      {
+        "id": "lever_gate",
+        "kind": "toggle",
+        "position": [
+          1,
+          3
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_path",
+        "position": [
+          4,
+          4
+        ],
+        "requires": [
+          "lever_gate"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 1,
+    "optimal_actions": 1
+  }
+}

@@ -14,7 +14,7 @@ signal level_select_requested
 ## Emitted once per completion, after the completing travel has played back (AppRoot saves it).
 signal level_completed(actions: int)
 
-@export_file("*.json") var level_path: String = "res://data/levels/world_01_slice.json"
+@export_file("*.json") var level_path: String = "res://data/levels/world_01_level_001.json"
 ## Skip animations (reduced motion; also used by tests).
 @export var instant_playback: bool = false
 ## Quit the app when the player confirms leaving. AppRoot and tests turn this off and listen to

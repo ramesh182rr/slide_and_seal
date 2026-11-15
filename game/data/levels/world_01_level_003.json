@@ -1,0 +1,121 @@
+{
+  "schema_version": 3,
+  "id": "world_01_level_003",
+  "title": "First Launch",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 7
+  },
+  "core": {
+    "position": [
+      0,
+      5
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      2
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        5,
+        3
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_first",
+          "position": [
+            3,
+            3
+          ],
+          "allowed_mechanisms": [],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {},
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 0,
+    "optimal_actions": 0
+  }
+}

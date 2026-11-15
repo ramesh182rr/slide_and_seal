@@ -3,6 +3,7 @@ extends Control
 ## Placeholder home screen (D-011): title, tagline and Play. Emits intent only.
 
 signal play_requested
+signal settings_requested
 
 
 func _ready() -> void:
@@ -44,3 +45,10 @@ func _ready() -> void:
 	UiTheme.make_primary(play)
 	play.pressed.connect(func() -> void: play_requested.emit())
 	column.add_child(play)
+	var settings := Button.new()
+	settings.name = "Settings"
+	settings.text = "Settings"
+	settings.custom_minimum_size = Vector2(0, 110)
+	settings.focus_mode = Control.FOCUS_NONE
+	settings.pressed.connect(func() -> void: settings_requested.emit())
+	column.add_child(settings)

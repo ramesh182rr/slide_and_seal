@@ -12,6 +12,7 @@ func _spawn() -> AppRoot:
 	var app: AppRoot = (load(APP_SCENE) as PackedScene).instantiate()
 	app.instant_playback = true
 	app.quit_on_exit = false
+	app.settings_path = "user://test_settings_unused.json"
 	TestFiles.remove_progress(TEST_PROGRESS)
 	app.progress_path = TEST_PROGRESS
 	(Engine.get_main_loop() as SceneTree).root.add_child(app)
@@ -72,23 +73,23 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	assert_eq(app.current_screen_name(), AppRoot.LEVEL_SELECT)
 	var screen := app.current_screen() as LevelSelectScreen
 	assert_eq(screen.listed_level_ids(), _catalog_ids(app.catalog()), "level select lists the catalog, in order")
-	assert_eq(screen.row_texts("world_01_slice")[0], "2.  The Awakening — Vertical Slice")
+	assert_eq(screen.row_texts("world_01_level_002")[0], "2.  Dormant Path")
 	app.free()
 
 
 func test_choosing_a_level_starts_gameplay_with_that_level() -> void:
 	var app := _spawn()
 	app.show_level_select()
-	(app.current_screen() as LevelSelectScreen).level_button("world_05_showcase").pressed.emit()
+	(app.current_screen() as LevelSelectScreen).level_button("world_05_reflector_logic").pressed.emit()
 	assert_eq(app.current_screen_name(), AppRoot.GAMEPLAY)
-	assert_eq(_gameplay(app).get_session().get_level().id, "world_05_showcase")
+	assert_eq(_gameplay(app).get_session().get_level().id, "world_05_reflector_logic")
 	assert_false(_gameplay(app).quit_on_leave, "inside the app, Leave returns to level select")
 	app.free()
 
 
 func test_leave_returns_to_level_select() -> void:
 	var app := _spawn()
-	app.start_level("world_01_slice")
+	app.start_level("world_01_level_002")
 	var gameplay := _gameplay(app)
 	gameplay.handle_back()
 	gameplay.get_hud().leave_dialog().leave_requested.emit()
@@ -109,7 +110,7 @@ func test_back_from_level_select_goes_home_then_exits() -> void:
 
 func test_back_in_gameplay_is_left_to_the_gameplay_controller() -> void:
 	var app := _spawn()
-	app.start_level("world_01_slice")
+	app.start_level("world_01_level_002")
 	app.handle_back()
 	assert_eq(app.current_screen_name(), AppRoot.GAMEPLAY)
 	app.free()
@@ -123,13 +124,13 @@ func test_completion_card_offers_next_level() -> void:
 	var gameplay := _gameplay(app)
 	var card := gameplay.get_hud().completion_card()
 	assert_false(card.visible)
-	_solve(gameplay, [PuzzleAction.run_core(), PuzzleAction.run_core()])
+	_solve(gameplay, [PuzzleAction.run_core()])
 	assert_true(card.visible)
 	assert_eq(card.summary_text(), "Actions 0  ·  Target 0  ·  Target met")
 	assert_true(card.has_next_button())
 	card.next_button().pressed.emit()
 	assert_eq(app.current_screen_name(), AppRoot.GAMEPLAY)
-	assert_eq(app.current_level_id(), "world_01_slice")
+	assert_eq(app.current_level_id(), "world_01_level_002")
 	assert_false(_gameplay(app).get_hud().completion_card().visible, "the next level starts fresh")
 	app.free()
 
@@ -154,7 +155,7 @@ func test_undo_after_completion_hides_card() -> void:
 	var app := _spawn()
 	app.start_level("world_01_level_001")
 	var gameplay := _gameplay(app)
-	_solve(gameplay, [PuzzleAction.run_core(), PuzzleAction.run_core()])
+	_solve(gameplay, [PuzzleAction.run_core()])
 	gameplay.request_undo()
 	assert_false(gameplay.get_hud().completion_card().visible)
 	app.free()

@@ -8,6 +8,7 @@ var _left := 0
 
 func _spawn() -> GameplayController:
 	var scene: GameplayController = (load(SCENE) as PackedScene).instantiate()
+	scene.level_path = "res://data/levels/retired/world_01_slice.json"  # The retired vertical slice: rich mechanics for scene tests.
 	scene.instant_playback = true
 	scene.quit_on_leave = false
 	(Engine.get_main_loop() as SceneTree).root.add_child(scene)

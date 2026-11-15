@@ -9,6 +9,7 @@ const LEFT := Grid.Direction.LEFT
 
 func _spawn() -> GameplayController:
 	var scene: GameplayController = (load(SCENE) as PackedScene).instantiate()
+	scene.level_path = "res://data/levels/retired/world_01_slice.json"  # The retired vertical slice: rich mechanics for scene tests.
 	scene.instant_playback = true
 	(Engine.get_main_loop() as SceneTree).root.add_child(scene)
 	return scene

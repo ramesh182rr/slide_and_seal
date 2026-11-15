@@ -6,14 +6,17 @@
       "title": "The Awakening",
       "levels": [
         "world_01_level_001",
-        "world_01_slice"
+        "world_01_level_002",
+        "world_01_level_003",
+        "world_01_level_004",
+        "world_01_level_005",
+        "world_01_level_006"
       ]
     },
     {
       "id": "world_05_sealed_chambers",
       "title": "The Sealed Chambers",
       "levels": [
-        "world_05_showcase",
         "world_05_reflector_logic"
       ]
     },

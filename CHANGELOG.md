@@ -5,6 +5,59 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Campaign: World 1 "The Awakening" drafted; demo levels retired
+
+**Added**
+- **World 1 levels** `world_01_level_001` to `world_01_level_006`, following the doc 09 briefs:
+  - The First Signal
+  - Dormant Path
+  - First Launch
+  - Safe Stop
+  - Resume Sequence (one lever)
+  - The Awakening (two checkpoints and levers, plus a decoy lever)
+- All six are validator-proven (minimums 0/0/0/0/1/2, 0 dead ends) and recorded in `optimal_actions`.
+
+**Changed**
+- **Catalog:** World 1 is now these six levels, then Reflector Logic (#28), Quarter Turn (#32) and Opposite Attraction (#34) (D-030).
+- `world_01_level_001` was redesigned: it is now a straight route with no checkpoint, since doc 09 #1 covers route, core and destination only.
+- **Retired** the vertical slice and the switches/portals showcase to `game/data/levels/retired/`. They are kept for tests and reference, outside the catalog and validator.
+- The gameplay scene's default level is now Level 1. Scene tests that exercise rich mechanics load the retired slice explicitly.
+- App-flow and progress tests use real campaign levels. The replay test now uses "The Awakening" with the decoy lever as the wasted move. A progress test helper that pressed Run twice (the second silently refused) now presses once and asserts it.
+- README and dev-option examples point at `world_05_reflector_logic`.
+
+**Verified**
+- Screenshots of all six World 1 levels. Level 6's decoy gate C was moved off the route after the isometric view made it look on the path.
+- All 9 catalog levels validate; 314 tests pass.
+
+**Known limitations**
+- Level select numbers follow catalog order (World 1 is 1–6, then the three later demo levels as 7–9) until the worlds in between exist.
+
+### 2026-11-15 — Settings screen
+
+**Added**
+- **`SettingsScreen`** (Home → Settings):
+  - **Reduced motion:** saved, and applied to every level as instant playback
+  - **Reset progress:** behind a confirmation dialog, saved immediately; settings are kept
+  - Back closes the dialog, then returns home
+- **`SettingsStore`** (`user://settings.json`, schema 1).
+- **`SafeJsonFile`:** the crash-safe versioned write (temp file, then `.bak`, then rename) and the recovering read (set aside as `.corrupt`, then backup, then fresh), extracted from `ProgressStore`, which now uses it. `ProgressStore.reset()`.
+- **`ConfirmDialog`:** a general modal confirmation. `LeaveDialog` is now a thin subclass, and its API and tests are unchanged.
+- **Tests:** 6 new, bringing the suite to 314. They cover:
+  - settings round trip and recovery from a corrupt file
+  - Home → Settings → Back
+  - reduced motion persisting across restarts and switching gameplay's instant playback on and off
+  - reset needing confirmation (cancel keeps progress)
+  - a confirmed reset erasing and saving progress while keeping settings
+  - Back unwinding the dialog first
+
+**Changed**
+- All app-level tests now use scratch settings paths too. `TestFiles.remove_progress` refuses both real player files.
+
+**Fixed** (during review)
+- The reduced-motion switch first used the default toggle icon, a tiny dot that did not show its state. It is now a toggle with an explicit coloured "On"/"Off".
+
+**Not included (by design):** sound, haptics, UI scale and high contrast. They will be added together with those features, so no setting does nothing.
+
 ### 2026-11-15 — M8b: Magnets in 3D, plus "Opposite Attraction" — every mechanic playable
 
 **Added**

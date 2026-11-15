@@ -152,6 +152,11 @@ Magnets act only at the moment they are flipped. Blocks moved later are not pull
 ### D-029 — Only blocks are magnetic (2026-11-15)
 Blocks may carry `polarity` `+` or `-` (unmarked = neutral). The core never reacts to magnets, and the field passes over the core's cell.
 
+### D-030 — Campaign production approach (2026-11-15)
+- **Demo levels:** the three demo levels matching doc 09 briefs keep those campaign slots: "Reflector Logic" (#28), "Quarter Turn" (#32) and "Opposite Attraction" (#34). The vertical slice and the switches/portals showcase are retired from the catalog; their files live in `game/data/levels/retired/` for tests and reference, outside the catalog, validator and shipped-level tests.
+- **World 1:** keeps doc 09's six teaching beats, with small decisions added where possible.
+- **Review flow:** one world at a time. Each level is proven by the validator (solvable, proven minimum, softlock scan) and screenshotted before owner review.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -268,6 +273,23 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
   - Tapping a polarised block that cannot be pushed explains how magnets act on it.
 - **Playback:** blocks moved by one pulse move together.
 - **Labels:** switch and portal labels sit above block height, so a block resting on them never collides with its own label.
+
+### P-019 — Settings screen
+- Home → Settings has only settings that work today:
+  - **Reduced motion**, which plays every committed result instantly (doc 01 §12)
+  - **Reset progress**, behind a "Reset all progress?" confirmation; settings are kept
+- Sound, haptics, UI scale and high contrast will be added together with those features, never as dead switches.
+- Settings are saved to `user://settings.json` (schema 1) through the shared crash-safe `SafeJsonFile`, the same as progress.
+- The toggle shows "On"/"Off" in text, since the default switch icon is unreadably small.
+- Back closes the confirmation first, then returns home.
+
+### P-020 — World 1 "The Awakening" design (awaiting review)
+- **Levels 1–4 have no mechanisms:** route, core and seal (1); reading a winding route (2); first checkpoint (3); two checkpoints (4).
+- **No decisions are possible without a mechanism** (a level with none offers only Run), so "small decisions" start where doc 09 itself asks for an interaction: #5 "Resume after a simple interaction".
+  - Levels 5 and 6 use a lever opening a gate. This introduces the toggle switch in World 1, earlier than doc 03's teaching order (switches in World 5), as the simplest possible interaction.
+  - Level 6 adds a reading choice: of two levers at the second checkpoint, only the one whose symbol matches the gate on the route helps; the other opens a gate off the route.
+- Proven minimums are 0, 0, 0, 0, 1 and 2, with 0 dead ends in all six.
+- Level 6's decoy gate was moved off the route after a screenshot showed that, in the isometric view, it appeared to sit on the path.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

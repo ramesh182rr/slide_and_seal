@@ -1,7 +1,8 @@
 class_name AppRoot
 extends Node
-## Top-level navigation: Home → Level select → Gameplay (P-012). Owns exactly one screen at a time.
-## Android Back / Escape: gameplay handles its own (P-009); level select → home; home → exit.
+## Top-level navigation: Home → Level select → Gameplay, and Home → Settings (P-012, P-019).
+## Owns exactly one screen at a time. Android Back / Escape: gameplay handles its own (P-009);
+## level select and settings → home; home → exit.
 
 signal exit_requested
 
@@ -9,6 +10,7 @@ const GAMEPLAY_SCENE := preload("res://scenes/gameplay/gameplay_root.tscn")
 const HOME := "home"
 const LEVEL_SELECT := "level_select"
 const GAMEPLAY := "gameplay"
+const SETTINGS := "settings"
 
 ## Passed to gameplay (reduced motion; tests).
 @export var instant_playback: bool = false
@@ -16,9 +18,12 @@ const GAMEPLAY := "gameplay"
 @export var quit_on_exit: bool = true
 ## Where progress is saved. Tests point this at a scratch file.
 @export var progress_path: String = ProgressStore.DEFAULT_PATH
+## Where settings are saved. Tests point this at a scratch file.
+@export var settings_path: String = SettingsStore.DEFAULT_PATH
 
 var _catalog: LevelCatalog
 var _progress: ProgressStore
+var _settings: SettingsStore
 var _screen: Node
 var _screen_name := ""
 var _current_level_id := ""
@@ -32,7 +37,11 @@ func _ready() -> void:
 	_progress.load_from_disk()
 	for note: String in _progress.load_notes:
 		push_warning("Progress: " + note)
-	# Development: `godot --path game -- --level=world_05_showcase` jumps straight into a level.
+	_settings = SettingsStore.new(settings_path)
+	_settings.load_from_disk()
+	for note: String in _settings.load_notes:
+		push_warning("Settings: " + note)
+	# Development: `godot --path game -- --level=world_05_reflector_logic` jumps straight into a level.
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--level=") and _catalog.entry(arg.trim_prefix("--level=")) != null:
 			start_level(arg.trim_prefix("--level="))
@@ -46,6 +55,10 @@ func catalog() -> LevelCatalog:
 
 func progress() -> ProgressStore:
 	return _progress
+
+
+func settings() -> SettingsStore:
+	return _settings
 
 
 func current_screen_name() -> String:
@@ -63,6 +76,7 @@ func current_level_id() -> String:
 func show_home() -> void:
 	var home := HomeScreen.new()
 	home.play_requested.connect(show_level_select)
+	home.settings_requested.connect(show_settings)
 	_set_screen(home, HOME)
 
 
@@ -74,6 +88,15 @@ func show_level_select() -> void:
 	_set_screen(screen, LEVEL_SELECT)
 
 
+func show_settings() -> void:
+	var screen := SettingsScreen.new()
+	screen.setup(_settings.reduced_motion)
+	screen.back_requested.connect(show_home)
+	screen.reduced_motion_changed.connect(_on_reduced_motion_changed)
+	screen.reset_progress_confirmed.connect(_on_reset_progress)
+	_set_screen(screen, SETTINGS)
+
+
 func start_level(level_id: String) -> void:
 	var entry := _catalog.entry(level_id)
 	if entry == null:
@@ -81,7 +104,7 @@ func start_level(level_id: String) -> void:
 		return
 	var gameplay: GameplayController = GAMEPLAY_SCENE.instantiate()
 	gameplay.level_path = entry.path
-	gameplay.instant_playback = instant_playback
+	gameplay.instant_playback = instant_playback or _settings.reduced_motion
 	gameplay.quit_on_leave = false
 	gameplay.next_level_available = _catalog.next_after(level_id) != null
 	gameplay.previous_best_actions = _progress.best_actions(level_id)
@@ -97,6 +120,9 @@ func handle_back() -> void:
 	match _screen_name:
 		LEVEL_SELECT:
 			show_home()
+		SETTINGS:
+			if not (_screen as SettingsScreen).handle_back():
+				show_home()
 		HOME:
 			exit_requested.emit()
 			if quit_on_exit:
@@ -120,6 +146,18 @@ func _on_level_completed(actions: int, gameplay: GameplayController, level_id: S
 	if not _progress.save_to_disk():
 		push_error("Progress could not be saved to %s" % _progress.path)
 	gameplay.previous_best_actions = _progress.best_actions(level_id)
+
+
+func _on_reduced_motion_changed(enabled: bool) -> void:
+	_settings.reduced_motion = enabled
+	if not _settings.save_to_disk():
+		push_error("Settings could not be saved to %s" % _settings.path)
+
+
+func _on_reset_progress() -> void:
+	_progress.reset()
+	if not _progress.save_to_disk():
+		push_error("Progress could not be saved to %s" % _progress.path)
 
 
 func _start_next_level() -> void:

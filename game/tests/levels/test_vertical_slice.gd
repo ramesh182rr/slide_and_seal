@@ -1,7 +1,7 @@
 extends TestCase
 ## The vertical slice level (decision D-010): intended solution, beat structure and closed skips.
 
-const PATH := "res://data/levels/world_01_slice.json"
+const PATH := "res://data/levels/retired/world_01_slice.json"
 const UP := Grid.Direction.UP
 const DOWN := Grid.Direction.DOWN
 const LEFT := Grid.Direction.LEFT

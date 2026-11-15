@@ -4,7 +4,7 @@ extends TestCase
 ## when block_k (6,1) is pushed onto it; lever "lever_portal" (6,5) powers portal_in (4,5) → portal_out (1,4).
 
 const SCENE := "res://scenes/gameplay/gameplay_root.tscn"
-const LEVEL := "res://data/levels/world_05_showcase.json"
+const LEVEL := "res://data/levels/retired/world_05_showcase.json"
 
 
 func _spawn() -> GameplayController:

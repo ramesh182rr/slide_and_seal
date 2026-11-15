@@ -16,15 +16,12 @@ func test_loads_world_01_level_001() -> void:
 	assert_eq(level.core_start, Vector2i(0, 3))
 	assert_eq(level.destination, Vector2i(6, 3))
 	assert_eq(level.seal_id, "seal_final")
-	assert_eq(level.walls.size(), 4)
-	assert_true(level.is_wall(Vector2i(3, 1)))
+	assert_eq(level.walls.size(), 6)
+	assert_true(level.is_wall(Vector2i(3, 2)))
 	assert_eq(level.optimal_actions, 0)
 	var route := level.routes["route_main"]
 	assert_eq(route.nodes.size(), 7)
-	assert_eq(route.checkpoints.size(), 1)
-	assert_eq(route.checkpoints[0].id, "checkpoint_01")
-	assert_eq(route.checkpoints[0].position, Vector2i(3, 3))
-	assert_true(route.checkpoints[0].auto_pause)
+	assert_eq(route.checkpoints.size(), 0, "the first level is just route, core and seal")
 
 
 func test_fixture_is_valid() -> void:

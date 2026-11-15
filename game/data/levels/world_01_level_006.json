@@ -1,0 +1,233 @@
+{
+  "schema_version": 3,
+  "id": "world_01_level_006",
+  "title": "The Awakening",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 9
+  },
+  "core": {
+    "position": [
+      0,
+      1
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      7
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        8
+      ],
+      [
+        6,
+        6
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_first_lever",
+          "position": [
+            2,
+            1
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_two_levers",
+          "position": [
+            2,
+            5
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {
+    "switches": [
+      {
+        "id": "lever_a",
+        "kind": "toggle",
+        "position": [
+          2,
+          0
+        ]
+      },
+      {
+        "id": "lever_b",
+        "kind": "toggle",
+        "position": [
+          1,
+          5
+        ]
+      },
+      {
+        "id": "lever_c",
+        "kind": "toggle",
+        "position": [
+          3,
+          5
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          4,
+          2
+        ],
+        "requires": [
+          "lever_a"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          3,
+          7
+        ],
+        "requires": [
+          "lever_b"
+        ]
+      },
+      {
+        "id": "gate_c",
+        "position": [
+          0,
+          4
+        ],
+        "requires": [
+          "lever_c"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 2,
+    "optimal_actions": 2
+  }
+}

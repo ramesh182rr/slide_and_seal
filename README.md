@@ -11,7 +11,7 @@ Early development. Six levels are playable in 3D from a home screen and level li
 ## Running the game
 
 Open `game/` in Godot 4.7.2 and press Play, or run `godot --path game`. The game starts at the home screen.
-To jump straight into a level: `godot --path game -- --level=world_05_showcase`.
+To jump straight into a level: `godot --path game -- --level=world_05_reflector_logic`.
 
 ## Repository
 

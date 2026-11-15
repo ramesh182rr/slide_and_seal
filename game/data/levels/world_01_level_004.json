@@ -1,0 +1,142 @@
+{
+  "schema_version": 3,
+  "id": "world_01_level_004",
+  "title": "Safe Stop",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 8
+  },
+  "core": {
+    "position": [
+      0,
+      6
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      1
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        1,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        5,
+        4
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_low",
+          "position": [
+            2,
+            4
+          ],
+          "allowed_mechanisms": [],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_high",
+          "position": [
+            4,
+            2
+          ],
+          "allowed_mechanisms": [],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {},
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 0,
+    "optimal_actions": 0
+  }
+}
