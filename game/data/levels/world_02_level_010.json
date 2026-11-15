@@ -1,0 +1,204 @@
+{
+  "schema_version": 3,
+  "id": "world_02_level_010",
+  "title": "Gravity Chamber",
+  "world_id": "world_02_gravity_works",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 9
+  },
+  "core": {
+    "position": [
+      0,
+      2
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      0,
+      6
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        4
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_upper",
+          "position": [
+            1,
+            2
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_lower",
+          "position": [
+            5,
+            4
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [
+    {
+      "id": "block_upper",
+      "kind": "block",
+      "position": [
+        3,
+        2
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_lower",
+      "kind": "block",
+      "position": [
+        3,
+        6
+      ],
+      "pushable": false
+    }
+  ],
+  "mechanisms": {
+    "gravity_zones": [
+      {
+        "id": "zone_upper",
+        "position": [
+          3,
+          2
+        ],
+        "size": [
+          1,
+          3
+        ],
+        "direction": "up",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      },
+      {
+        "id": "zone_lower",
+        "position": [
+          3,
+          6
+        ],
+        "size": [
+          1,
+          3
+        ],
+        "direction": "up",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 2,
+    "optimal_actions": 2
+  }
+}

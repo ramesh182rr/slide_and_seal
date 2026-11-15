@@ -1,0 +1,240 @@
+{
+  "schema_version": 3,
+  "id": "world_02_level_012",
+  "title": "Gravity Works",
+  "world_id": "world_02_gravity_works",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 9
+  },
+  "core": {
+    "position": [
+      0,
+      1
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      7
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        6,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        0,
+        6
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_start",
+          "position": [
+            1,
+            1
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_turn",
+          "position": [
+            5,
+            3
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_chamber",
+          "position": [
+            1,
+            6
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [
+    {
+      "id": "block_column",
+      "kind": "block",
+      "position": [
+        3,
+        1
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_chamber",
+      "kind": "block",
+      "position": [
+        4,
+        7
+      ],
+      "pushable": false
+    }
+  ],
+  "mechanisms": {
+    "gravity_zones": [
+      {
+        "id": "zone_column",
+        "position": [
+          3,
+          1
+        ],
+        "size": [
+          1,
+          4
+        ],
+        "direction": "up",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      },
+      {
+        "id": "zone_chamber",
+        "position": [
+          2,
+          6
+        ],
+        "size": [
+          3,
+          3
+        ],
+        "direction": "right",
+        "allowed_directions": [
+          "right",
+          "left",
+          "up"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 3,
+    "optimal_actions": 3
+  }
+}

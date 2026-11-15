@@ -1,0 +1,136 @@
+{
+  "schema_version": 3,
+  "id": "world_02_level_007",
+  "title": "Downward Pull",
+  "world_id": "world_02_gravity_works",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 7
+  },
+  "core": {
+    "position": [
+      0,
+      3
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      3
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        4,
+        4
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          3
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_drop",
+          "position": [
+            1,
+            3
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [
+    {
+      "id": "block_drop",
+      "kind": "block",
+      "position": [
+        3,
+        3
+      ],
+      "pushable": false
+    }
+  ],
+  "mechanisms": {
+    "gravity_zones": [
+      {
+        "id": "zone_drop",
+        "position": [
+          3,
+          3
+        ],
+        "size": [
+          1,
+          3
+        ],
+        "direction": "up",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 1,
+    "optimal_actions": 1
+  }
+}

@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Campaign: World 2 "Gravity Works" drafted; Android emulator play test
+
+**Added**
+- **World 2 levels** `world_02_level_007` to `world_02_level_012`:
+  - Downward Pull
+  - Shift the Weight
+  - Sideways Field
+  - Gravity Chamber
+  - Stable Position
+  - Gravity Works
+- All six are validator-proven (minimums 1/1/1/2/2/3, 0 dead ends) and recorded in `optimal_actions`. They are in the catalog after World 1 (P-021).
+
+**Changed**
+- The Android export now excludes `data/levels/retired/*`. Verified: the APK contains the 15 catalog levels and no retired ones.
+
+**Verified on the Pixel 8 emulator** (Android 15, Compatibility-renderer diagnostic build; the emulator still cannot display Vulkan on this Mac)
+- Home and Level select on a fresh profile: only level 1 open, Worlds 1 and 2 listed, scrolling, the header clear of the cutout.
+- Level 1 played by touch (Run): the completion card with ★★★, "Target met" and "New best!".
+- Next level opened level 2.
+- **Persistence:** the save file was written on the device (`files/progress.json`). After a force-quit and relaunch, level 1 showed "Best 0 ★★★" and level 2 was unlocked.
+- **Level 7 by real taps:** Run, tap the gravity zone, the panel with the current direction disabled, tap down, Resume, completed ★★★. Godot logged 0 errors.
+- To reach level 7 without hand-playing levels 2–6, a test save marking World 1 complete was written to the emulator's diagnostic install only.
+
 ### 2026-11-15 — Campaign: World 1 "The Awakening" drafted; demo levels retired
 
 **Added**

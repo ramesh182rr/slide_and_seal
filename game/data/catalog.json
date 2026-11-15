@@ -14,6 +14,18 @@
       ]
     },
     {
+      "id": "world_02_gravity_works",
+      "title": "Gravity Works",
+      "levels": [
+        "world_02_level_007",
+        "world_02_level_008",
+        "world_02_level_009",
+        "world_02_level_010",
+        "world_02_level_011",
+        "world_02_level_012"
+      ]
+    },
+    {
       "id": "world_05_sealed_chambers",
       "title": "The Sealed Chambers",
       "levels": [

@@ -291,6 +291,18 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - Proven minimums are 0, 0, 0, 0, 1 and 2, with 0 dead ends in all six.
 - Level 6's decoy gate was moved off the route after a screenshot showed that, in the isometric view, it appeared to sit on the path.
 
+### P-021 — World 2 "Gravity Works" design (awaiting review)
+- **Gravity-only puzzles** (doc 09 #7–12). Gravity never moves a block out of its zone, so each level is built around one real gravity decision:
+  - drop (7)
+  - flip a stacked pair (8)
+  - choose the clearing direction in a sideways field (9)
+  - two zones at two checkpoints (10)
+  - one column crossed twice, so the block must be dropped, then lifted (11)
+  - mastery over three checkpoints (12)
+- Proven minimums are 1, 1, 1, 2, 2 and 3, with 0 dead ends in all six.
+- Blocks are non-pushable (push is World 3).
+- Known art gap: these blocks are drawn as grey "fixed" steel, with no visual cue yet for "affected by gravity".
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

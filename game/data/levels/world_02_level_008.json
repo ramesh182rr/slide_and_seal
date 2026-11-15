@@ -1,0 +1,145 @@
+{
+  "schema_version": 3,
+  "id": "world_02_level_008",
+  "title": "Shift the Weight",
+  "world_id": "world_02_gravity_works",
+  "access": "free",
+  "board": {
+    "width": 7,
+    "height": 8
+  },
+  "core": {
+    "position": [
+      0,
+      5
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      6,
+      5
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        6
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_weight",
+          "position": [
+            1,
+            5
+          ],
+          "allowed_mechanisms": [
+            "gravity_shift"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [
+    {
+      "id": "block_low",
+      "kind": "block",
+      "position": [
+        3,
+        6
+      ],
+      "pushable": false
+    },
+    {
+      "id": "block_high",
+      "kind": "block",
+      "position": [
+        3,
+        5
+      ],
+      "pushable": false
+    }
+  ],
+  "mechanisms": {
+    "gravity_zones": [
+      {
+        "id": "zone_stack",
+        "position": [
+          3,
+          2
+        ],
+        "size": [
+          1,
+          5
+        ],
+        "direction": "down",
+        "allowed_directions": [
+          "up",
+          "down"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 1,
+    "optimal_actions": 1
+  }
+}
