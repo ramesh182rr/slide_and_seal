@@ -212,6 +212,10 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 					var gate := _parse_gate(entries[i], context)
 					if gate != null:
 						level.gates.append(gate)
+				"portals":
+					var portal := _parse_portal(entries[i], context)
+					if portal != null:
+						level.portals.append(portal)
 				_:
 					_error("mechanisms.%s is not supported by the simulation yet" % key)
 					break
@@ -219,6 +223,26 @@ func _parse_mechanisms(level: LevelDefinition, mechanisms: Dictionary) -> void:
 		func(a: GravityZoneDefinition, b: GravityZoneDefinition) -> bool: return a.id < b.id)
 	level.switches.sort_custom(func(a: SwitchDefinition, b: SwitchDefinition) -> bool: return a.id < b.id)
 	level.gates.sort_custom(func(a: GateDefinition, b: GateDefinition) -> bool: return a.id < b.id)
+	level.portals.sort_custom(func(a: PortalDefinition, b: PortalDefinition) -> bool: return a.id < b.id)
+
+
+func _parse_portal(value: Variant, context: String) -> PortalDefinition:
+	if typeof(value) != TYPE_DICTIONARY:
+		_error("%s must be an object" % context)
+		return null
+	var data: Dictionary = value
+	var portal := PortalDefinition.new()
+	portal.id = _string(data, "id", context)
+	portal.position = _cell(data.get("position"), context + ".position")
+	if data.has("exit"):
+		portal.exit_id = _string(data, "exit", context)
+	var requires := _array(data, "requires", context, false)
+	for i: int in requires.size():
+		if typeof(requires[i]) != TYPE_STRING:
+			_error("%s.requires[%d] must be a switch id" % [context, i])
+		else:
+			portal.requires.append(requires[i])
+	return portal
 
 
 func _parse_switch(value: Variant, context: String) -> SwitchDefinition:
@@ -322,32 +346,32 @@ func _validate(level: LevelDefinition) -> void:
 	if not level.routes.has(level.start_route_id):
 		_error("core.route_id '%s' does not name a route" % level.start_route_id)
 		return
-	if level.routes.size() != 1:
-		_error("exactly one route segment is supported until junctions are implemented (found %d)" % level.routes.size())
 	var checkpoint_ids: Dictionary[String, bool] = {}
+	var route_cells: Dictionary[Vector2i, bool] = {}
 	for route_id: String in level.routes.keys():
-		_validate_route(level, level.routes[route_id], checkpoint_ids)
+		_validate_route(level, level.routes[route_id], checkpoint_ids, route_cells)
 
 	var start_route := level.routes[level.start_route_id]
-	if start_route.nodes.size() >= 2:
-		if level.core_start != start_route.nodes[0]:
-			_error("core.position must equal the first node of route '%s'" % start_route.id)
-		if level.destination != start_route.nodes[start_route.last_index()]:
-			_error("destination.position must equal the last node of route '%s'" % start_route.id)
+	if start_route.nodes.size() >= 2 and level.core_start != start_route.nodes[0]:
+		_error("core.position must equal the first node of route '%s'" % start_route.id)
 	_validate_objects(level)
 	_validate_gravity_zones(level)
 	_validate_switches_and_gates(level)
+	_validate_portals(level)
+	if _errors.is_empty():
+		_link_route_segments(level)
 	_validate_mechanism_availability(level)
 	if _errors.is_empty():
 		_validate_initial_state_settled(level)
 
 
-func _validate_route(level: LevelDefinition, route: RouteDefinition, checkpoint_ids: Dictionary[String, bool]) -> void:
+## `seen` is shared across segments: no cell may appear twice on any route.
+func _validate_route(level: LevelDefinition, route: RouteDefinition, checkpoint_ids: Dictionary[String, bool],
+		seen: Dictionary[Vector2i, bool]) -> void:
 	var context := "routes.%s" % route.id
 	if route.nodes.size() < 2:
 		_error("%s must have at least 2 nodes" % context)
 		return
-	var seen: Dictionary[Vector2i, bool] = {}
 	for i: int in route.nodes.size():
 		var cell := route.nodes[i]
 		if not level.in_bounds(cell):
@@ -445,6 +469,72 @@ func _validate_switches_and_gates(level: LevelDefinition) -> void:
 			if seen.has(switch_id):
 				_error("gate '%s' lists switch '%s' twice" % [gate.id, switch_id])
 			seen[switch_id] = true
+
+
+func _validate_portals(level: LevelDefinition) -> void:
+	var ids: Dictionary[String, bool] = {}
+	var cells: Dictionary[Vector2i, bool] = {}
+	for portal: PortalDefinition in level.portals:
+		if ids.has(portal.id):
+			_error("duplicate portal id '%s'" % portal.id)
+		ids[portal.id] = true
+		_validate_fixture_cell(level, "portal '%s'" % portal.id, portal.position)
+		if cells.has(portal.position):
+			_error("portal '%s' shares a cell with another portal" % portal.id)
+		cells[portal.position] = true
+		if level.gate_at(portal.position) != null:
+			_error("portal '%s' shares a cell with a gate" % portal.id)
+		for switch_def: SwitchDefinition in level.switches:
+			if switch_def.position == portal.position:
+				_error("portal '%s' shares a cell with a switch" % portal.id)
+		if portal.exit_id != "":
+			if portal.exit_id == portal.id:
+				_error("portal '%s' cannot exit to itself" % portal.id)
+			elif level.portal_by_id(portal.exit_id) == null:
+				_error("portal '%s' exits to unknown portal '%s'" % [portal.id, portal.exit_id])
+		for switch_id: String in portal.requires:
+			if level.switch_by_id(switch_id) == null:
+				_error("portal '%s' requires unknown switch '%s'" % [portal.id, switch_id])
+		# On a route, a portal must be a segment's entry (last node) or exit (first node).
+		for route: RouteDefinition in level.routes.values():
+			var index := route.nodes.find(portal.position)
+			if index > 0 and index < route.last_index():
+				_error("portal '%s' lies inside route '%s'; portals must end or start a segment" % [portal.id, route.id])
+
+
+## Follows the segments from the start: each ends at the destination or on an entry portal whose
+## exit starts the next segment. Records the links on each RouteDefinition.
+func _link_route_segments(level: LevelDefinition) -> void:
+	var visited: Dictionary[String, bool] = {}
+	var route := level.routes[level.start_route_id]
+	while true:
+		if visited.has(route.id):
+			_error("route segments form a loop at '%s'" % route.id)
+			return
+		visited[route.id] = true
+		var last := route.nodes[route.last_index()]
+		if last == level.destination:
+			break
+		var portal := level.portal_at(last)
+		if portal == null or portal.exit_id == "":
+			_error("route '%s' must end at the destination or on a portal entry" % route.id)
+			return
+		var exit_cell := level.portal_by_id(portal.exit_id).position
+		var next: RouteDefinition = null
+		for candidate: RouteDefinition in level.routes.values():
+			if candidate.nodes[0] == exit_cell:
+				next = candidate
+		if next == null:
+			_error("portal '%s' exits at %s, where no route segment starts" % [portal.id, exit_cell])
+			return
+		route.exit_portal_id = portal.id
+		route.next_route_id = next.id
+		route = next
+	var route_ids: Array = level.routes.keys()
+	route_ids.sort()
+	for route_id: String in route_ids:
+		if not visited.has(route_id):
+			_error("route segment '%s' is never reached from the start" % route_id)
 
 
 func _validate_fixture_cell(level: LevelDefinition, label: String, cell: Vector2i) -> void:

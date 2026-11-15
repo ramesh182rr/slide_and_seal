@@ -62,6 +62,34 @@ static func add_gravity_zone(data: Dictionary, id: String, position: Vector2i, s
 	return data
 
 
+## 7x3 board split by a wall column at x = 3. Segment "a" (0,1)→(2,1) ends on entry portal "p_in";
+## segment "b" (4,1)→(6,1) starts on exit portal "p_out" and ends at the seal. Checkpoint "cp" at (5,1).
+static func portal_corridor(portal_requires: Array = []) -> Dictionary:
+	var data := corridor()
+	data["id"] = "test_portal_corridor"
+	data["terrain"] = {"walls": [[3, 0], [3, 1], [3, 2]]}
+	data["routes"] = {
+		"a": {"nodes": [[0, 1], [1, 1], [2, 1]], "checkpoints": []},
+		"b": {
+			"nodes": [[4, 1], [5, 1], [6, 1]],
+			"checkpoints": [{"id": "cp", "position": [5, 1], "auto_pause": true, "allowed_mechanisms": []}],
+		},
+	}
+	data["core"]["route_id"] = "a"
+	add_portal(data, "p_in", Vector2i(2, 1), "p_out", portal_requires)
+	add_portal(data, "p_out", Vector2i(4, 1))
+	return data
+
+
+## Adds a portal. `exit` = id of the portal it carries the core to ("" for exit-only).
+static func add_portal(data: Dictionary, id: String, cell: Vector2i, exit: String = "", requires: Array = []) -> Dictionary:
+	var portal := {"id": id, "position": [cell.x, cell.y], "requires": requires}
+	if exit != "":
+		portal["exit"] = exit
+	_collection(data, "portals").append(portal)
+	return data
+
+
 ## Adds a switch ("pressure" or "toggle"). Returns `data` for chaining.
 static func add_switch(data: Dictionary, id: String, kind: String, cell: Vector2i, initially_on: bool = false) -> Dictionary:
 	_collection(data, "switches").append(

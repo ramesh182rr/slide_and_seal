@@ -53,8 +53,12 @@ func _queue_travel(tween: Tween, result: ActionResult) -> int:
 	var count := 0
 	var core := _board.core_node()
 	for i: int in result.travel.path.size():
-		tween.tween_property(core, "position", BoardRenderer3D.core_world_position(result.travel.path[i]),
-			CORE_STEP_SECONDS)
+		var target := BoardRenderer3D.core_world_position(result.travel.path[i])
+		if result.travel.portal_steps.has(i):
+			# Teleport: jump to the exit instead of sliding across the board (placeholder effect).
+			tween.tween_callback(func() -> void: core.position = target)
+		else:
+			tween.tween_property(core, "position", target, CORE_STEP_SECONDS)
 		count += 1
 		var first := true
 		for move: ObjectMove in result.object_moves:

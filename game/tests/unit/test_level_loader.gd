@@ -105,7 +105,7 @@ func test_rejects_core_not_at_route_start() -> void:
 func test_rejects_destination_not_at_route_end() -> void:
 	var data := LevelFixtures.corridor()
 	data["destination"]["position"] = [5, 1]
-	_assert_rejected(data, "destination.position must equal the last node")
+	_assert_rejected(data, "route 'main' must end at the destination or on a portal entry")
 
 
 func test_rejects_unknown_start_route() -> void:
@@ -114,10 +114,10 @@ func test_rejects_unknown_start_route() -> void:
 	_assert_rejected(data, "does not name a route")
 
 
-func test_rejects_multiple_route_segments() -> void:
+func test_rejects_unreachable_route_segment() -> void:
 	var data := LevelFixtures.corridor()
 	data["routes"]["extra"] = {"nodes": [[0, 2], [1, 2]], "checkpoints": []}
-	_assert_rejected(data, "exactly one route segment")
+	_assert_rejected(data, "route segment 'extra' is never reached from the start")
 
 
 func test_rejects_checkpoint_off_route() -> void:
@@ -169,8 +169,8 @@ func test_rejects_unsupported_object_kind() -> void:
 
 func test_rejects_unimplemented_mechanism_content() -> void:
 	var data := LevelFixtures.corridor()
-	data["mechanisms"] = {"portals": [{"id": "p"}]}
-	_assert_rejected(data, "mechanisms.portals is not supported by the simulation yet")
+	data["mechanisms"] = {"reflectors": [{"id": "r"}]}
+	_assert_rejected(data, "mechanisms.reflectors is not supported by the simulation yet")
 
 
 func test_rejects_unknown_mechanism_collection() -> void:

@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — M5b: Portal Network (rules)
+
+**Added**
+- **Multiple route segments linked by portals** (D-003 junctions):
+  - `PortalDefinition` with optional `exit` and `requires`.
+  - The loader follows the chain from the start segment and records `RouteDefinition.exit_portal_id` / `next_route_id`.
+  - It rejects segments that end nowhere, unknown or self exits, exits where no segment starts, loops, unreachable segments, portals inside a segment, and cells shared across segments.
+- **Teleport travel** (D-015, core only): stepping into an entry portal continues from the exit cell in the same step; the core never rests on the entry. The entry counts as blocked if it is occupied, the portal is inactive (its `requires` switches aren't all on) or the exit cell is blocked.
+- `CoreTravelResult.portal_steps` marks teleport arrivals. `AnimationDirector` jumps the core there instead of sliding across the board (a placeholder until portals are rendered).
+- `SwitchGateResolver.is_portal_active`; `LevelDefinition.portal_by_id` / `portal_at`.
+- **Tests:** 19 new (10 rules, 9 loader), bringing the suite to 197. Mutation checks confirmed the occupied-exit and inactive-portal rules are each caught.
+
+**Changed**
+- Routes may now have several segments. The "exactly one segment" rule is replaced by chain validation, and the destination must end the final segment.
+- `_run_core` advances via a single `_next_step` helper that handles normal steps and portal transits.
+
+**Verified**
+- Both shipped levels validate with identical results.
+
+**Known limitations**
+- Rules only: portals, switches and gates are not drawn or interactive in the 3D scene yet.
+- `portal_network` has no player action (portals are fixed or switch-controlled), so levels cannot list it in `allowed_mechanisms`.
+
 ### 2026-11-15 — M5a: Switches & Seals (rules)
 
 **Added**

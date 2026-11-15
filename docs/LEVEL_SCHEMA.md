@@ -15,13 +15,13 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 | `id`, `title`, `world_id` | string | yes | |
 | `access` | `"free"` \| `"premium"` | yes | |
 | `board` | `{width, height}` | yes | Each side 1–32. |
-| `core` | `{position, route_id}` | yes | `position` must equal the first node of `route_id`. |
-| `destination` | `{position, seal_id}` | yes | `position` must equal the last node of the start route. |
+| `core` | `{position, route_id}` | yes | `position` must equal the first node of `route_id` (the start segment). |
+| `destination` | `{position, seal_id}` | yes | `position` must equal the last node of the final segment in the chain. |
 | `terrain` | `{walls: [cell]}` | yes | `walls` optional, unique, in bounds. |
-| `routes` | `{route_id: Route}` | yes | Exactly one segment until junctions exist (D-003). |
+| `routes` | `{route_id: Route}` | yes | One or more segments linked by portals (D-003). |
 | `objects` | `[Object]` | no | Movable objects. |
 | `setup` | `{allowed_mechanisms: [name]}` | no | Mechanisms usable before the first run (D-008). Defaults to none. |
-| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches` and `gates` are supported. Every other collection must be empty until its resolver exists. |
+| `mechanisms` | `{collection: []}` | no | `gravity_zones`, `switches`, `gates` and `portals` are supported. Every other collection must be empty until its resolver exists. |
 | `objectives` | `[Objective]` | yes | Only `reach_destination` is supported. |
 | `scoring` | `{target_actions, optimal_actions}` | yes | Counts are mechanism actions (core runs are free). `optimal_actions` is `null` or the solver's proven minimum. `tools/validate_levels.sh` checks both. |
 
@@ -32,8 +32,13 @@ The loader is `game/scripts/simulation/level_loader.gd`. Any validation error re
 Route rules:
 - nodes are in bounds and orthogonally adjacent
 - no walls on the route
-- no revisited cells
+- no cell appears twice, within a segment or across segments
 - at least 2 nodes
+
+Segment chain (computed by the loader):
+- The core starts on the first node of `core.route_id`.
+- Each segment ends either at the destination, or on an **entry portal** (one with `exit`). The next segment is the one whose first node is the exit portal's cell.
+- The chain must reach the destination with no loops, and every segment must be part of it.
 
 ### Checkpoint
 ```json
@@ -92,6 +97,19 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Switch and gate ids share one namespace.
 - No gate may start closed on a block or on the core's start cell.
 
+### Portal (`mechanisms.portals`)
+```json
+{ "id": "p_in", "position": [2,1], "exit": "p_out", "requires": ["lever_a"] }
+{ "id": "p_out", "position": [4,1] }
+```
+- Portals carry the core only (D-015). Blocks treat portal cells as ordinary floor.
+- `exit` (optional) names the portal the core arrives at; it must exist and not be the portal itself.
+- `requires` (optional) lists switches that must all be on for the portal to work.
+- When the core steps into an entry it continues from the exit cell in the same step, never resting on the entry. The entry counts as blocked if it is occupied, the portal is inactive, or the exit cell is blocked.
+- On a route, a portal must be a segment's last node (an entry) or first node (an exit), never inside a segment.
+- In bounds, not on a wall, switch or gate, and at most one portal per cell. Ids are unique among portals.
+- `portal_network` has no player action yet, so it cannot be listed in `allowed_mechanisms`.
+
 ### Mechanism collections
 `gravity_zones`, `push_devices`, `portals`, `switches`, `gates`, `rotating_sections`, `energy_emitters`, `reflectors`, `receivers`, `magnetic_fields`, `magnetic_objects`.
 
@@ -102,3 +120,4 @@ An object on a route cell blocks the core (D-003). A non-gravity object inside a
 - Unknown mechanism collections and non-empty, unsupported ones are now load errors, not silently ignored.
 - Added in M2 (backward compatible, so still v3): `setup`, the object flags `pushable` and `gravity_affected`, and `gravity_zones` content.
 - Added in M5a (backward compatible): `switches` and `gates` content.
+- Added in M5b (backward compatible): `portals` content and multiple route segments.

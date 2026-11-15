@@ -23,6 +23,8 @@ var gravity_zones: Array[GravityZoneDefinition] = []
 var switches: Array[SwitchDefinition] = []
 ## Sorted by id.
 var gates: Array[GateDefinition] = []
+## Sorted by id.
+var portals: Array[PortalDefinition] = []
 ## Mechanisms usable before the first run (D-008).
 var setup_allowed_mechanisms: PackedStringArray = PackedStringArray()
 var target_actions: int = 0
@@ -56,6 +58,20 @@ func gate_at(cell: Vector2i) -> GateDefinition:
 	for gate: GateDefinition in gates:
 		if gate.position == cell:
 			return gate
+	return null
+
+
+func portal_by_id(portal_id: String) -> PortalDefinition:
+	for portal: PortalDefinition in portals:
+		if portal.id == portal_id:
+			return portal
+	return null
+
+
+func portal_at(cell: Vector2i) -> PortalDefinition:
+	for portal: PortalDefinition in portals:
+		if portal.position == cell:
+			return portal
 	return null
 
 

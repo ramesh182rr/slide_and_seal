@@ -18,6 +18,14 @@ static func is_gate_open(level: LevelDefinition, state: PuzzleState, gate: GateD
 	return true
 
 
+## A portal carries the core only while all its required switches are on (empty = always).
+static func is_portal_active(level: LevelDefinition, state: PuzzleState, portal: PortalDefinition) -> bool:
+	for switch_id: String in portal.requires:
+		if not is_switch_on(state, level.switch_by_id(switch_id)):
+			return false
+	return true
+
+
 ## Set of cells currently holding a closed gate.
 static func closed_gate_cells(level: LevelDefinition, state: PuzzleState) -> Dictionary[Vector2i, bool]:
 	var cells: Dictionary[Vector2i, bool] = {}

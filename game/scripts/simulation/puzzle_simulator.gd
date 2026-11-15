@@ -78,34 +78,43 @@ static func _run_core(level: LevelDefinition, state: PuzzleState) -> ActionResul
 		return ActionResult.rejected(ActionResult.Failure.WRONG_PHASE,
 			"The core cannot run in phase %s." % PuzzleState.Phase.keys()[state.phase])
 
-	var route: RouteDefinition = level.routes[state.core_route_id]
-	var index := state.core_node_index
-	if index >= route.last_index():
+	if core_position(level, state) == level.destination:
 		return ActionResult.rejected(ActionResult.Failure.WRONG_PHASE, "The core is already at the end of its route.")
-	if is_cell_blocked(level, state, route.nodes[index + 1]):
+	var first := _next_step(level, state)
+	if first.blocked:
 		return ActionResult.rejected(ActionResult.Failure.ROUTE_BLOCKED,
-			"The next route cell %s is blocked." % route.nodes[index + 1])
+			"The next route cell %s is blocked." % first.blocked_cell)
 
 	var next := state.clone()
 	next.core_run_count += 1
 	var travel := CoreTravelResult.new()
 	var moves: Array[ObjectMove] = []
-	# Terminates: index strictly increases and the last route node is always the destination.
+	# Terminates: every step enters a cell never visited before (cells are unique across all
+	# segments and the segment chain is acyclic), and the chain ends at the destination.
 	while true:
-		index += 1
-		next.core_node_index = index
-		var cell := route.nodes[index]
+		var step := _next_step(level, next)
+		if step.blocked:
+			next.phase = PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION
+			travel.stop_reason = CoreTravelResult.StopReason.BLOCKED
+			travel.blocked_cell = step.blocked_cell
+			break
+		if step.via_portal:
+			travel.path.append(step.entry_cell)
+			travel.portal_steps.append(travel.path.size())
+		next.core_route_id = step.route_id
+		next.core_node_index = step.index
+		var cell := core_position(level, next)
 		travel.path.append(cell)
 		# Persistent gravity: the cell the core just vacated may let blocks slide (D-006).
 		moves.append_array(stabilize(level, next, cell, travel.path.size() - 1))
 		var gate_rejection := _reject_if_gate_occupied(level, next, cell)
 		if gate_rejection != null:
 			return gate_rejection
-		if index == route.last_index():
+		if cell == level.destination:
 			next.phase = PuzzleState.Phase.LEVEL_COMPLETED
 			travel.stop_reason = CoreTravelResult.StopReason.DESTINATION
 			break
-		var checkpoint := route.checkpoint_at(cell)
+		var checkpoint := (level.routes[step.route_id] as RouteDefinition).checkpoint_at(cell)
 		if checkpoint != null:
 			next.reached_checkpoint_ids.append(checkpoint.id)
 			if checkpoint.auto_pause:
@@ -113,13 +122,48 @@ static func _run_core(level: LevelDefinition, state: PuzzleState) -> ActionResul
 				travel.stop_reason = CoreTravelResult.StopReason.CHECKPOINT
 				travel.checkpoint_id = checkpoint.id
 				break
-		var ahead := route.nodes[index + 1]
-		if is_cell_blocked(level, next, ahead):
-			next.phase = PuzzleState.Phase.BLOCKED_WAITING_FOR_ACTION
-			travel.stop_reason = CoreTravelResult.StopReason.BLOCKED
-			travel.blocked_cell = ahead
-			break
 	return ActionResult.success(next, travel, moves)
+
+
+## Where the core goes next from its current position, or why it cannot.
+class _Step:
+	extends RefCounted
+	var blocked: bool = false
+	var blocked_cell: Vector2i = Vector2i.ZERO
+	var route_id: String = ""
+	var index: int = 0
+	var via_portal: bool = false
+	var entry_cell: Vector2i = Vector2i.ZERO
+
+
+## One route transition. Stepping into a segment's last node when that node is a portal entry
+## carries the core straight to the exit (D-015): it never rests on the entry. The entry counts as
+## blocked when it is occupied, the portal is inactive, or the exit cell is blocked.
+static func _next_step(level: LevelDefinition, state: PuzzleState) -> _Step:
+	var step := _Step.new()
+	var route: RouteDefinition = level.routes[state.core_route_id]
+	var target_index := state.core_node_index + 1
+	var target := route.nodes[target_index]
+	if target_index == route.last_index() and route.next_route_id != "":
+		var portal := level.portal_by_id(route.exit_portal_id)
+		var exit_route: RouteDefinition = level.routes[route.next_route_id]
+		if is_cell_blocked(level, state, target) or not SwitchGateResolver.is_portal_active(level, state, portal) \
+				or is_cell_blocked(level, state, exit_route.nodes[0]):
+			step.blocked = true
+			step.blocked_cell = target
+			return step
+		step.via_portal = true
+		step.entry_cell = target
+		step.route_id = exit_route.id
+		step.index = 0
+		return step
+	if is_cell_blocked(level, state, target):
+		step.blocked = true
+		step.blocked_cell = target
+		return step
+	step.route_id = route.id
+	step.index = target_index
+	return step
 
 
 # --- Mechanism actions --------------------------------------------------------
