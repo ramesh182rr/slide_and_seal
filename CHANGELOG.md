@@ -5,6 +5,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-15 — Android build and emulator check
+
+**Added**
+- `game/export_presets.cfg`: an "Android" debug preset. It builds arm64-v8a only, uses package `com.slideandseal.game` (a placeholder, see below), excludes `tests/*`, includes `data/*.json`, and enables immersive mode. It contains no keystore paths or passwords.
+
+**Verified** (Pixel 8 emulator, Android 15, 1080×2400, arm64)
+- The debug APK (≈28 MB) exports, signs, installs and launches. Level JSON is packaged and tests are excluded.
+- Godot starts with Vulkan 1.3 and the Mobile renderer.
+- **Using a throwaway Compatibility-renderer build** (made outside the repo, because of the emulator issue below):
+  - The layout fits the tall screen. The top margin clears the 132px camera cutout, so the safe-area code works.
+  - A real tap on Run moves the core to the first checkpoint.
+  - A real tap on block A selects it and opens the panel, with the invalid direction disabled.
+  - A real swipe pushes the block, and the HUD and panel update.
+
+**Found**
+- **Emulator only:** Vulkan frames never reach the screen ("Couldn't present to Vulkan queue", black screen). This happens both with the host GPU (via MoltenVK) and with SwiftShader. It is an emulator limitation, not a game bug; the same build renders under OpenGL. A real device is needed to verify the Mobile renderer.
+- The default 2 GB emulator RAM was too little with software rendering, and the app was killed. Use `-memory 4096`.
+- **Risk:** on a fresh emulator boot, an asset-paths configuration change (`Config changes=80000000`) recreated the activity during startup, and Godot quit instead of recovering. Watch for this on real devices.
+- **To do:** Android Back quits the game immediately, mid-puzzle (Godot default). It needs a pause or confirm flow before release.
+- **To do:** there is no project icon (export warning).
+
 ### 2026-11-15 — M3b: Touch interaction
 
 **Added**
