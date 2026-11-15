@@ -1,0 +1,39 @@
+{
+  "schema_version": 3,
+  "id": "world_01_level_001",
+  "title": "The First Signal",
+  "world_id": "world_01_awakening",
+  "access": "free",
+  "board": { "width": 7, "height": 7 },
+  "core": { "position": [0, 3], "route_id": "route_main" },
+  "destination": { "position": [6, 3], "seal_id": "seal_final" },
+  "terrain": {
+    "walls": [[3, 1], [3, 2], [3, 4], [3, 5]]
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3]],
+      "checkpoints": [
+        { "id": "checkpoint_01", "position": [3, 3], "allowed_mechanisms": [], "auto_pause": true }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {
+    "gravity_zones": [],
+    "push_devices": [],
+    "portals": [],
+    "switches": [],
+    "gates": [],
+    "rotating_sections": [],
+    "energy_emitters": [],
+    "reflectors": [],
+    "receivers": [],
+    "magnetic_fields": [],
+    "magnetic_objects": []
+  },
+  "objectives": [
+    { "type": "reach_destination", "target_id": "seal_final" }
+  ],
+  "scoring": { "target_actions": 0, "optimal_actions": null }
+}

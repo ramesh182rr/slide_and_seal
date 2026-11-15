@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Godot 4 editor/import cache (regenerated). Commit *.import and *.uid files.
+.godot/
+
+# Android / export output
+game/android/
+*.apk
+*.aab
+build/
+
+# Secrets — never commit signing material
+*.keystore
+*.jks
+export_credentials.cfg
