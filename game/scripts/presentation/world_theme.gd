@@ -1,0 +1,166 @@
+class_name WorldTheme
+extends RefCounted
+## Per-world art direction (docs/07 world bible, docs/06 palette): sky, stone, foliage and light
+## colours shared by the 3D board, its island diorama and the 2D backdrops. Presentation only.
+## Energy colours that carry meaning (route cyan, seal mint, gate amber, …) stay in Palette so a
+## mechanism always looks the same in every world.
+
+var world_id := ""
+## Display name (the catalog has the same titles; the theme keeps its own for in-level headers).
+var title := "Slide & Seal"
+## One line shown under the world's title (world selection).
+var tagline := ""
+## The world's signature colour (titles, card borders, trim glow).
+var accent := Palette.CYAN_ENERGY
+var sky_top := Color("#050A18")
+var sky_bottom := Color("#14284A")
+## Glow near the horizon line of the backdrop.
+var horizon := Color("#2C6E8A")
+## Soft nebula clouds in the backdrop.
+var nebula := Color("#3B4F9A")
+## Floor tiles, wall blocks and the island's top rim.
+var stone := Color("#4A5868")
+var stone_dark := Color("#2A3442")
+## The rock underneath the island.
+var rock := Color("#2C2A33")
+## Moss/foliage on stone edges; alpha = how much there is (0 = none).
+var foliage := Color(0.35, 0.62, 0.32, 0.0)
+## Decorative crystal clusters on the island (alpha 0 = none).
+var crystal := Color(0.4, 0.75, 1.0, 0.0)
+var key_light := Color("#FFE9C8")
+var fill_light := Color("#6FA8FF")
+var ambient := Color("#8DA2C0")
+var fog := Color("#1A2C4A")
+
+
+static func for_world(id: String) -> WorldTheme:
+	var t := WorldTheme.new()
+	t.world_id = id
+	match id:
+		"world_01_awakening":
+			t.title = "The Awakening"
+			t.tagline = "Ancient stone wakes to soft cyan energy."
+			t.accent = Color("#5FE3C8")
+			t.sky_top = Color("#040B17")
+			t.sky_bottom = Color("#123247")
+			t.horizon = Color("#2B8C8A")
+			t.nebula = Color("#2E5E8C")
+			t.stone = Color("#5B6660")
+			t.stone_dark = Color("#2E3634")
+			t.rock = Color("#2B2A2C")
+			t.foliage = Color(0.3, 0.48, 0.3, 0.85)
+			t.crystal = Color(0.38, 0.92, 0.85, 0.5)
+			t.key_light = Color("#FFE6C2")
+			t.fill_light = Color("#5FD0E0")
+			t.ambient = Color("#8FB0B8")
+			t.fog = Color("#173444")
+		"world_02_gravity_works":
+			t.title = "Gravity Works"
+			t.tagline = "Blue crystal chambers bend the pull of the world."
+			t.accent = Color("#6FB4FF")
+			t.sky_top = Color("#03081A")
+			t.sky_bottom = Color("#142A5C")
+			t.horizon = Color("#3A64C8")
+			t.nebula = Color("#4A3FA0")
+			t.stone = Color("#55627A")
+			t.stone_dark = Color("#262E44")
+			t.rock = Color("#232638")
+			t.foliage = Color(0.3, 0.5, 0.4, 0.0)
+			t.crystal = Color(0.42, 0.7, 1.0, 1.0)
+			t.key_light = Color("#E6EEFF")
+			t.fill_light = Color("#5B7CFF")
+			t.ambient = Color("#8796C8")
+			t.fog = Color("#16224A")
+		"world_03_push_protocol":
+			t.title = "The Push Protocol"
+			t.tagline = "Amber pressure machinery pushes back."
+			t.accent = Palette.MECHANISM_AMBER
+			t.sky_top = Color("#0A0710")
+			t.sky_bottom = Color("#3A2418")
+			t.horizon = Color("#B8642A")
+			t.nebula = Color("#6A3A2A")
+			t.stone = Color("#665C52")
+			t.stone_dark = Color("#33291F")
+			t.rock = Color("#2E241E")
+			t.crystal = Color(1.0, 0.72, 0.35, 0.4)
+			t.key_light = Color("#FFD8A8")
+			t.fill_light = Color("#FF9A55")
+			t.ambient = Color("#B09A88")
+			t.fog = Color("#2E2018")
+		"world_04_portal_nexus":
+			t.title = "Portal Nexus"
+			t.tagline = "Violet gateways fold space together."
+			t.accent = Palette.PORTAL_VIOLET
+			t.sky_top = Color("#07041A")
+			t.sky_bottom = Color("#2C1650")
+			t.horizon = Color("#7A4AD0")
+			t.nebula = Color("#8A3AA0")
+			t.stone = Color("#5A566E")
+			t.stone_dark = Color("#2A2640")
+			t.rock = Color("#241F33")
+			t.crystal = Color(0.7, 0.5, 1.0, 0.9)
+			t.key_light = Color("#F0E2FF")
+			t.fill_light = Color("#A070FF")
+			t.ambient = Color("#9A8CC0")
+			t.fog = Color("#22163E")
+		"world_05_sealed_chambers":
+			t.title = "The Sealed Chambers"
+			t.tagline = "Gold-lit gates guard the sacred receivers."
+			t.accent = Color("#F2C46A")
+			t.sky_top = Color("#08060E")
+			t.sky_bottom = Color("#2A2216")
+			t.horizon = Color("#C8963A")
+			t.nebula = Color("#5A4A2A")
+			t.stone = Color("#6E665A")
+			t.stone_dark = Color("#363024")
+			t.rock = Color("#2A251E")
+			t.crystal = Color(1.0, 0.85, 0.45, 0.6)
+			t.key_light = Color("#FFE4B0")
+			t.fill_light = Color("#F2C46A")
+			t.ambient = Color("#B0A488")
+			t.fog = Color("#2A2216")
+		"world_06_shifting_labyrinth":
+			t.title = "The Shifting Labyrinth"
+			t.tagline = "Turning floors and charged stone shift beneath you."
+			t.accent = Palette.POLARITY_RED
+			t.sky_top = Color("#04060F")
+			t.sky_bottom = Color("#1A1A40")
+			t.horizon = Color("#B8404A")
+			t.nebula = Color("#2A3A8A")
+			t.stone = Color("#535A6A")
+			t.stone_dark = Color("#262A38")
+			t.rock = Color("#221F2A")
+			t.crystal = Color(1.0, 0.42, 0.45, 0.7)
+			t.key_light = Color("#FFE2E0")
+			t.fill_light = Color("#5B9CFF")
+			t.ambient = Color("#9098B8")
+			t.fog = Color("#1A1A38")
+		"world_07_final_machine":
+			t.title = "The Final Machine"
+			t.tagline = "The final engine waits for its seal."
+			t.accent = Color("#9AE8FF")
+			t.sky_top = Color("#05041A")
+			t.sky_bottom = Color("#1E1650")
+			t.horizon = Color("#5A8AE8")
+			t.nebula = Color("#7A3AC0")
+			t.stone = Color("#5A607A")
+			t.stone_dark = Color("#262A44")
+			t.rock = Color("#211E33")
+			t.crystal = Color(0.6, 0.8, 1.0, 1.0)
+			t.key_light = Color("#EEF0FF")
+			t.fill_light = Color("#9A70FF")
+			t.ambient = Color("#9AA0D0")
+			t.fog = Color("#1A1844")
+		_:
+			t.tagline = "Reconfigure reality. Control the maze. Complete the seal."
+	return t
+
+
+## Lights and environment of a 3D stage, tuned to this world.
+func apply_to_stage(environment: Environment, key: DirectionalLight3D, fill: DirectionalLight3D) -> void:
+	environment.ambient_light_color = ambient
+	environment.fog_light_color = fog
+	if key != null:
+		key.light_color = key_light
+	if fill != null:
+		fill.light_color = fill_light

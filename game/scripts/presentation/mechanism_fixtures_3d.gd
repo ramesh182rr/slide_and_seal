@@ -1,6 +1,6 @@
 class_name MechanismFixtures3D
 extends Node3D
-## Placeholder visuals for switches, gates and portals, plus the link symbols that make their
+## Visuals for switches, gates and portals (M11 art pass), plus the link symbols that make their
 ## dependencies readable without colour alone (docs/05 §4): gates get letters (A, B, …), entry/exit
 ## portal pairs get numbers (1, 2, …), and every switch shows the symbols of everything it powers.
 ## Read-only with respect to the simulation; state comes from SwitchGateResolver.
@@ -9,6 +9,7 @@ const GATE_HEIGHT := 0.72
 const LABEL_HEIGHT := 1.15
 const BEAM_HEIGHT := 0.36
 const BEAM_THICKNESS := 0.07
+const LEVER_TILT := 0.5
 
 var _level: LevelDefinition
 var _library: MaterialLibrary
@@ -16,6 +17,8 @@ var _symbols: Dictionary[String, String] = {}
 var _gates: Dictionary[String, MeshInstance3D] = {}
 var _switch_lamps: Dictionary[String, MeshInstance3D] = {}
 var _switch_bases: Dictionary[String, MeshInstance3D] = {}
+## Toggle levers: the arm pivot tilts one way when on, the other when off.
+var _lever_arms: Dictionary[String, Node3D] = {}
 var _portal_rings: Dictionary[String, MeshInstance3D] = {}
 var _labels: Dictionary[String, Label3D] = {}
 var _lit: Dictionary[String, bool] = {}
@@ -51,6 +54,8 @@ func sync_to_state(state: PuzzleState) -> void:
 		var on := SwitchGateResolver.is_switch_on(state, switch_def)
 		_lit[switch_def.id] = on
 		_switch_lamps[switch_def.id].material_override = _lamp_material(on)
+		if _lever_arms.has(switch_def.id):
+			_lever_arms[switch_def.id].rotation.z = -LEVER_TILT if on else LEVER_TILT
 	for gate: GateDefinition in _level.gates:
 		var node := _gates[gate.id]
 		node.position.y = gate_y(SwitchGateResolver.is_gate_open(_level, state, gate))
@@ -241,30 +246,80 @@ func _build_switch(switch_def: SwitchDefinition) -> void:
 		_switch_lamps[switch_def.id] = lamp
 		_switch_bases[switch_def.id] = lamp
 	else:
-		# A round lever base with a lamp on top.
+		# A machined pedestal with a lever arm that tips over when switched; the lamp is its knob.
 		var base_mesh := CylinderMesh.new()
-		base_mesh.top_radius = 0.32
+		base_mesh.top_radius = 0.3
 		base_mesh.bottom_radius = 0.36
 		base_mesh.height = 0.12
-		var base := _mesh(base_mesh, at + Vector3(0, 0.06, 0))
-		base.material_override = _library.get_material("lever_base", Palette.WALL.lightened(0.25), 0.0, 1.0, 0.5, 0.4)
-		var knob := CylinderMesh.new()
-		knob.top_radius = 0.14
-		knob.bottom_radius = 0.14
-		knob.height = 0.3
-		_switch_lamps[switch_def.id] = _mesh(knob, at + Vector3(0, 0.27, 0))
+		base_mesh.radial_segments = 8
+		var base := _mesh(base_mesh, at + Vector3(0, 0.06, 0), true)
+		base.material_override = _metal()
+		var collar := TorusMesh.new()
+		collar.inner_radius = 0.24
+		collar.outer_radius = 0.28
+		collar.rings = 8
+		collar.ring_segments = 4
+		var collar_node := _mesh(collar, at + Vector3(0, 0.125, 0))
+		collar_node.material_override = _library.glow("lever_collar", Palette.MECHANISM_AMBER, 1.2)
+		var pivot := Node3D.new()
+		pivot.position = at + Vector3(0, 0.13, 0)
+		add_child(pivot)
+		var arm := CylinderMesh.new()
+		arm.top_radius = 0.035
+		arm.bottom_radius = 0.05
+		arm.height = 0.34
+		arm.radial_segments = 8
+		var arm_node := MeshInstance3D.new()
+		arm_node.mesh = arm
+		arm_node.position = Vector3(0, 0.17, 0)
+		arm_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		arm_node.material_override = _library.get_material("lever_arm", Palette.METAL_HIGHLIGHT, 0.0, 1.0, 0.8, 0.3)
+		pivot.add_child(arm_node)
+		var knob := SphereMesh.new()
+		knob.radius = 0.09
+		knob.height = 0.18
+		knob.radial_segments = 12
+		knob.rings = 6
+		var knob_node := MeshInstance3D.new()
+		knob_node.mesh = knob
+		knob_node.position = Vector3(0, 0.36, 0)
+		knob_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pivot.add_child(knob_node)
+		_switch_lamps[switch_def.id] = knob_node
 		_switch_bases[switch_def.id] = base
+		_lever_arms[switch_def.id] = pivot
 	# Above block height, so a block resting on the switch never hides or collides with the label.
 	_label(switch_def.id, at + Vector3(0, LABEL_HEIGHT + 0.1, 0), Palette.TEXT)
 
 
+## A heavy metal door block with glowing bands on every side. Closed gates stand on the cell;
+## open ones sink into the floor so only their glowing top shows.
 func _build_gate(gate: GateDefinition) -> void:
-	var box := BoxMesh.new()
-	box.size = Vector3(0.86, GATE_HEIGHT, 0.86)
-	var node := _mesh(box, BoardCoords.cell_to_world(gate.position))
 	var color := Palette.GATE_INVERTED if gate.inverted else Palette.MECHANISM_AMBER
-	node.material_override = _library.get_material("gate_inverted" if gate.inverted else "gate", color, 0.35, 1.0, 0.6, 0.35)
+	# The door itself is tinted with its colour, so amber and inverted (pink) gates differ at a glance.
+	var body := MeshKit.bevel_box(Vector3(0.86, GATE_HEIGHT, 0.86), 0.06, color.darkened(0.35), color.darkened(0.62))
+	var node := _mesh(body, BoardCoords.cell_to_world(gate.position), true)
+	node.material_override = _library.surface("gate_metal", 0.5, 0.25, 0.8, 0.5)
 	node.name = "Gate_%s" % gate.id
+	var band_material := _library.glow("gate_band_inverted" if gate.inverted else "gate_band", color, 1.5)
+	for height: float in [0.16]:
+		var band := BoxMesh.new()
+		band.size = Vector3(0.872, 0.04, 0.872)
+		var band_node := MeshInstance3D.new()
+		band_node.mesh = band
+		band_node.position = Vector3(0, height, 0)
+		band_node.material_override = band_material
+		band_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.add_child(band_node)
+	var cap := BoxMesh.new()
+	cap.size = Vector3(0.26, 0.02, 0.26)
+	var cap_node := MeshInstance3D.new()
+	cap_node.mesh = cap
+	cap_node.position = Vector3(0, GATE_HEIGHT * 0.5 + 0.005, 0)
+	cap_node.rotation.y = PI / 4.0
+	cap_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cap_node.material_override = _library.glow("gate_cap_inverted" if gate.inverted else "gate_cap", color, 1.0)
+	node.add_child(cap_node)
 	_gates[gate.id] = node
 	_label(gate.id, BoardCoords.cell_to_world(gate.position, LABEL_HEIGHT), color)
 
@@ -374,8 +429,12 @@ func _portal_active(state: PuzzleState, portal: PortalDefinition) -> bool:
 
 
 func _lamp_material(on: bool) -> StandardMaterial3D:
-	return _library.get_material("lamp_on", Palette.MINT_SUCCESS, 1.6) if on \
-		else _library.get_material("lamp_off", Palette.MECHANISM_AMBER.darkened(0.45), 0.2)
+	return _library.glow("lamp_on", Palette.MINT_SUCCESS, 2.2) if on \
+		else _library.get_material("lamp_off", Palette.MECHANISM_AMBER.darkened(0.45), 0.3, 1.0, 0.2, 0.4)
+
+
+func _metal() -> StandardMaterial3D:
+	return _library.get_material("fixture_metal", Color(0.36, 0.4, 0.46), 0.0, 1.0, 0.75, 0.32)
 
 
 func _portal_material(active: bool) -> StandardMaterial3D:
@@ -394,15 +453,20 @@ func _label(fixture_id: String, at: Vector3, color: Color) -> void:
 	label.no_depth_test = true
 	label.font_size = 72
 	label.pixel_size = 0.005
-	label.outline_size = 14
+	label.outline_size = 18
+	label.outline_modulate = Color(0.02, 0.04, 0.08, 0.9)
 	label.modulate = color
 	add_child(label)
 	_labels[fixture_id] = label
 
 
-func _mesh(mesh: Mesh, at: Vector3) -> MeshInstance3D:
+## Small fixture parts cast no shadow (each caster costs a draw call per shadow pass); the
+## bodies that need one (gates, pedestals) turn it back on.
+func _mesh(mesh: Mesh, at: Vector3, shadow: bool = false) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.mesh = mesh
 	instance.position = at
+	if not shadow:
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 	return instance

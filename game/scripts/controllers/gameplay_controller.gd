@@ -31,6 +31,10 @@ var _completion_new_best := false
 @onready var _director: AnimationDirector = $World/AnimationDirector
 @onready var _input: BoardInput = $BoardInput
 @onready var _hud: HudController = $HUD
+@onready var _environment: WorldEnvironment = $World/WorldEnvironment
+@onready var _key_light: DirectionalLight3D = $World/KeyLight
+@onready var _fill_light: DirectionalLight3D = $World/FillLight
+@onready var _backdrop: Backdrop = $Sky/Backdrop
 
 var _session: PuzzleSession
 var _busy := false
@@ -51,6 +55,7 @@ func _ready() -> void:
 		return
 	_session = PuzzleSession.new(loaded.level)
 	_board.build(loaded.level, _session.get_state())
+	_apply_world_theme(_board.world_theme())
 	_camera_rig.frame_board(loaded.level.board_size)
 	_update_swipe_vectors()
 	get_viewport().size_changed.connect(_update_swipe_vectors)
@@ -590,3 +595,11 @@ func _update_swipe_vectors() -> void:
 ## "block_a" → "Block A".
 static func _display_name(id: String) -> String:
 	return id.replace("_", " ").capitalize()
+
+
+## Sky, light and fog colours for the level's world (presentation only).
+func _apply_world_theme(world_theme: WorldTheme) -> void:
+	_environment.environment = _environment.environment.duplicate() as Environment  # Per instance.
+	world_theme.apply_to_stage(_environment.environment, _key_light, _fill_light)
+	_backdrop.theme_data = world_theme
+	_hud.set_world(world_theme)

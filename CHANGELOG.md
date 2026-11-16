@@ -5,6 +5,69 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — M11: Art pass: themed worlds, floating islands and a new UI
+
+Owner request: the worlds and screens looked too plain next to the product concept art, and should feel realistic and immersive. Everything is presentation only: no simulation, rule or level data changed.
+
+**Added**
+- **`WorldTheme`:** an art direction per world (docs/07 world bible): sky, stone, foliage, crystal, light and fog colours, plus an accent colour, a title and a one-line tagline. Meaningful energy colours (route cyan, seal mint, gate amber/pink) stay in `Palette`, so a mechanism looks the same in every world.
+- **`MeshKit`:** procedural geometry (beveled blocks, floating rock islands, crystal clusters). Its variation comes from a hash of integer coordinates; nothing is random.
+- **`IslandDecor`:** the board now stands on a floating rock island, with moss or crystals depending on the world, and drifting rock fragments around it. They are kept below and beside the board, never on a cell. The drift is idle decoration only.
+- **`Backdrop`:** a painted sky (gradient, nebula, stars, a planet, distant floating islands, vignette). It is painted once into an off-screen texture, so it costs one draw call per frame. It sits behind the 3D board (canvas background) and every menu.
+- **`DioramaView`:** a live, slowly turning miniature of a world's level and island. It is used on Home and on the campaign screen, and never runs a puzzle.
+- **Home → Continue:** opens the first unlocked level not yet sealed (`AppRoot.next_level_to_play()`). Campaign and Settings stay. Decision P-026.
+
+**Changed**
+- **Board look:**
+  - Beveled, textured stone tiles and walls, with per-tile shade variation and some mossy tiles in World 1. Each wall block has a thin glowing seam.
+  - A thick plinth with a glowing edge line.
+  - The route is now an inlay: diamond studs and glowing channels cut into the stone.
+  - Checkpoints became medallions with a soft glow pool.
+  - The seal became a hexagonal pad with a turning inner ring and a column of light.
+  - The core became a translucent crystal with a bright heart and an orbit ring.
+  - Blocks became beveled metal crates with lit corner edges, so a block that can move never reads as a wall stub. Pushable blocks keep a cyan top mark.
+  - Gates became tinted metal doors (amber, or pink when inverted) with a glowing band.
+  - Toggle levers became pedestals with an arm that tips over when switched.
+- **Materials** (`MaterialLibrary`):
+  - Surfaces use two shared procedural noise textures (albedo grain and a normal map) generated at run time. There are no texture files.
+  - New material helpers: `surface`, `glow` (unshaded energy) and `crystal`.
+- **Stage:**
+  - Filmic tonemapping, stronger additive glow, height fog that fades the island into the sky, and a cool fill light.
+  - Light, ambient and fog colours follow the world. Each gameplay scene themes its own copy of the environment.
+- **UI design system** (`UiTheme`):
+  - Glass panels with metallic borders and soft shadows.
+  - Glowing primary buttons.
+  - A bolder display face for titles (a variation of the built-in font; no new font files).
+  - The completion card, mechanism panel and dialogs use the new panels.
+- **Icons:** `IconButton` draws more vector icons (back, undo, restart, play, settings, lock, grid) and can show an icon next to text.
+- **Gameplay HUD:**
+  - A glass top bar: a Back arrow, the world name over the level title, and Undo and Restart icons.
+  - A status card for the phase, actions and available mechanisms.
+  - A full-width glowing Run/Resume button with a play icon.
+  - The view controls are unchanged.
+- **Campaign screen** (was a plain list):
+  - One world at a time: a card with its live diorama, "WORLD n", title, tagline, and sealed and star progress. Arrows or a horizontal swipe change world.
+  - Below the card, a 3-column grid of level tiles: number, title, and stars with the best result, or a lock with "Locked".
+  - It opens on the world that holds the next level to play.
+- **Home:** the World 1 sky and diorama, a hexagon-and-cube emblem and the wordmark, then Continue / Campaign / Settings.
+
+**Performance** (desktop, same frame as the previous entry):
+- The Awakening: 88 → 134 draw calls. Gravity Works: 123 → 161. Both are well below the 510 and 636 that caused the lag.
+- Small glowing parts cast no shadows. The island and fragments cast none.
+- The sky would have cost about 200 draw calls if drawn live, so it is painted once into a texture instead.
+
+**Verified**
+- Desktop screenshots of all 12 World 1–2 levels, Home and three campaign pages.
+- The Android emulator, using a throwaway copy switched to the OpenGL Compatibility renderer, because the emulator cannot present Vulkan. The full flow worked with no game errors in the log: Home (live diorama) → Campaign → world arrow → World 2 card → back → level 1 → Run → Resume → seal complete (3 stars, "New best!") → Level select, which then showed 3/45 stars, 1/6 sealed and level 2 unlocked.
+
+**Tests:** 3 new (Continue opens the next level; the campaign pages through worlds and clamps; the board is themed for its world and builds its island). 337 pass.
+
+**Known limitations**
+- This is procedural art, not modelled assets. It moves much closer to the concept boards, but the sculpted ruins, waterfalls and painted detail of the concept art need a 3D artist's meshes and textures.
+- Worlds 3, 4 and 7 have themes but no levels yet.
+- Fonts are still the built-in face. A licensed display font is a later decision (docs/06 §7).
+- The frame rate on a real phone is unverified. The emulator check used the OpenGL Compatibility renderer.
+
 ### 2026-11-16 — Performance: static batching and cheaper shadows
 
 Owner report: the game lags a little on a real phone.

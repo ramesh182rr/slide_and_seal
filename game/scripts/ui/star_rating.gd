@@ -21,16 +21,16 @@ func _draw() -> void:
 	var gap := size.x / MAX_STARS
 	for i: int in MAX_STARS:
 		var center := Vector2(gap * (i + 0.5), size.y * 0.5)
-		_draw_star(center, radius, Palette.MECHANISM_AMBER if i < earned else Palette.BOARD_SLATE)
+		draw_star(self, center, radius, Palette.MECHANISM_AMBER if i < earned else Color(Palette.BOARD_SLATE, 0.8))
 
 
-func _draw_star(center: Vector2, radius: float, color: Color) -> void:
+static func draw_star(item: CanvasItem, center: Vector2, radius: float, color: Color) -> void:
 	var outer := PackedVector2Array()
 	var inner := PackedVector2Array()
 	for i: int in 5:
 		var angle := -PI / 2.0 + i * TAU / 5.0
 		outer.append(center + Vector2.from_angle(angle) * radius)
 		inner.append(center + Vector2.from_angle(angle + TAU / 10.0) * radius * 0.42)
-	draw_colored_polygon(inner, color)
+	item.draw_colored_polygon(inner, color)
 	for i: int in 5:
-		draw_colored_polygon(PackedVector2Array([outer[i], inner[i], inner[(i + 4) % 5]]), color)
+		item.draw_colored_polygon(PackedVector2Array([outer[i], inner[i], inner[(i + 4) % 5]]), color)

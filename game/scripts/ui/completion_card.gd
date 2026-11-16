@@ -22,7 +22,7 @@ func _ready() -> void:
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(26)
 	style.set_content_margin_all(26)
-	add_theme_stylebox_override("panel", style)
+	add_theme_stylebox_override("panel", UiTheme.panel(Palette.MINT_SUCCESS))
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
@@ -32,7 +32,7 @@ func _ready() -> void:
 	var title := Label.new()
 	title.text = "Seal complete"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiTheme.style_label(title, 44, Palette.MINT_SUCCESS)
+	UiTheme.style_title(title, 44, Palette.MINT_SUCCESS)
 	header.add_child(title)
 	header.add_child(_stars)
 	UiTheme.style_label(_summary, 30, Palette.TEXT_MUTED)

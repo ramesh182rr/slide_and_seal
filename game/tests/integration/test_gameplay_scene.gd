@@ -101,3 +101,13 @@ func test_hud_reflects_availability() -> void:
 	assert_true(hud.is_restart_enabled())
 	assert_false(hud.is_run_enabled(), "block A sits on the next route cell")
 	scene.free()
+
+
+## M11 art pass: the board stands on its world's floating island and the HUD names the world.
+func test_board_is_themed_for_its_world() -> void:
+	var scene := _spawn()
+	var board := scene.get_board()
+	assert_eq(board.world_theme().world_id, board.level().world_id)
+	assert_not_null(board.decor(), "floating island built")
+	assert_true(board.decor().fragment_count() > 0)
+	scene.free()

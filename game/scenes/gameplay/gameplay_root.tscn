@@ -6,15 +6,27 @@
 [ext_resource type="Script" path="res://scripts/presentation/animation_director.gd" id="4_director"]
 [ext_resource type="Script" path="res://scripts/ui/hud_controller.gd" id="5_hud"]
 [ext_resource type="Script" path="res://scripts/controllers/board_input.gd" id="6_input"]
+[ext_resource type="Script" path="res://scripts/ui/backdrop.gd" id="7_backdrop"]
 
 [sub_resource type="Environment" id="Environment_stage"]
-background_mode = 1
-background_color = Color(0.0392, 0.0627, 0.1255, 1)
+background_mode = 3
+background_canvas_max_layer = -1
 ambient_light_source = 2
 ambient_light_color = Color(0.55, 0.62, 0.75, 1)
-ambient_light_energy = 0.55
+ambient_light_energy = 0.6
+tonemap_mode = 2
+tonemap_exposure = 1.05
 glow_enabled = true
-glow_intensity = 0.6
+glow_intensity = 1.0
+glow_strength = 1.0
+glow_bloom = 0.04
+glow_blend_mode = 1
+glow_hdr_threshold = 1.0
+fog_enabled = true
+fog_light_color = Color(0.09, 0.17, 0.29, 1)
+fog_density = 0.0
+fog_height = -2.0
+fog_height_density = 0.35
 
 [node name="GameplayRoot" type="Node"]
 script = ExtResource("1_controller")
@@ -26,10 +38,16 @@ environment = SubResource("Environment_stage")
 
 [node name="KeyLight" type="DirectionalLight3D" parent="World"]
 rotation = Vector3(-0.95, 0.5, 0)
-light_energy = 1.1
+light_energy = 1.25
 shadow_enabled = true
 directional_shadow_mode = 0
 directional_shadow_max_distance = 60.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="World"]
+rotation = Vector3(-0.5, -2.4, 0)
+light_color = Color(0.4, 0.66, 1, 1)
+light_energy = 0.45
+light_specular = 0.6
 
 [node name="Board" type="Node3D" parent="World"]
 script = ExtResource("2_board")
@@ -39,6 +57,19 @@ script = ExtResource("3_camera")
 
 [node name="AnimationDirector" type="Node" parent="World"]
 script = ExtResource("4_director")
+
+[node name="Sky" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="Backdrop" type="Control" parent="Sky"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("7_backdrop")
 
 [node name="BoardInput" type="Node" parent="."]
 script = ExtResource("6_input")

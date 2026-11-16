@@ -43,7 +43,7 @@ func _ready() -> void:
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(28)
 	style.set_content_margin_all(40)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", UiTheme.panel(Palette.CYAN_ENERGY))
 	center.add_child(panel)
 
 	var column := VBoxContainer.new()

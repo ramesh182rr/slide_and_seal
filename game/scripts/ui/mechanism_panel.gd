@@ -42,7 +42,7 @@ func _ready() -> void:
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(26)
 	style.set_content_margin_all(22)
-	add_theme_stylebox_override("panel", style)
+	add_theme_stylebox_override("panel", UiTheme.panel(Palette.MECHANISM_AMBER))
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)

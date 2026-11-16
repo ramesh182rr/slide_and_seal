@@ -75,7 +75,10 @@ func current_level_id() -> String:
 
 func show_home() -> void:
 	var home := HomeScreen.new()
+	var next := next_level_to_play()
+	home.setup("Continue  ·  %d. %s" % [next.order + 1, next.title] if next != null else "Continue")
 	home.play_requested.connect(show_level_select)
+	home.continue_requested.connect(continue_campaign)
 	home.settings_requested.connect(show_settings)
 	_set_screen(home, HOME)
 
@@ -114,6 +117,23 @@ func start_level(level_id: String) -> void:
 	gameplay.next_level_requested.connect(_start_next_level)
 	_current_level_id = level_id
 	_set_screen(gameplay, GAMEPLAY)
+
+
+## The first unlocked level not yet completed, or null when everything unlocked is sealed.
+func next_level_to_play() -> LevelCatalog.Entry:
+	for entry: LevelCatalog.Entry in _catalog.entries:
+		if _progress.best_actions(entry.level_id) < 0 and Progression.is_unlocked(_catalog, _progress, entry.level_id):
+			return entry
+	return null
+
+
+## Home → Continue: straight into the next level to play, or the campaign screen if none is left.
+func continue_campaign() -> void:
+	var next := next_level_to_play()
+	if next == null:
+		show_level_select()
+	else:
+		start_level(next.level_id)
 
 
 func handle_back() -> void:

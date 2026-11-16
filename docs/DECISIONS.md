@@ -372,6 +372,13 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - Unfinished level: it asks "Leave this puzzle?" straight away, closing any open panel behind the dialog. Finished level: it leaves at once, since the result is already saved.
 - The system Back keeps its layered unwinding (P-009).
 
+### P-026 — Art pass: per-world themes, Continue and the campaign screen (M11, awaiting review)
+- **Themes:** each world has a `WorldTheme` (sky, stone, foliage, crystal, lights, accent, tagline). Mechanism colours never change between worlds.
+- **Scenery:** a floating island, drifting fragments and the sky are scenery only. They sit below and beside the board, never on a cell, and cannot be selected. Idle motion (core spin, seal ring, drifting rocks) is decoration and never touches puzzle state.
+- **Home:** Continue opens the first unlocked level not yet completed (or the campaign screen when none is left). Campaign opens world and level selection.
+- **Campaign screen:** world selection and level selection share one screen. A world card with a live diorama sits above that world's level grid. It opens on the world of the next level to play.
+- **Fonts:** titles use an emboldened, wider-spaced variation of the built-in font until a licensed display font is chosen.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

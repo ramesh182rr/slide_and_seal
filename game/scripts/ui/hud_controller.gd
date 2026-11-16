@@ -28,19 +28,22 @@ const MECHANISM_LABELS := {
 }
 
 var _title := Label.new()
+var _world := Label.new()
 var _status := Label.new()
 var _actions := Label.new()
 var _available := Label.new()
 var _message := Label.new()
 var _panel := MechanismPanel.new()
 var _completion := CompletionCard.new()
-var _undo := Button.new()
-var _restart := Button.new()
-var _run := Button.new()
-var _back := Button.new()
+var _undo := IconButton.new(IconButton.Icon.UNDO)
+var _restart := IconButton.new(IconButton.Icon.RESTART)
+var _run := IconButton.new(IconButton.Icon.PLAY, "Run")
+var _back := IconButton.new(IconButton.Icon.BACK)
 var _margin := MarginContainer.new()
 var _leave_dialog := LeaveDialog.new()
 var _view_buttons: Dictionary[IconButton.Icon, IconButton] = {}
+var _top_bar := PanelContainer.new()
+var _status_card := PanelContainer.new()
 
 
 func _ready() -> void:
@@ -58,28 +61,59 @@ func _ready() -> void:
 
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 12)
+	column.add_theme_constant_override("separation", 14)
 	_margin.add_child(column)
 	_build_view_controls()
 
-	UiTheme.style_label(_title, 44, Palette.TEXT)
-	UiTheme.style_label(_status, 32, Palette.CYAN_ENERGY)
-	UiTheme.style_label(_actions, 28, Palette.TEXT_MUTED)
-	UiTheme.style_label(_available, 28, Palette.MECHANISM_AMBER)
+	# Top bar: Back · world / level title · Undo · Restart.
+	_top_bar.add_theme_stylebox_override("panel", _bar_style(Palette.CYAN_ENERGY))
+	_top_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_top_bar)
 	var header := HBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_theme_constant_override("separation", 24)
-	column.add_child(header)
-	_back.text = "Back"
-	_back.focus_mode = Control.FOCUS_NONE
-	_back.custom_minimum_size = Vector2(150, 88)
+	header.add_theme_constant_override("separation", 18)
+	_top_bar.add_child(header)
+	_back.custom_minimum_size = Vector2(96, 96)
+	_back.tooltip_text = "Back"
 	_back.pressed.connect(func() -> void: back_requested.emit())
 	header.add_child(_back)
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var titles := VBoxContainer.new()
+	titles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	titles.alignment = BoxContainer.ALIGNMENT_CENTER
+	titles.add_theme_constant_override("separation", 0)
+	header.add_child(titles)
+	UiTheme.style_label(_world, 24, Palette.TEXT_MUTED)
+	_world.uppercase = true
+	_world.add_theme_constant_override("line_spacing", 0)
+	titles.add_child(_world)
+	UiTheme.style_title(_title, 40, Palette.TEXT)
 	_title.clip_text = true
-	header.add_child(_title)
+	titles.add_child(_title)
+	for entry: Array in [[_undo, "Undo", undo_requested], [_restart, "Restart", restart_requested]]:
+		var button: IconButton = entry[0]
+		button.custom_minimum_size = Vector2(96, 96)
+		button.tooltip_text = entry[1]
+		var request: Signal = entry[2]
+		button.pressed.connect(func() -> void: request.emit())
+		header.add_child(button)
+
+	# Status card: phase, action count and what can be used now.
+	_status_card.add_theme_stylebox_override("panel", _card_style())
+	_status_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	column.add_child(_status_card)
+	var status_column := VBoxContainer.new()
+	status_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_column.add_theme_constant_override("separation", 4)
+	_status_card.add_child(status_column)
+	UiTheme.style_label(_status, 30, Palette.CYAN_ENERGY)
+	UiTheme.style_label(_actions, 26, Palette.TEXT_MUTED)
+	UiTheme.style_label(_available, 26, Palette.MECHANISM_AMBER)
+	_available.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_available.custom_minimum_size = Vector2(760, 0)
 	for label: Label in [_status, _actions, _available]:
-		column.add_child(label)
+		status_column.add_child(label)
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -89,23 +123,36 @@ func _ready() -> void:
 	UiTheme.style_label(_message, 30, Palette.MECHANISM_AMBER)
 	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_message.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_message.add_theme_constant_override("outline_size", 10)
 	column.add_child(_message)
 	column.add_child(_panel)
 	column.add_child(_completion)
 
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 20)
-	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(buttons)
-	_setup_button(_undo, "Undo", undo_requested)
-	_setup_button(_restart, "Restart", restart_requested)
-	_setup_button(_run, "Run", run_requested)
-	_run.size_flags_stretch_ratio = 1.6
+	_run.custom_minimum_size = Vector2(0, 128)
+	_run.add_theme_font_size_override("font_size", 40)
+	_run.pressed.connect(func() -> void: run_requested.emit())
 	UiTheme.make_primary(_run)
-	for button: Button in [_undo, _restart, _run]:
-		buttons.add_child(button)
+	column.add_child(_run)
 	# Last child of the root so it draws above, and captures input over, everything else.
 	root.add_child(_leave_dialog)
+
+
+static func _bar_style(accent: Color) -> StyleBoxFlat:
+	var style := UiTheme.panel(accent, 30)
+	style.set_content_margin_all(12)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	return style
+
+
+static func _card_style() -> StyleBoxFlat:
+	var style := UiTheme.box(Color(0.03, 0.06, 0.12, 0.62), Color(UiTheme.METAL_BORDER, 0.2), 22)
+	style.content_margin_left = 24
+	style.content_margin_right = 24
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	return style
 
 
 ## A slim vertical cluster on the right edge, centred on the board band. Only the buttons take
@@ -131,6 +178,13 @@ func _build_view_controls() -> void:
 		button.pressed.connect(spec[1] as Callable)
 		cluster.add_child(button)
 		_view_buttons[spec[0] as IconButton.Icon] = button
+
+
+## The world's name and signature colour (top bar border, world label).
+func set_world(world_theme: WorldTheme) -> void:
+	_world.text = world_theme.title
+	_world.add_theme_color_override("font_color", world_theme.accent.lightened(0.2))
+	_top_bar.add_theme_stylebox_override("panel", _bar_style(world_theme.accent))
 
 
 func back_button() -> Button:
@@ -208,7 +262,7 @@ func _apply_safe_area() -> void:
 func update_view(level: LevelDefinition, state: PuzzleState, can_run: bool, can_undo: bool,
 		can_restart: bool, locked: bool) -> void:
 	_status.text = _phase_text(state.phase)
-	_actions.text = "Actions %d  ·  Target %d" % [state.mechanism_action_count, level.target_actions]
+	_actions.text = "Actions %d  /  Target %d" % [state.mechanism_action_count, level.target_actions]
 	_run.text = "Run" if state.phase == PuzzleState.Phase.SETUP else "Resume"
 	_run.disabled = locked or not can_run
 	_undo.disabled = locked or not can_undo
@@ -259,11 +313,3 @@ static func _phase_text(phase: PuzzleState.Phase) -> String:
 		PuzzleState.Phase.LEVEL_COMPLETED:
 			return "Seal complete."
 	return ""
-
-
-func _setup_button(button: Button, text: String, request: Signal) -> void:
-	button.text = text
-	button.custom_minimum_size = Vector2(0, 110)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(func() -> void: request.emit())

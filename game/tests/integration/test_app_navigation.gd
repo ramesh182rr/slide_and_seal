@@ -77,6 +77,33 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	app.free()
 
 
+func test_continue_opens_the_next_level_to_play() -> void:
+	var app := _spawn()
+	assert_eq(app.next_level_to_play().level_id, "world_01_level_001", "fresh save: the first level")
+	(app.current_screen() as HomeScreen).continue_requested.emit()
+	assert_eq(app.current_screen_name(), AppRoot.GAMEPLAY)
+	assert_eq(_gameplay(app).get_session().get_level().id, "world_01_level_001")
+	app.progress().record_completion("world_01_level_001", 0)
+	assert_eq(app.next_level_to_play().level_id, "world_01_level_002", "then the first unsealed, unlocked level")
+	app.free()
+
+
+func test_campaign_pages_through_worlds() -> void:
+	var app := _spawn()
+	app.show_level_select()
+	var screen := app.current_screen() as LevelSelectScreen
+	assert_eq(screen.current_world_index(), 0, "opens on the world with the next level to play")
+	assert_true(screen.level_button("world_01_level_001").is_visible_in_tree())
+	assert_false(screen.level_button("world_02_level_007").is_visible_in_tree())
+	screen.show_world(1)
+	assert_eq(screen.current_world_index(), 1)
+	assert_false(screen.level_button("world_01_level_001").is_visible_in_tree())
+	assert_true(screen.level_button("world_02_level_007").is_visible_in_tree())
+	screen.show_world(99)
+	assert_eq(screen.current_world_index(), app.catalog().worlds.size() - 1, "paging is clamped")
+	app.free()
+
+
 func test_choosing_a_level_starts_gameplay_with_that_level() -> void:
 	var app := _spawn()
 	app.show_level_select()
