@@ -3,7 +3,8 @@ extends CanvasLayer
 ## Startup brand reveal (docs/06 §5 "Splash/brand reveal"). It starts exactly where Android's boot
 ## splash image leaves off (same background, emblem and wordmark), brightens the emblem, shows the
 ## tagline, then fades away over Home. About 1.6 s; a tap skips it; reduced motion shortens it to a
-## quick fade. Menu presentation only: no gameplay is affected.
+## quick fade. While shaders are compiling (ShaderWarmup) it holds the first frame with a slim
+## loading bar, then plays. Menu presentation only: no gameplay is affected.
 
 signal finished
 
@@ -13,6 +14,13 @@ var reduced_motion := false
 var _root := Control.new()
 var _progress := 0.0
 var _done := false
+var _warmup: ShaderWarmup
+var _playing := false
+
+
+## Hold the opening frame (with a loading bar) until `warmup` finishes.
+func wait_for(warmup: ShaderWarmup) -> void:
+	_warmup = warmup
 
 
 func _ready() -> void:
@@ -22,6 +30,23 @@ func _ready() -> void:
 	_root.draw.connect(_paint)
 	_root.gui_input.connect(_on_input)
 	add_child(_root)
+	if _warmup != null and not _warmup.is_finished():
+		_warmup.finished.connect(_play)
+		set_process(true)
+	else:
+		_play()
+
+
+func _process(_delta: float) -> void:
+	if not _playing:
+		_root.queue_redraw()
+
+
+func _play() -> void:
+	if _playing or _done:
+		return
+	_playing = true
+	set_process(false)
 	var tween := create_tween()
 	if reduced_motion:
 		tween.tween_interval(0.3)
@@ -43,7 +68,7 @@ func _set_progress(value: float) -> void:
 
 func _on_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton
-	if press != null and press.pressed:
+	if press != null and press.pressed and _playing:
 		_finish()
 
 
@@ -74,3 +99,7 @@ func _paint() -> void:
 	var width := font.get_string_size(TAGLINE, HORIZONTAL_ALIGNMENT_LEFT, -1, tag_size).x
 	_root.draw_string(font, Vector2(view.x * 0.5 - width * 0.5, (layout[2] as Vector2).y + s * 0.08), TAGLINE,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, tag_size, Color(0.85, 0.92, 1.0, 0.75 * _progress))
+	if not _playing and _warmup != null and is_instance_valid(_warmup):
+		var bar := Rect2(view.x * 0.5 - s * 0.2, (layout[2] as Vector2).y + s * 0.1, s * 0.4, 4.0)
+		_root.draw_rect(bar, Color(BrandMark.RING, 0.15))
+		_root.draw_rect(Rect2(bar.position, Vector2(bar.size.x * _warmup.progress(), bar.size.y)), Color(BrandMark.RING, 0.8))

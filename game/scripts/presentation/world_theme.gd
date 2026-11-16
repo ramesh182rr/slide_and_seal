@@ -5,7 +5,16 @@ extends RefCounted
 ## Energy colours that carry meaning (route cyan, seal mint, gate amber, …) stay in Palette so a
 ## mechanism always looks the same in every world.
 
+## Environment family (M13): what the board stands on and what surrounds it.
+enum Style { ISLAND, FROST, FOUNDRY, PORTAL, TEMPLE, NEON, VOID }
+
 var world_id := ""
+var style := Style.ISLAND
+## Glow showing through the gaps between floor tiles (lava cracks, circuit seams); alpha 0 = none.
+var seam_glow := Color(0, 0, 0, 0)
+## Floor finish: polished ice and metal are glossier than stone.
+var tile_roughness := 0.86
+var tile_metallic := 0.0
 ## Display name (the catalog has the same titles; the theme keeps its own for in-level headers).
 var title := "Slide & Seal"
 ## One line shown under the world's title (world selection).
@@ -31,6 +40,20 @@ var key_light := Color("#FFE9C8")
 var fill_light := Color("#6FA8FF")
 var ambient := Color("#8DA2C0")
 var fog := Color("#1A2C4A")
+
+
+## The seven worlds of the campaign in order (docs/07). Worlds without levels yet show as
+## "Coming soon" with a display-only board from data/showcase/.
+const ALL_WORLDS: Array[String] = ["world_01_awakening", "world_02_gravity_works", "world_03_push_protocol",
+	"world_04_portal_nexus", "world_05_sealed_chambers", "world_06_shifting_labyrinth", "world_07_final_machine"]
+const SHOWCASE_DIR := "res://data/showcase"
+
+
+## A display-only board for a world that has no levels yet ("" if none).
+static func showcase_path(id: String) -> String:
+	var number := id.split("_")[1] if id.split("_").size() > 1 else ""
+	var path := "%s/world_%s_showcase.json" % [SHOWCASE_DIR, number]
+	return path if FileAccess.file_exists(path) else ""
 
 
 static func for_world(id: String) -> WorldTheme:
@@ -71,6 +94,13 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#5B7CFF")
 			t.ambient = Color("#8796C8")
 			t.fog = Color("#16224A")
+			t.style = Style.FROST
+			t.tile_roughness = 0.6
+			t.stone = Color("#4C6886")
+			t.stone_dark = Color("#22364F")
+			t.rock = Color("#1C2A44")
+			t.sky_top = Color("#02060F")
+			t.sky_bottom = Color("#0F2648")
 		"world_03_push_protocol":
 			t.title = "The Push Protocol"
 			t.tagline = "Amber pressure machinery pushes back."
@@ -87,6 +117,13 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#FF9A55")
 			t.ambient = Color("#B09A88")
 			t.fog = Color("#2E2018")
+			t.style = Style.FOUNDRY
+			t.seam_glow = Color(1.0, 0.45, 0.12, 0.9)
+			t.tile_roughness = 0.5
+			t.tile_metallic = 0.55
+			t.stone = Color("#4A4C52")
+			t.stone_dark = Color("#24252A")
+			t.rock = Color("#2A2522")
 		"world_04_portal_nexus":
 			t.title = "Portal Nexus"
 			t.tagline = "Violet gateways fold space together."
@@ -103,6 +140,7 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#A070FF")
 			t.ambient = Color("#9A8CC0")
 			t.fog = Color("#22163E")
+			t.style = Style.PORTAL
 		"world_05_sealed_chambers":
 			t.title = "The Sealed Chambers"
 			t.tagline = "Gold-lit gates guard the sacred receivers."
@@ -119,6 +157,9 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#F2C46A")
 			t.ambient = Color("#B0A488")
 			t.fog = Color("#2A2216")
+			t.style = Style.TEMPLE
+			t.stone = Color("#6E7278")
+			t.stone_dark = Color("#3C3E44")
 		"world_06_shifting_labyrinth":
 			t.title = "The Shifting Labyrinth"
 			t.tagline = "Turning floors and charged stone shift beneath you."
@@ -135,6 +176,18 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#5B9CFF")
 			t.ambient = Color("#9098B8")
 			t.fog = Color("#1A1A38")
+			t.style = Style.NEON
+			t.seam_glow = Color(0.95, 0.25, 0.65, 0.75)
+			t.tile_roughness = 0.6
+			t.tile_metallic = 0.3
+			t.stone = Color("#3E4656")
+			t.stone_dark = Color("#1B1F2A")
+			t.sky_top = Color("#0A0410")
+			t.sky_bottom = Color("#3A0E22")
+			t.horizon = Color("#D0306A")
+			t.nebula = Color("#1E6A80")
+			t.crystal = Color(0.3, 0.95, 0.9, 0.8)
+			t.fog = Color("#2A0C1C")
 		"world_07_final_machine":
 			t.title = "The Final Machine"
 			t.tagline = "The final engine waits for its seal."
@@ -151,6 +204,16 @@ static func for_world(id: String) -> WorldTheme:
 			t.fill_light = Color("#9A70FF")
 			t.ambient = Color("#9AA0D0")
 			t.fog = Color("#1A1844")
+			t.style = Style.VOID
+			t.seam_glow = Color(1.0, 0.55, 0.15, 0.85)
+			t.stone = Color("#383A42")
+			t.stone_dark = Color("#16171C")
+			t.rock = Color("#121318")
+			t.sky_top = Color("#03030A")
+			t.sky_bottom = Color("#141838")
+			t.horizon = Color("#C86A2A")
+			t.nebula = Color("#2A4AA8")
+			t.crystal = Color(0.55, 0.8, 1.0, 0.6)
 		_:
 			t.tagline = "Reconfigure reality. Control the maze. Complete the seal."
 	return t

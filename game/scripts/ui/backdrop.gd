@@ -87,25 +87,71 @@ class Painter:
 			draw_circle(Vector2(x, y), r, Color(0.85, 0.92, 1.0, a))
 			if r > 2.4:
 				draw_circle(Vector2(x, y), r * 3.0, Color(0.7, 0.85, 1.0, 0.06))
-		# A distant planet with a lit rim.
-		var planet := Vector2(w * 0.82, h * 0.1)
-		var radius := w * 0.16
-		_blob(soft, planet, Vector2.ONE * radius * 3.4, Color(t.horizon, 0.18))
-		draw_circle(planet, radius, t.sky_top.lerp(t.nebula, 0.35))
-		draw_arc(planet, radius - 2.0, deg_to_rad(110), deg_to_rad(260), 48, Color(t.accent, 0.5), 3.0, true)
-		draw_circle(planet + Vector2(radius * 0.18, -radius * 0.12), radius * 0.92, t.sky_top.lerp(t.nebula, 0.2))
-		# Far-off floating islands: two layers, the nearer one darker and larger.
-		for layer: int in 2:
-			var count := 4 if layer == 0 else 3
-			for i: int in count:
-				var cx := (i + 0.5 + (MeshKit.hash01(i, layer, 17) - 0.5) * 0.6) / count * w
-				var cy := h * (0.58 + layer * 0.1 + MeshKit.hash01(i, layer, 19) * 0.08)
-				var half := w * (0.05 + layer * 0.05) * (0.7 + MeshKit.hash01(i, layer, 23) * 0.6)
-				var tone := Color(t.sky_bottom.lerp(t.sky_top, 0.3 + layer * 0.25), 0.75)
-				_island(Vector2(cx, cy), half * 0.8, tone, Color(t.horizon, 0.5 - layer * 0.2), i * 7 + layer)
+		# A distant planet with a lit rim (open skies only: not inside a cave or a foundry).
+		if t.style != WorldTheme.Style.FROST and t.style != WorldTheme.Style.FOUNDRY:
+			var planet := Vector2(w * 0.82, h * 0.1)
+			var radius := w * 0.16
+			_blob(soft, planet, Vector2.ONE * radius * 3.4, Color(t.horizon, 0.18))
+			draw_circle(planet, radius, t.sky_top.lerp(t.nebula, 0.35))
+			draw_arc(planet, radius - 2.0, deg_to_rad(110), deg_to_rad(260), 48, Color(t.accent, 0.5), 3.0, true)
+			draw_circle(planet + Vector2(radius * 0.18, -radius * 0.12), radius * 0.92, t.sky_top.lerp(t.nebula, 0.2))
+		_silhouettes(t, w, h)
 		# Vignette.
 		draw_texture_rect(_vignette_texture(), Rect2(Vector2.ZERO, size), false, Color(0, 0, 0, 0.75))
 
+
+	## Distant scenery per world style: floating islands, ice cave, foundry stacks, neon towers.
+	func _silhouettes(t: WorldTheme, w: float, h: float) -> void:
+		match t.style:
+			WorldTheme.Style.FROST:
+				for i: int in 16:
+					var x := (i + MeshKit.hash01(i, 1, 41) * 0.8) / 16.0 * w
+					var length := h * (0.06 + MeshKit.hash01(i, 2, 41) * 0.16)
+					var half := w * (0.02 + MeshKit.hash01(i, 3, 41) * 0.03)
+					draw_colored_polygon(PackedVector2Array([Vector2(x - half, 0), Vector2(x + half, 0), Vector2(x, length)]),
+						Color(t.sky_top.darkened(0.3), 0.95))
+				for i: int in 9:
+					var x := (i + MeshKit.hash01(i, 4, 41)) / 9.0 * w
+					var tall := h * (0.08 + MeshKit.hash01(i, 5, 41) * 0.14)
+					var half := w * (0.03 + MeshKit.hash01(i, 6, 41) * 0.04)
+					draw_colored_polygon(PackedVector2Array([Vector2(x - half, h), Vector2(x + half, h), Vector2(x, h - tall)]),
+						Color(t.horizon, 0.25))
+			WorldTheme.Style.FOUNDRY:
+				for i: int in 7:
+					var x := (i + 0.5 + (MeshKit.hash01(i, 1, 43) - 0.5) * 0.5) / 7.0 * w
+					var top := h * (0.36 + MeshKit.hash01(i, 2, 43) * 0.2)
+					var width := w * (0.035 + MeshKit.hash01(i, 3, 43) * 0.03)
+					var tone := Color(t.sky_top.darkened(0.2), 0.9)
+					draw_rect(Rect2(x - width * 0.5, top, width, h - top), tone)
+					draw_rect(Rect2(x - width * 0.7, top, width * 1.4, width * 0.4), tone)
+					for k: int in 3:
+						draw_rect(Rect2(x - width * 0.2, top + width * (1.2 + k * 1.4), width * 0.4, width * 0.5),
+							Color(1.0, 0.55, 0.15, 0.5))
+					_blob(_soft_texture(), Vector2(x, top - width), Vector2(width * 6.0, width * 4.0), Color(0.4, 0.3, 0.3, 0.25))
+			WorldTheme.Style.NEON:
+				for i: int in 11:
+					var x := (i + 0.5 + (MeshKit.hash01(i, 1, 47) - 0.5) * 0.6) / 11.0 * w
+					var top := h * (0.3 + MeshKit.hash01(i, 2, 47) * 0.35)
+					var width := w * (0.03 + MeshKit.hash01(i, 3, 47) * 0.05)
+					draw_rect(Rect2(x - width * 0.5, top, width, h - top), Color(t.sky_top, 0.9))
+					var lit := Color("#3FF2E0") if i % 3 != 0 else Color("#FF3FA0")
+					draw_rect(Rect2(x - 1.0, top + width * 0.5, 2.0, h - top), Color(lit, 0.45))
+					draw_rect(Rect2(x - width * 0.5, top, width, 3.0), Color(lit, 0.6))
+			WorldTheme.Style.VOID:
+				_blob(_soft_texture(), Vector2(w * 0.3, h * 0.45), Vector2(w * 1.2, h * 0.18), Color(t.horizon, 0.3))
+				for i: int in 80:
+					var p := Vector2(MeshKit.hash01(i, 1, 53) * w, MeshKit.hash01(i, 2, 53) * h)
+					draw_circle(p, 1.0 + MeshKit.hash01(i, 3, 53) * 1.4, Color(1, 0.9, 0.8, 0.5))
+			_:
+				# Far-off floating islands: two layers, the nearer one darker and larger.
+				for layer: int in 2:
+					var count := 4 if layer == 0 else 3
+					for i: int in count:
+						var cx := (i + 0.5 + (MeshKit.hash01(i, layer, 17) - 0.5) * 0.6) / count * w
+						var cy := h * (0.58 + layer * 0.1 + MeshKit.hash01(i, layer, 19) * 0.08)
+						var half := w * (0.05 + layer * 0.05) * (0.7 + MeshKit.hash01(i, layer, 23) * 0.6)
+						var tone := Color(t.sky_bottom.lerp(t.sky_top, 0.3 + layer * 0.25), 0.75)
+						_island(Vector2(cx, cy), half * 0.8, tone, Color(t.horizon, 0.5 - layer * 0.2), i * 7 + layer)
 
 	func _blob(texture: Texture2D, centre: Vector2, extent: Vector2, color: Color) -> void:
 		draw_texture_rect(texture, Rect2(centre - extent * 0.5, extent), false, color)

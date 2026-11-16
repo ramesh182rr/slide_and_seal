@@ -384,6 +384,18 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Campaign screen:** world selection and level selection share one screen. A world card with a live diorama sits above that world's level grid. It opens on the world of the next level to play.
 - **Fonts:** titles use an emboldened, wider-spaced variation of the built-in font until a licensed display font is chosen.
 
+### P-027 — World environments and the seven-world campaign (M13, awaiting review)
+- **Environments:** each world has an environment style (`WorldTheme.Style`) based on the owner's references:
+  - World 2: an ice chamber.
+  - World 3: an industrial foundry over lava.
+  - World 6: neon tech ruins.
+  - World 7: an obsidian monolith in space.
+  - Worlds 4 and 5 follow the concept strip: portal rings, and a gold temple with a seal ring.
+  - World 1 keeps its mossy island.
+- **Scenery rules:** scenery never sits on a cell. Tall pieces on the camera's side are hidden.
+- **Campaign:** all seven worlds of docs/07 appear in order. Worlds without levels show "Coming soon" with a display-only board from `data/showcase/`. Those boards are never playable or in the catalog.
+- **Startup:** shaders are compiled behind the startup splash, which shows a loading bar.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

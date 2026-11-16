@@ -47,7 +47,7 @@ Maintain root-level `CHANGELOG.md` (Keep a Changelog style: `Unreleased` section
 - Grid ↔ world coordinate mapping lives in one service only.
 - Deterministic ordering everywhere: stable IDs, documented resolution order, no unordered Dictionary iteration in rule code, no randomness.
 - Avoid unnecessary dependencies and plugins. Prefer reusable, modular systems.
-- Android-first. Android (and iOS) builds use the **Compatibility (OpenGL ES 3)** renderer (D-036, `rendering_method.mobile`); desktop development and screenshots use the Mobile renderer. Check visuals in both: `godot --path game --rendering-method gl_compatibility`. Avoid per-object point lights (in Compatibility every lit object is drawn again); fake light with glow pools. Never commit keystores, signing passwords or secrets.
+- Android-first. Android (and iOS) builds use the **Compatibility (OpenGL ES 3)** renderer (D-036, `rendering_method.mobile`); desktop development and screenshots use the Mobile renderer. Check visuals in both: `godot --path game --rendering-method gl_compatibility`. Avoid per-object point lights (in Compatibility every lit object is drawn again); fake light with glow pools. **Always get materials from `MaterialLibrary`**: its static cache keeps compiled shaders alive. A material made elsewhere and freed recompiles its shader on next use, which causes freezes of up to a second. Any new material kind must appear in a level or showcase board so `ShaderWarmup` compiles it behind the splash. Never commit keystores, signing passwords or secrets.
 
 ## Design-change rules
 
@@ -77,6 +77,7 @@ Never claim something works unless it was actually tested or verified. Priority:
 - `docs/LEVEL_SCHEMA.md`: the current level JSON schema. Keep it in sync with `LevelLoader`.
 - **Run tests:** `tools/run_tests.sh` (an import pass, then the headless runner; exit code 0 means all tests passed). Run it after every change to simulation, model, data or tests.
 - **Player data:** tests and scratch scripts must never read or write the real player files (`user://progress.json`, `user://settings.json`). Set `AppRoot.progress_path` and `AppRoot.settings_path` to `user://test_*.json` files and remove them in `after_each()` (or at the end of a script).
+- **Showcase boards** (`game/data/showcase/world_NN_showcase.json`): display-only boards for worlds without levels ("Coming soon" in the campaign). They are not in the catalog and are not validated for solvability.
 - **Adding a level:** put `<id>.json` in `game/data/levels/`, list it in `game/data/catalog.json` (a test fails otherwise), then run the validator and copy the proven minimum into `optimal_actions`.
 - **Validate levels:** `tools/validate_levels.sh`. It checks the schema, solvability, the proven minimum against the level's scoring, and runs the softlock scan (about 40 s for the slice). Run it after any change to level data or simulation rules. Never hand-write `optimal_actions`; copy it from the validator's proven minimum.
 - **Android debug build:** `godot --headless --path game --export-debug "Android" ../build/android/slide_and_seal_debug.apk`. The output goes to the git-ignored `build/` folder. The preset is in `game/export_presets.cfg` (no secrets). Debug signing uses Godot's editor-level debug keystore.

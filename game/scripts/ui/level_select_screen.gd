@@ -18,6 +18,7 @@ var _level_buttons: Dictionary[String, Button] = {}
 var _level_texts: Dictionary[String, PackedStringArray] = {}
 var _level_stars: Dictionary[String, int] = {}
 var _grids: Array[GridContainer] = []
+var _pages: Array[Page] = []
 var _world_index := 0
 var _margin := MarginContainer.new()
 var _backdrop: Backdrop
@@ -33,9 +34,11 @@ var _drag_start := Vector2.ZERO
 var _dragging := false
 
 
-func setup(catalog: LevelCatalog, progress: ProgressStore) -> void:
+## `diorama` is the app's shared live view (null: the screen makes its own).
+func setup(catalog: LevelCatalog, progress: ProgressStore, diorama: DioramaView = null) -> void:
 	_catalog = catalog
 	_progress = progress
+	_diorama = diorama
 
 
 func _ready() -> void:
@@ -81,7 +84,7 @@ func _ready() -> void:
 	var pages := VBoxContainer.new()
 	pages.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(pages)
-	for world: LevelCatalog.World in _catalog.worlds:
+	for page: Page in _build_pages():
 		var grid := GridContainer.new()
 		grid.columns = COLUMNS
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -89,8 +92,18 @@ func _ready() -> void:
 		grid.add_theme_constant_override("v_separation", 18)
 		pages.add_child(grid)
 		_grids.append(grid)
-		for entry: LevelCatalog.Entry in world.entries:
-			var button := _level_tile(entry, WorldTheme.for_world(world.id))
+		_pages.append(page)
+		if page.world == null:
+			var soon := Label.new()
+			soon.text = "New puzzles for this world are being built."
+			soon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			soon.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			soon.custom_minimum_size = Vector2(900, 120)
+			UiTheme.style_label(soon, 28, Palette.TEXT_MUTED)
+			grid.add_child(soon)
+			continue
+		for entry: LevelCatalog.Entry in page.world.entries:
+			var button := _level_tile(entry, WorldTheme.for_world(page.world.id))
 			var level_id := entry.level_id
 			button.pressed.connect(func() -> void: level_chosen.emit(level_id))
 			grid.add_child(button)
@@ -110,10 +123,12 @@ func _build_card(column: VBoxContainer) -> void:
 	stage.custom_minimum_size = Vector2(0, 560)
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(stage)
-	_diorama = DioramaView.new()
-	_diorama.framing = 1.55
-	_diorama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if _diorama == null:
+		_diorama = DioramaView.new()
+	_diorama.release()
 	stage.add_child(_diorama)
+	_diorama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_diorama.set_framing(1.55)
 	for entry: Array in [[_previous, -1, Control.PRESET_CENTER_LEFT], [_next, 1, Control.PRESET_CENTER_RIGHT]]:
 		var arrow: IconButton = entry[0]
 		arrow.custom_minimum_size = Vector2(88, 88)
@@ -139,49 +154,89 @@ func _build_card(column: VBoxContainer) -> void:
 	stack.add_child(_world_progress)
 
 
-## Shows world `index` (clamped): its card, sky and level grid.
+## Shows world page `index` (clamped): its card, sky and level grid. Pages follow the seven
+## worlds of docs/07; worlds without levels yet show a display-only board and "Coming soon".
 func show_world(index: int) -> void:
-	_world_index = clampi(index, 0, _catalog.worlds.size() - 1)
-	var world := _catalog.worlds[_world_index]
-	var world_theme := WorldTheme.for_world(world.id)
+	_world_index = clampi(index, 0, _pages.size() - 1)
+	var page := _pages[_world_index]
+	var world_theme := WorldTheme.for_world(page.id)
 	for i: int in _grids.size():
 		_grids[i].visible = i == _world_index
 	_backdrop.theme_data = world_theme
 	_card.add_theme_stylebox_override("panel", UiTheme.panel(world_theme.accent, 34))
-	_world_number.text = "WORLD %d" % _world_number_of(world)
-	_world_title.text = world.title
+	_world_number.text = "WORLD %d" % _number_of(page.id)
+	_world_title.text = page.title
 	_world_title.add_theme_color_override("font_color", world_theme.accent.lightened(0.45))
 	_world_tagline.text = world_theme.tagline
-	var sealed := 0
-	var stars := 0
-	for entry: LevelCatalog.Entry in world.entries:
-		if _progress.best_actions(entry.level_id) >= 0:
-			sealed += 1
-			stars += _level_stars.get(entry.level_id, 0)
-	_world_progress.text = "%d / %d sealed   ·   %d / %d stars" % [sealed, world.entries.size(), stars,
-		world.entries.size() * StarRating.MAX_STARS]
+	if page.world == null:
+		_world_progress.text = "Coming soon"
+	else:
+		var sealed := 0
+		var stars := 0
+		for entry: LevelCatalog.Entry in page.world.entries:
+			if _progress.best_actions(entry.level_id) >= 0:
+				sealed += 1
+				stars += _level_stars.get(entry.level_id, 0)
+		_world_progress.text = "%d / %d sealed   ·   %d / %d stars" % [sealed, page.world.entries.size(), stars,
+			page.world.entries.size() * StarRating.MAX_STARS]
 	_previous.disabled = _world_index == 0
-	_next.disabled = _world_index == _catalog.worlds.size() - 1
-	if not world.entries.is_empty():
-		_diorama.show_level(world.entries.back().path)
+	_next.disabled = _world_index == _pages.size() - 1
+	if page.diorama_path != "":
+		_diorama.show_level(page.diorama_path)
 
 
 func current_world_index() -> int:
 	return _world_index
 
 
-## The world holding the first unlocked level not yet completed (else the first world).
+func page_count() -> int:
+	return _pages.size()
+
+
+## True when page `index` is a world with no levels yet.
+func is_coming_soon(index: int) -> bool:
+	return _pages[index].world == null
+
+
+## The page holding the first unlocked level not yet completed (else the first page).
 func _initial_world() -> int:
-	for i: int in _catalog.worlds.size():
-		for entry: LevelCatalog.Entry in _catalog.worlds[i].entries:
+	for i: int in _pages.size():
+		if _pages[i].world == null:
+			continue
+		for entry: LevelCatalog.Entry in _pages[i].world.entries:
 			if _progress.best_actions(entry.level_id) < 0 and Progression.is_unlocked(_catalog, _progress, entry.level_id):
 				return i
 	return 0
 
 
-## "world_02_…" → 2 (the design's world numbering, which has gaps in the current catalog).
-static func _world_number_of(world: LevelCatalog.World) -> int:
-	var parts := world.id.split("_")
+## Every world of docs/07 in order: catalog worlds with their levels, the rest as "Coming soon"
+## when a showcase board exists. Catalog worlds outside that list are appended (never dropped).
+func _build_pages() -> Array[Page]:
+	var pages: Array[Page] = []
+	var used: Dictionary[String, bool] = {}
+	for id: String in WorldTheme.ALL_WORLDS:
+		var world: LevelCatalog.World = null
+		for candidate: LevelCatalog.World in _catalog.worlds:
+			if candidate.id == id:
+				world = candidate
+		if world != null:
+			pages.append(Page.from_world(world))
+			used[id] = true
+		elif WorldTheme.showcase_path(id) != "":
+			var page := Page.new()
+			page.id = id
+			page.title = WorldTheme.for_world(id).title
+			page.diorama_path = WorldTheme.showcase_path(id)
+			pages.append(page)
+	for world: LevelCatalog.World in _catalog.worlds:
+		if not used.has(world.id):
+			pages.append(Page.from_world(world))
+	return pages
+
+
+## "world_02_…" → 2.
+static func _number_of(world_id: String) -> int:
+	var parts := world_id.split("_")
 	return int(parts[1]) if parts.size() > 1 and parts[1].is_valid_int() else 0
 
 
@@ -316,3 +371,22 @@ class StarTotal:
 		var text := "%d / %d" % [earned, possible]
 		draw_string(font, Vector2(70, size.y * 0.5 + 12), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Palette.TEXT)
 		StarRating.draw_star(self, Vector2(40, size.y * 0.5), 22.0, Palette.MECHANISM_AMBER)
+
+
+## One page of the world carousel.
+class Page:
+	extends RefCounted
+
+	var id := ""
+	var title := ""
+	## null for a world with no levels yet.
+	var world: LevelCatalog.World
+	var diorama_path := ""
+
+	static func from_world(source: LevelCatalog.World) -> Page:
+		var page := Page.new()
+		page.id = source.id
+		page.title = source.title
+		page.world = source
+		page.diorama_path = source.entries.back().path if not source.entries.is_empty() else ""
+		return page

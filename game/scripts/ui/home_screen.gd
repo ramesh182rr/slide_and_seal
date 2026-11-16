@@ -17,8 +17,10 @@ var _margin := MarginContainer.new()
 
 
 ## `continue_label` names the level Continue opens, e.g. "Continue · 3. Lever and Gate".
-func setup(continue_label: String) -> void:
+## `diorama` is the app's shared live view (null: the screen makes its own).
+func setup(continue_label: String, diorama: DioramaView = null) -> void:
 	_continue_label = continue_label
+	_diorama = diorama
 
 
 func _ready() -> void:
@@ -27,12 +29,20 @@ func _ready() -> void:
 	var world := WorldTheme.for_world("world_01_awakening")
 	add_child(Backdrop.new(world))
 
-	_diorama = DioramaView.new()
-	_diorama.framing = 1.7
+	if _diorama == null:
+		_diorama = DioramaView.new()
+	_diorama.release()
+	_diorama.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_diorama.anchor_left = 0.0
+	_diorama.anchor_top = 0.0
 	_diorama.anchor_right = 1.0
 	_diorama.anchor_bottom = 0.56
+	_diorama.offset_left = 0
+	_diorama.offset_right = 0
 	_diorama.offset_top = 120
+	_diorama.offset_bottom = 0
 	add_child(_diorama)
+	_diorama.set_framing(1.7)
 	_diorama.show_level(DIORAMA_LEVEL)
 
 	_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -5,6 +5,67 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — M13: No more freezes; a 3D environment for each world
+
+Owner report: switching between worlds lags, and the game lags a bit overall. Owner request: optimise further, and use the supplied reference images to build immersive 3D worlds.
+
+**Fixed: freezes** (desktop, Compatibility renderer, 1080×2400)
+- **Cause:** every board made its own materials. In the Compatibility (OpenGL) renderer a shader compiles synchronously on first draw and is released when its last material is freed. Each world switch or level load therefore freed and recompiled every shader: about 1 s per world switch and 0.45 s per level load on desktop, worse on a phone.
+- **`MaterialLibrary`'s cache is now static.** Its keys include every parameter, so equal requests share one material for the whole run and compiled shaders stay alive.
+- **`ShaderWarmup`:** behind the startup splash, it renders off screen one real gameplay scene and one diorama per world (including the showcase boards), so every shader variant compiles before play. The splash holds its opening frame with a slim loading bar until this finishes; taps are ignored while it loads.
+- **One shared diorama:** Home and Campaign share one `DioramaView`, owned by `AppRoot`. It caches one board per world, and the warm-up fills it, so paging through worlds never rebuilds or compiles anything.
+- **Results:**
+
+  | | Before | After |
+  |---|---|---|
+  | World switch | 830–990 ms | no frame over 25 ms |
+  | Level load | 450 ms | 30–48 ms |
+  | Campaign open | 46 ms | 34 ms |
+
+**Changed: phone settings**
+- The 3D view renders at 80% resolution on phones (`rendering/scaling_3d/scale.mobile=0.8`), with the same in the dioramas. UI and text stay at full resolution. This is about 36% fewer 3D pixels per frame.
+- Frames are capped at 60 fps on phones (`application/run/max_fps.mobile=60`). The frame rate stays steady, and 120 Hz screens no longer overheat and throttle.
+
+**Added: world environments** (`WorldTheme.Style`, built by `IslandDecor`)
+- **World 1, The Awakening:** the mossy floating island (unchanged).
+- **World 2, Gravity Works** (ice chamber reference):
+  - a frozen chamber of stacked ice blocks, with snow caps, icicles, frost pillars with crystal crowns, and falls of frozen light
+  - ice flagstones around the board, on a glacier rock
+  - an ice cave sky with stalactites and spires
+- **World 3, The Push Protocol** (industrial reference):
+  - a foundry deck with a riveted frame, pipes with flanges, glowing vents and pressure tanks
+  - support legs down into a glowing lava pool
+  - orange seams between the floor plates
+  - a sky of smoke stacks
+- **World 4, Portal Nexus:** an island with four standing portal rings, one at the middle of each edge.
+- **World 5, The Sealed Chambers:** a temple island with gold-capped columns and a great seal ring turning beneath it.
+- **World 6, The Shifting Labyrinth** (neon ruins reference):
+  - dark tech masonry on stepped plinths, with magenta circuit seams
+  - circuit pillars with teal and magenta strips, and floating tech cubes
+  - a crimson haze with neon towers
+- **World 7, The Final Machine** (space maze reference):
+  - an obsidian monolith split by glowing lava veins, with broken teeth along its rim
+  - a deep-space sky with a nebula
+- **Floors:** each world has its own floor finish (gloss, metalness), and some have a glow showing through the gaps between tiles.
+- **Camera-side hiding:** tall scenery on the camera's side (chamber walls, pillars, tanks, portals) is hidden so it never blocks the board. It updates as the view turns, in gameplay and in the dioramas.
+- **Scenery cost:** static scenery is merged into one mesh per material and casts no shadows. Draw calls stay at 99–184 per frame.
+- **`MeshKit`:** new cylinder, cone and torus primitives. **`Backdrop`:** distant silhouettes per style.
+
+**Added: the seven-world campaign**
+- The campaign pages through all seven worlds of docs/07. Worlds 3, 4 and 7 have no levels yet, so they show "Coming soon" with a live preview of their environment.
+- The previews are display-only boards in `data/showcase/`. They are not in the catalog and never playable, and the export includes them. Decision P-027.
+
+**Verified**
+- 342 tests pass. 3 are new: every style builds; the ice chamber hides the right walls at two camera angles; equal material requests share one material. The navigation and catalog tests also gained checks for the seven pages, "Coming soon" and the showcase boards.
+- The export completes with exit 0 and no errors or warnings. The APK holds 15 levels and 3 showcase boards, and no tests.
+- On the emulator, with the real APK: splash with loading bar → Home → Campaign → paging through all seven worlds. No crash and no game errors in the log.
+
+**Not verified**
+- The frame rate on a real phone. The emulator renders in software.
+
+**Known limitations**
+- The environments are built from code. Sculpted, textured models from a 3D artist would add further detail.
+
 ### 2026-11-16 — Release build: app icon, startup screen, Compatibility renderer
 
 Owner report: the APK showed a black screen on the Android emulator. Owner request: add an app icon and a startup screen, and build an APK without errors or crashes that plays smoothly.

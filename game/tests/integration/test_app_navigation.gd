@@ -57,6 +57,17 @@ func test_catalog_loads_in_order_without_errors() -> void:
 	assert_null(catalog.next_after(ids[ids.size() - 1]))
 
 
+func test_showcase_boards_load_and_name_their_world() -> void:
+	for id: String in WorldTheme.ALL_WORLDS:
+		var path := WorldTheme.showcase_path(id)
+		if path == "":
+			continue
+		var loaded := LevelLoader.load_file(path)
+		assert_true(loaded.is_ok(), "%s loads: %s" % [path, "; ".join(loaded.errors)])
+		assert_eq(loaded.level.world_id, id)
+		assert_null(LevelCatalog.load_default().entry(loaded.level.id), "showcase boards are never playable levels")
+
+
 func test_every_level_file_is_in_the_catalog() -> void:
 	var catalog := LevelCatalog.load_default()
 	for file_name: String in DirAccess.get_files_at(LevelCatalog.LEVELS_DIR):
@@ -87,14 +98,20 @@ func test_startup_reveal_covers_home_and_a_tap_skips_it() -> void:
 	var splash := app.get_node_or_null("Splash") as SplashOverlay
 	assert_not_null(splash, "the brand reveal plays on a normal start")
 	assert_eq(app.current_screen_name(), AppRoot.HOME, "Home is already underneath")
+	var warmup := app.get_node_or_null("ShaderWarmup") as ShaderWarmup
+	assert_not_null(warmup, "shaders are compiled behind the reveal")
 	var tap := InputEventMouseButton.new()
 	tap.button_index = MOUSE_BUTTON_LEFT
 	tap.pressed = true
+	splash._on_input(tap)
+	assert_false(splash.is_finished(), "taps wait until loading is done")
+	splash._play()
 	splash._on_input(tap)
 	assert_true(splash.is_finished(), "a tap skips the reveal")
 	app.free()
 	var quiet := _spawn()
 	assert_null(quiet.get_node_or_null("Splash"), "no reveal with instant playback (tests)")
+	assert_null(quiet.get_node_or_null("ShaderWarmup"))
 	quiet.free()
 
 
@@ -120,8 +137,11 @@ func test_campaign_pages_through_worlds() -> void:
 	assert_eq(screen.current_world_index(), 1)
 	assert_false(screen.level_button("world_01_level_001").is_visible_in_tree())
 	assert_true(screen.level_button("world_02_level_007").is_visible_in_tree())
+	assert_eq(screen.page_count(), WorldTheme.ALL_WORLDS.size(), "all seven worlds of docs/07 are shown")
+	assert_true(screen.is_coming_soon(2), "World 3 has no levels yet")
+	assert_false(screen.is_coming_soon(4), "World 5 has a level")
 	screen.show_world(99)
-	assert_eq(screen.current_world_index(), app.catalog().worlds.size() - 1, "paging is clamped")
+	assert_eq(screen.current_world_index(), screen.page_count() - 1, "paging is clamped")
 	app.free()
 
 

@@ -195,3 +195,70 @@ static func octahedron(radius: float, half_height: float) -> ArrayMesh:
 			tool.add_vertex(vertex)
 	tool.generate_normals()
 	return tool.commit()
+
+
+## A cylinder from `a` to `b` (any orientation) with flat caps. Faceted on purpose: it reads as
+## machined metal or cut stone and keeps vertex counts low.
+static func append_cylinder(tool: SurfaceTool, a: Vector3, b: Vector3, radius: float, color: Color,
+		segments: int = 10, caps: bool = true) -> void:
+	var axis := (b - a).normalized()
+	var u := axis.cross(Vector3.UP if absf(axis.y) < 0.95 else Vector3.RIGHT).normalized()
+	var v := axis.cross(u)
+	var ring_a := PackedVector3Array()
+	var ring_b := PackedVector3Array()
+	for i: int in segments:
+		var angle := TAU * i / segments
+		var offset := (u * cos(angle) + v * sin(angle)) * radius
+		ring_a.append(a + offset)
+		ring_b.append(b + offset)
+	var cap_color := color.lightened(0.1)
+	for i: int in segments:
+		var n := (i + 1) % segments
+		var mid := (ring_a[i] + ring_a[n]) * 0.5 - a
+		quad(tool, ring_a[i], ring_a[n], ring_b[n], ring_b[i], mid, color,
+			Vector2(float(i) / segments, 0), Vector2(float(n) / segments, 0), Vector2(float(n) / segments, 1),
+			Vector2(float(i) / segments, 1))
+		if caps:
+			triangle(tool, b, ring_b[i], ring_b[n], cap_color, axis)
+			triangle(tool, a, ring_a[n], ring_a[i], color.darkened(0.2), -axis)
+
+
+## A cone with its base circle at `base` and its point at `tip` (icicles, spikes, stalactites).
+static func append_cone(tool: SurfaceTool, base: Vector3, tip: Vector3, radius: float, color: Color,
+		segments: int = 6) -> void:
+	var axis := (tip - base).normalized()
+	var u := axis.cross(Vector3.UP if absf(axis.y) < 0.95 else Vector3.RIGHT).normalized()
+	var v := axis.cross(u)
+	for i: int in segments:
+		var a0 := TAU * i / segments
+		var a1 := TAU * (i + 1) / segments
+		var p0 := base + (u * cos(a0) + v * sin(a0)) * radius
+		var p1 := base + (u * cos(a1) + v * sin(a1)) * radius
+		triangle(tool, p0, p1, tip, color, (p0 + p1) * 0.5 - base)
+		triangle(tool, base, p1, p0, color.darkened(0.2), -axis)
+
+
+## A torus in the plane through `centre` perpendicular to `normal`.
+static func append_torus(tool: SurfaceTool, centre: Vector3, normal: Vector3, radius: float, thickness: float,
+		color: Color, segments: int = 24, sides: int = 6) -> void:
+	var axis := normal.normalized()
+	var u := axis.cross(Vector3.UP if absf(axis.y) < 0.95 else Vector3.RIGHT).normalized()
+	var v := axis.cross(u)
+	var rings: Array[PackedVector3Array] = []
+	for i: int in segments:
+		var angle := TAU * i / segments
+		var radial := u * cos(angle) + v * sin(angle)
+		var ring := PackedVector3Array()
+		for k: int in sides:
+			var phi := TAU * k / sides
+			ring.append(centre + radial * (radius + cos(phi) * thickness) + axis * sin(phi) * thickness)
+		rings.append(ring)
+	for i: int in segments:
+		var n := (i + 1) % segments
+		var radial := (u * cos(TAU * (i + 0.5) / segments) + v * sin(TAU * (i + 0.5) / segments))
+		for k: int in sides:
+			var m := (k + 1) % sides
+			var face := (rings[i][k] + rings[i][m] + rings[n][m] + rings[n][k]) * 0.25
+			var tube_centre := centre + radial * radius
+			quad(tool, rings[i][k], rings[i][m], rings[n][m], rings[n][k], face - tube_centre, color,
+				Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0))

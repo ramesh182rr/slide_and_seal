@@ -119,6 +119,12 @@ func decor() -> IslandDecor:
 	return _decor
 
 
+## Lets the scenery cut away tall pieces on the camera's side (presentation only).
+func set_view_yaw(yaw_degrees: float) -> void:
+	if _decor != null:
+		_decor.set_view_yaw(yaw_degrees)
+
+
 func set_animate(enabled: bool) -> void:
 	animate = enabled
 	if _decor != null:
@@ -237,7 +243,15 @@ func _build_floor() -> void:
 		var offset := Vector3(0, -0.3, (extent.z * 0.5 + 0.005) * (1 if side == 0 else -1)) if along_x \
 			else Vector3((extent.x * 0.5 + 0.005) * (1 if side == 2 else -1), -0.3, 0)
 		_batch_at_world("plinth_edge", line, edge, centre + offset, null, false)
-	var stone := _library.surface("tile_stone", 0.86, 0.0, 0.6)
+	var stone := _library.surface("tile_stone", _theme.tile_roughness, _theme.tile_metallic, 0.6)
+	# Lava cracks / circuit seams: one glowing sheet under the tiles, seen only through their gaps.
+	if _theme.seam_glow.a > 0.0:
+		var sheet := PlaneMesh.new()
+		sheet.size = Vector2(size.x, size.y)
+		var glow_sheet := _add_mesh(sheet, _library.glow("seam_glow", Color(_theme.seam_glow, 1.0), 1.6 * _theme.seam_glow.a),
+			centre + Vector3(0, -0.19, 0))
+		glow_sheet.name = "SeamGlow"
+		glow_sheet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for y: int in size.y:
 		for x: int in size.x:
 			var cell := Vector2i(x, y)
@@ -403,7 +417,7 @@ func _add_glow_pool(at: Vector3, color: Color, diameter: float, strength: float)
 	var key := "pool_%s_%.2f" % [color.to_html(), strength]
 	var material := _library.glow(key, color, strength, 1.0)
 	if material.albedo_texture == null:
-		material.albedo_texture = _radial_texture()
+		material.albedo_texture = radial_texture()
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	var node := _add_mesh(quad, material, at + Vector3(0, 0.022, 0))
@@ -413,7 +427,7 @@ func _add_glow_pool(at: Vector3, color: Color, diameter: float, strength: float)
 static var _radial: GradientTexture2D
 
 
-static func _radial_texture() -> GradientTexture2D:
+static func radial_texture() -> GradientTexture2D:
 	if _radial == null:
 		var gradient := Gradient.new()
 		gradient.set_color(0, Color(1, 1, 1, 1))
@@ -543,7 +557,7 @@ func _build_core() -> void:
 	pool.orientation = PlaneMesh.FACE_Y
 	var pool_material := _library.glow("core_pool", Palette.CYAN_ENERGY, 0.7, 1.0)
 	if pool_material.albedo_texture == null:
-		pool_material.albedo_texture = _radial_texture()
+		pool_material.albedo_texture = radial_texture()
 		pool_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		pool_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	var pool_node := _add_mesh(pool, pool_material, Vector3(0, -CORE_HEIGHT + 0.03, 0), _core)

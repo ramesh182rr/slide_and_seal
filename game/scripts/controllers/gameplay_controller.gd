@@ -57,6 +57,7 @@ func _ready() -> void:
 	_board.build(loaded.level, _session.get_state())
 	_apply_world_theme(_board.world_theme())
 	_camera_rig.frame_board(loaded.level.board_size)
+	_board.set_view_yaw(_camera_rig.yaw_degrees())
 	_update_swipe_vectors()
 	get_viewport().size_changed.connect(_update_swipe_vectors)
 	_director.setup(_board)
@@ -580,6 +581,7 @@ func _refresh() -> void:
 
 ## The view moved: swipe classification and the arrow pad must follow the new projection.
 func _on_view_changed() -> void:
+	_board.set_view_yaw(_camera_rig.yaw_degrees())
 	_update_swipe_vectors()
 	if _target_kind == TargetKind.OBJECT or _target_kind == TargetKind.ZONE:
 		_refresh_panel()

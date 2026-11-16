@@ -29,9 +29,14 @@ var _settings: SettingsStore
 var _screen: Node
 var _screen_name := ""
 var _current_level_id := ""
+## One live diorama shared by Home and Campaign: its boards are built once (during the startup
+## warm-up) and survive screen changes, so paging through worlds never rebuilds anything.
+var _diorama: DioramaView
 
 
 func _ready() -> void:
+	_diorama = DioramaView.new()
+	_diorama.name = "SharedDiorama"
 	_catalog = LevelCatalog.load_default()
 	for message: String in _catalog.errors:
 		push_error("Level catalog: " + message)
@@ -50,9 +55,21 @@ func _ready() -> void:
 			return
 	show_home()
 	if show_splash and not instant_playback:
+		var warmup := ShaderWarmup.new()
+		warmup.name = "ShaderWarmup"
+		var paths := PackedStringArray()
+		for world: LevelCatalog.World in _catalog.worlds:
+			if not world.entries.is_empty():
+				paths.append(world.entries.back().path)
+		for id: String in WorldTheme.ALL_WORLDS:
+			if WorldTheme.showcase_path(id) != "":
+				paths.append(WorldTheme.showcase_path(id))
+		warmup.setup(paths, _diorama)
+		add_child(warmup)
 		var splash := SplashOverlay.new()
 		splash.name = "Splash"
 		splash.reduced_motion = _settings.reduced_motion
+		splash.wait_for(warmup)
 		add_child(splash)
 
 
@@ -83,7 +100,7 @@ func current_level_id() -> String:
 func show_home() -> void:
 	var home := HomeScreen.new()
 	var next := next_level_to_play()
-	home.setup("Continue  ·  %d. %s" % [next.order + 1, next.title] if next != null else "Continue")
+	home.setup("Continue  ·  %d. %s" % [next.order + 1, next.title] if next != null else "Continue", _diorama)
 	home.play_requested.connect(show_level_select)
 	home.continue_requested.connect(continue_campaign)
 	home.settings_requested.connect(show_settings)
@@ -92,7 +109,7 @@ func show_home() -> void:
 
 func show_level_select() -> void:
 	var screen := LevelSelectScreen.new()
-	screen.setup(_catalog, _progress)
+	screen.setup(_catalog, _progress, _diorama)
 	screen.level_chosen.connect(start_level)
 	screen.back_requested.connect(show_home)
 	_set_screen(screen, LEVEL_SELECT)
@@ -157,6 +174,16 @@ func handle_back() -> void:
 		# GAMEPLAY: the gameplay controller handles Back itself.
 
 
+func shared_diorama() -> DioramaView:
+	return _diorama
+
+
+func _exit_tree() -> void:
+	# Not in the tree while gameplay is on screen: free it with the app.
+	if _diorama != null and _diorama.get_parent() == null:
+		_diorama.free()
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		handle_back()
@@ -196,6 +223,7 @@ func _start_next_level() -> void:
 ## Swaps screens. Navigation is often triggered from a signal emitted inside the old screen,
 ## so the old screen is removed from the tree now and deleted at the end of the frame.
 func _set_screen(screen: Node, screen_name: String) -> void:
+	_diorama.release()  # Kept alive across screens (see _diorama).
 	if _screen != null:
 		remove_child(_screen)
 		_screen.queue_free()

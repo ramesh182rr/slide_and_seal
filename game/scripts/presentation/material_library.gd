@@ -1,6 +1,10 @@
 class_name MaterialLibrary
 extends RefCounted
-## Cached materials shared by the board, its fixtures and the island diorama.
+## Materials shared by every board, fixture set, island and diorama for the whole run.
+## The cache is static on purpose: in the Compatibility (OpenGL) renderer a shader is compiled
+## synchronously the first time it is drawn and released when its last material is freed, so
+## per-board materials made every world switch and level load recompile everything (~1 s stalls).
+## Keys include every parameter, so equal requests share one material and unequal ones never collide.
 ## Surface detail comes from two procedural noise textures (generated once per run and shared),
 ## so there are no imported texture files to license or ship.
 
@@ -8,11 +12,12 @@ extends RefCounted
 static var _detail: NoiseTexture2D
 static var _detail_normal: NoiseTexture2D
 
-var _cache: Dictionary[String, StandardMaterial3D] = {}
+static var _cache: Dictionary[String, StandardMaterial3D] = {}
 
 
 func get_material(key: String, color: Color, emission: float = 0.0, alpha: float = 1.0,
 		metallic: float = 0.0, roughness: float = 0.8) -> StandardMaterial3D:
+	key = "m|%s|%s|%.3f|%.3f|%.3f|%.3f" % [key, color.to_html(), emission, alpha, metallic, roughness]
 	if _cache.has(key):
 		return _cache[key]
 	var material := StandardMaterial3D.new()
@@ -32,6 +37,7 @@ func get_material(key: String, color: Color, emission: float = 0.0, alpha: float
 ## Textured stone/rock/metal for procedural meshes that carry their colour in vertex colours.
 func surface(key: String, roughness: float = 0.88, metallic: float = 0.0, uv_scale: float = 1.0,
 		normal_strength: float = 0.7) -> StandardMaterial3D:
+	key = "s|%s|%.3f|%.3f|%.3f|%.3f" % [key, roughness, metallic, uv_scale, normal_strength]
 	if _cache.has(key):
 		return _cache[key]
 	var material := StandardMaterial3D.new()
@@ -50,6 +56,7 @@ func surface(key: String, roughness: float = 0.88, metallic: float = 0.0, uv_sca
 
 ## Unshaded glowing material (energy inlays, trims, beams): bright under the glow pass.
 func glow(key: String, color: Color, energy: float = 2.0, alpha: float = 1.0) -> StandardMaterial3D:
+	key = "g|%s|%s|%.3f|%.3f" % [key, color.to_html(), energy, alpha]
 	if _cache.has(key):
 		return _cache[key]
 	var material := StandardMaterial3D.new()
@@ -65,6 +72,7 @@ func glow(key: String, color: Color, energy: float = 2.0, alpha: float = 1.0) ->
 
 ## Translucent emissive crystal (the core, decorative shards).
 func crystal(key: String, color: Color, emission: float = 1.2, alpha: float = 0.88) -> StandardMaterial3D:
+	key = "c|%s|%s|%.3f|%.3f" % [key, color.to_html(), emission, alpha]
 	if _cache.has(key):
 		return _cache[key]
 	var material := StandardMaterial3D.new()
@@ -92,6 +100,11 @@ func outline() -> StandardMaterial3D:
 		material.albedo_color = Palette.CYAN_ENERGY
 		_cache["outline"] = material
 	return _cache["outline"]
+
+
+## Number of distinct materials created so far (diagnostics and tests).
+static func material_count() -> int:
+	return _cache.size()
 
 
 ## Grey stone grain (light, 0.7–1.0) that multiplies vertex colours.

@@ -1,0 +1,289 @@
+{
+  "schema_version": 3,
+  "id": "world_03_showcase",
+  "title": "The Push Protocol",
+  "world_id": "world_03_push_protocol",
+  "access": "free",
+  "board": {
+    "width": 9,
+    "height": 10
+  },
+  "core": {
+    "position": [
+      1,
+      1
+    ],
+    "route_id": "route_main"
+  },
+  "destination": {
+    "position": [
+      1,
+      8
+    ],
+    "seal_id": "seal_final"
+  },
+  "terrain": {
+    "walls": [
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        1,
+        5
+      ]
+    ]
+  },
+  "setup": {
+    "allowed_mechanisms": []
+  },
+  "routes": {
+    "route_main": {
+      "nodes": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          8
+        ]
+      ],
+      "checkpoints": [
+        {
+          "id": "cp_gate",
+          "position": [
+            3,
+            1
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        },
+        {
+          "id": "cp_two_keys",
+          "position": [
+            5,
+            3
+          ],
+          "allowed_mechanisms": [
+            "switches_seals"
+          ],
+          "auto_pause": true
+        }
+      ]
+    }
+  },
+  "objects": [],
+  "mechanisms": {
+    "switches": [
+      {
+        "id": "lever_a",
+        "kind": "toggle",
+        "position": [
+          2,
+          2
+        ]
+      },
+      {
+        "id": "lever_b",
+        "kind": "toggle",
+        "position": [
+          5,
+          2
+        ],
+        "initially_on": true
+      },
+      {
+        "id": "lever_c",
+        "kind": "toggle",
+        "position": [
+          2,
+          6
+        ]
+      },
+      {
+        "id": "lever_d",
+        "kind": "toggle",
+        "position": [
+          4,
+          6
+        ]
+      },
+      {
+        "id": "lever_e",
+        "kind": "toggle",
+        "position": [
+          3,
+          7
+        ]
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate_a",
+        "position": [
+          5,
+          1
+        ],
+        "requires": [
+          "lever_a",
+          "lever_b"
+        ]
+      },
+      {
+        "id": "gate_b",
+        "position": [
+          5,
+          5
+        ],
+        "requires": [
+          "lever_c",
+          "lever_d"
+        ]
+      },
+      {
+        "id": "gate_c",
+        "position": [
+          1,
+          7
+        ],
+        "requires": [
+          "lever_b",
+          "lever_e"
+        ]
+      }
+    ]
+  },
+  "objectives": [
+    {
+      "type": "reach_destination",
+      "target_id": "seal_final"
+    }
+  ],
+  "scoring": {
+    "target_actions": 4,
+    "optimal_actions": 3
+  }
+}
