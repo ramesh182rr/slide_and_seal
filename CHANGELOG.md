@@ -5,6 +5,58 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — M15: Pieces per world, game feel and a quieter UI
+
+Owner report: blocks, the core and gates looked the same in every world and felt boring; the UI had unnecessary text.
+
+**Added**
+- **`PieceKit`: each world has its own playing pieces.** Meaning never changes between worlds: pushable blocks keep the cyan top mark, gates stay amber (pink when inverted) with their letter, and the core stays cyan. Sizes match the cells and the picker in every style.
+
+  | World | Blocks | Gates | Core cut |
+  |---|---|---|---|
+  | 1 The Awakening | hewn stone with lit corners and moss | banded stone doors | octahedron |
+  | 2 Gravity Works | clear blue ice with a snow cap | walls of ice spikes | tall hexagonal shard |
+  | 3 The Push Protocol | slate-blue painted steel crates with a hazard band and rivets | rusted steel shutters with two bands | faceted round gem |
+  | 4 Portal Nexus | cut amethyst with a bright heart | energy barriers between four posts | eight-pointed star |
+  | 5 The Sealed Chambers | marble banded with gold | tinted marble doors | octahedron |
+  | 6 The Shifting Labyrinth | dark tech cubes traced in neon | energy barriers between four posts | cube |
+  | 7 The Final Machine | obsidian split by glowing cracks | banded stone doors | eight-pointed star |
+
+- **Game feel** (decoration only; all skipped with reduced motion):
+  - Motes of energy trail behind the core.
+  - Blocks squash briefly when they land.
+  - Gates overshoot slightly as they rise or sink.
+  - Completing a seal fires a burst and a surge of light up its column.
+  - The completion card's stars light one by one with a pop.
+- **Vibration:** a short tick on each move, a longer one on a rejected move, and one on completion. Settings → Vibration turns it off (saved as `haptics`). The export preset now requests the VIBRATE permission.
+
+**Changed**
+- **Gameplay HUD:**
+  - The boxed three-line status card is gone.
+  - The move counter ("MOVES 3 / 5", amber when over target) sits in the top bar.
+  - One slim hint line sits under the bar.
+  - The "Available: …" line shows only when there is a mechanism to use.
+  - The Run button hides once the level is sealed, so the completion card stands alone.
+  - The view buttons are fainter.
+- **Campaign tiles:** locked levels show the lock icon only (no "Locked" text).
+- **Settings:** an arrow Back button and a display title, matching the other screens.
+- **World 1 floor:** a cooler teal-grey stone (was olive).
+- **Showcase boards** for Worlds 3, 4 and 7 now include blocks and gates, so the previews show each world's pieces.
+- **`ShaderWarmup`** also draws one of every piece per world, so a piece appearing for the first time never stalls.
+
+**Verified**
+- 344 tests pass. 2 are new: every world builds its own pieces at cell size; the vibration setting is saved and reaches gameplay.
+- Draw calls are unchanged at 101–175 per board. After the splash, no frame over 25 ms when switching worlds; level loads take 41–45 ms (desktop, Compatibility).
+- The export completes with exit 0 and no errors or warnings. The APK is 58 MB.
+- On the emulator, with the real APK: Home → Continue → level → Run → Resume. No crash and no game errors.
+
+**Not verified**
+- Vibration (the emulator has no motor), and the frame rate on a real phone.
+
+**Known limitations**
+- There is still no sound or music.
+- Worlds 3, 4 and 7 still have no puzzles.
+
 ### 2026-11-16 — M14: Realistic art: scanned materials, real 3D models and image-based reflections
 
 Owner request: the look still felt half-cooked and not realistic. Make it look real, use 3D models, and polish the first impression.

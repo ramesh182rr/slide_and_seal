@@ -77,6 +77,9 @@ func _make_step(step: int) -> Node:
 		gameplay.level_path = path
 		gameplay.instant_playback = true
 		gameplay.quit_on_leave = false
+		gameplay.ready.connect(func() -> void:
+			if gameplay.get_board().level() != null:
+				gameplay.get_board().add_warmup_pieces())
 		return gameplay
 	if _shared != null and _shared.is_inside_tree():
 		if _restore_path == "":

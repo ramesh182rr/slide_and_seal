@@ -117,7 +117,8 @@ func show_level_select() -> void:
 
 func show_settings() -> void:
 	var screen := SettingsScreen.new()
-	screen.setup(_settings.reduced_motion)
+	screen.setup(_settings.reduced_motion, _settings.haptics)
+	screen.haptics_changed.connect(_on_haptics_changed)
 	screen.back_requested.connect(show_home)
 	screen.reduced_motion_changed.connect(_on_reduced_motion_changed)
 	screen.reset_progress_confirmed.connect(_on_reset_progress)
@@ -132,6 +133,7 @@ func start_level(level_id: String) -> void:
 	var gameplay: GameplayController = GAMEPLAY_SCENE.instantiate()
 	gameplay.level_path = entry.path
 	gameplay.instant_playback = instant_playback or _settings.reduced_motion
+	gameplay.haptics = _settings.haptics
 	gameplay.quit_on_leave = false
 	gameplay.next_level_available = _catalog.next_after(level_id) != null
 	gameplay.previous_best_actions = _progress.best_actions(level_id)
@@ -204,6 +206,12 @@ func _on_level_completed(actions: int, gameplay: GameplayController, level_id: S
 
 func _on_reduced_motion_changed(enabled: bool) -> void:
 	_settings.reduced_motion = enabled
+	if not _settings.save_to_disk():
+		push_error("Settings could not be saved to %s" % _settings.path)
+
+
+func _on_haptics_changed(enabled: bool) -> void:
+	_settings.haptics = enabled
 	if not _settings.save_to_disk():
 		push_error("Settings could not be saved to %s" % _settings.path)
 

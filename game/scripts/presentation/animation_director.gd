@@ -107,7 +107,7 @@ func _queue_gate_changes(tween: Tween, before: PuzzleState, after: PuzzleState) 
 			continue
 		var node := _board.fixtures().gate_node(gate.id)
 		_tweener(tween, count > 0).tween_property(node, "position:y", MechanismFixtures3D.gate_y(open_after),
-			GATE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			GATE_SECONDS).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		count += 1
 	return count
 
@@ -162,6 +162,9 @@ func _queue_move(tween: Tween, move: ObjectMove, parallel: bool) -> void:
 		var cells := absi(move.to_cell.x - move.from_cell.x) + absi(move.to_cell.y - move.from_cell.y)
 		_tweener(tween, parallel).tween_property(node, "position", target, SLIDE_SECONDS_PER_CELL * cells) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	# Landing: a squash that overlaps whatever plays next (decoration; never awaited).
+	var object_id := move.object_id
+	tween.tween_callback(func() -> void: _board.land_pulse(object_id))
 
 
 static func _tweener(tween: Tween, parallel: bool) -> Tween:

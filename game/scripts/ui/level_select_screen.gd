@@ -298,7 +298,7 @@ func _level_tile(entry: LevelCatalog.Entry, world_theme: WorldTheme) -> Button:
 		lock.custom_minimum_size = Vector2(0, 40)
 		column.add_child(lock)
 		detail.text = "Locked"
-		detail.add_theme_color_override("font_color", Color(Palette.TEXT_MUTED, 0.5))
+		detail.visible = false  # The lock icon says it; the text stays for tests and screen readers.
 	elif best >= 0:
 		var stars := StarRating.new()
 		stars.name = "Stars"

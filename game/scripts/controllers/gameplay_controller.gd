@@ -20,6 +20,8 @@ signal level_completed(actions: int)
 ## Quit the app when the player confirms leaving. AppRoot and tests turn this off and listen to
 ## `leave_requested` instead.
 @export var quit_on_leave: bool = true
+## Vibration ticks on moves, rejections and completion (Settings → Vibration).
+var haptics: bool = true
 ## Whether the completion card offers "Next level" (set by AppRoot from the catalog).
 var next_level_available: bool = false
 ## Best previous result for this level (-1 = never completed), for the "New best!" note.
@@ -62,6 +64,8 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_swipe_vectors)
 	_director.setup(_board)
 	_director.instant = instant_playback
+	_board.set_animate(not instant_playback)
+	_hud.completion_card().animate = not instant_playback
 	_camera_rig.instant = instant_playback
 	_camera_rig.view_changed.connect(_on_view_changed)
 	_hud.view_turn_requested.connect(_camera_rig.turn_view)
@@ -147,8 +151,10 @@ func request_action(action: PuzzleAction) -> ActionResult:
 	var result := _session.apply(action)
 	if not result.is_ok():
 		_hud.show_message(result.message)
+		_buzz(35)
 		return result
 	_hud.clear_message()
+	_buzz(12)
 	_busy = true
 	_refresh()
 	_play_back(before, result)
@@ -548,6 +554,8 @@ func _play_back(before: PuzzleState, result: ActionResult) -> void:
 	if result.state.phase == PuzzleState.Phase.LEVEL_COMPLETED and before.phase != PuzzleState.Phase.LEVEL_COMPLETED:
 		var actions := result.state.mechanism_action_count
 		_completion_new_best = previous_best_actions < 0 or actions < previous_best_actions
+		_board.celebrate()
+		_buzz(60)
 		level_completed.emit(actions)
 	_refresh()
 
@@ -605,3 +613,9 @@ func _apply_world_theme(world_theme: WorldTheme) -> void:
 	world_theme.apply_to_stage(_environment.environment, _key_light, _fill_light)
 	_backdrop.theme_data = world_theme
 	_hud.set_world(world_theme)
+
+
+## A short vibration on phones. Never during instant playback (tests, reduced motion).
+func _buzz(milliseconds: int) -> void:
+	if haptics and not instant_playback and OS.has_feature("mobile"):
+		Input.vibrate_handheld(milliseconds)

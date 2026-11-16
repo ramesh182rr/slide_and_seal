@@ -11,6 +11,8 @@ var _stars := StarRating.new()
 var _best := Label.new()
 var _next := Button.new()
 var _levels := Button.new()
+## Reveal the stars one by one when the card appears (off for reduced motion and tests).
+var animate := false
 
 
 func _ready() -> void:
@@ -57,6 +59,8 @@ func _ready() -> void:
 func show_result(actions: int, target: int, stars: int, new_best: bool, has_next: bool) -> void:
 	_summary.text = "Actions %d  ·  Target %d%s" % [actions, target, "  ·  Target met" if actions <= target else ""]
 	_stars.earned = stars
+	if animate and not visible:
+		_stars.reveal()
 	_best.text = "New best!" if new_best else ""
 	_best.visible = new_best
 	_next.visible = has_next

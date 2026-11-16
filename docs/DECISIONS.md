@@ -405,6 +405,12 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
   - Plate steel uses low metalness, so it keeps its colour under phone lighting.
 - **Cost:** the debug APK grew from 29 MB to 58 MB (about 45 compressed 1K/512 px textures). Draw calls are unchanged. Shaders are still compiled behind the startup splash.
 
+### P-029 — Pieces per world, game feel and HUD simplification (M15, awaiting review)
+- **Pieces:** blocks, gates and the core's cut differ per world (`PieceKit`). Meaning colours and symbols never change: cyan push mark, amber and pink gates with letters, cyan core.
+- **Effects:** the trail, landing squash, completion burst and star reveal are decoration. They never delay input beyond the existing playback, and are off with reduced motion.
+- **Vibration:** on by default, with a Settings toggle.
+- **HUD:** the move counter moved into the top bar. The "No mechanisms here" reminder is no longer shown, because the hint line already says to run the core.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

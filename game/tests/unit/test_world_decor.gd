@@ -38,3 +38,29 @@ func test_same_material_request_is_shared_across_libraries() -> void:
 	assert_true(a == b, "one material for equal requests")
 	var c := MaterialLibrary.new().glow("route", Palette.MINT_SUCCESS, 2.6)
 	assert_false(a == c, "different colours never collide")
+
+
+## M15: every world has its own blocks and gates, all the same playable size.
+func test_every_world_builds_its_own_pieces_at_cell_size() -> void:
+	var library := MaterialLibrary.new()
+	var block_materials: Dictionary[Material, bool] = {}
+	for id: String in WorldTheme.ALL_WORLDS:
+		var kit := PieceKit.new(library, WorldTheme.for_world(id))
+		for pushable: bool in [true, false]:
+			var block := kit.block(pushable)
+			var size := block.mesh.get_aabb().size
+			assert_true(absf(size.x - BoardRenderer3D.BLOCK_SIZE) < 0.01 and absf(size.z - BoardRenderer3D.BLOCK_SIZE) < 0.01,
+				"%s block body matches the picker's box" % id)
+			if pushable:
+				block_materials[block.material_override] = true
+			assert_eq(block.get_child_count() > 0, true, "%s block has detail" % id)
+			block.free()
+		for inverted: bool in [false, true]:
+			var gate := kit.gate(Palette.GATE_INVERTED if inverted else Palette.MECHANISM_AMBER, inverted)
+			var box := gate.mesh.get_aabb()
+			assert_true(box.size.x <= 0.9 and box.size.z <= 0.9, "%s gate stays inside its cell" % id)
+			assert_true(absf(box.end.y - MechanismFixtures3D.GATE_HEIGHT * 0.5) < 0.02,
+				"%s gate rises to the standard height" % id)
+			gate.free()
+		assert_eq(kit.core_meshes().size(), 2)
+	assert_eq(block_materials.size(), WorldTheme.ALL_WORLDS.size(), "each world's pushable block has its own material")

@@ -16,7 +16,7 @@ var seam_glow := Color(0, 0, 0, 0)
 var tile_roughness := 0.86
 var tile_metallic := 0.0
 ## Scanned surfaces (MaterialLibrary.pbr): [texture set, tint, uv scale, roughness ×, metalness ×].
-var floor_surface: Array = ["mossy_rock", Color(0.78, 0.8, 0.74), 0.55, 1.0, 1.0]
+var floor_surface: Array = ["mossy_rock", Color(0.62, 0.8, 0.84), 0.55, 1.0, 1.0]
 var wall_surface: Array = ["castle_wall_slates", Color(0.9, 0.9, 0.88), 0.8, 1.0, 1.0]
 var rock_surface: Array = ["cliff_side", Color(0.75, 0.72, 0.7), 0.3, 1.0, 1.0]
 var metal_surface: Array = ["rusty_metal_02", Color(0.7, 0.7, 0.72), 0.6, 0.9, 0.4]

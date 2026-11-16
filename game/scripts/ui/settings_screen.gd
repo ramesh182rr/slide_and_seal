@@ -4,6 +4,7 @@ extends Control
 
 signal back_requested
 signal reduced_motion_changed(enabled: bool)
+signal haptics_changed(enabled: bool)
 signal reset_progress_confirmed
 
 const MARGIN := 48
@@ -16,10 +17,14 @@ var _status := Label.new()
 var _confirm_reset := ConfirmDialog.new()
 var _margin := MarginContainer.new()
 var _initial_reduced_motion := false
+var _initial_haptics := true
+var _haptics := Button.new()
+var _haptics_state := Label.new()
 
 
-func setup(reduced_motion: bool) -> void:
+func setup(reduced_motion: bool, haptics: bool = true) -> void:
 	_initial_reduced_motion = reduced_motion
+	_initial_haptics = haptics
 
 
 func _ready() -> void:
@@ -40,16 +45,16 @@ func _ready() -> void:
 
 	var header := HBoxContainer.new()
 	column.add_child(header)
-	var back := Button.new()
-	back.text = "Back"
-	back.focus_mode = Control.FOCUS_NONE
+	header.add_theme_constant_override("separation", 20)
+	var back := IconButton.new(IconButton.Icon.BACK)
+	back.custom_minimum_size = Vector2(96, 96)
 	back.pressed.connect(func() -> void: back_requested.emit())
 	header.add_child(back)
 	var title := Label.new()
-	title.text = "Settings"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text = "SETTINGS"
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiTheme.style_label(title, 52, Palette.TEXT)
+	UiTheme.style_title(title, 48, Palette.TEXT)
 	header.add_child(title)
 
 	_section(column, "Accessibility")
@@ -75,6 +80,30 @@ func _ready() -> void:
 		reduced_motion_changed.emit(enabled))
 	column.add_child(_reduced_motion)
 	_note(column, "Skips animations: every move appears instantly.")
+
+	_section(column, "Feedback")
+	_haptics.toggle_mode = true
+	_haptics.custom_minimum_size = Vector2(0, 110)
+	_haptics.focus_mode = Control.FOCUS_NONE
+	var haptics_row := HBoxContainer.new()
+	haptics_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	haptics_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_haptics.add_child(haptics_row)
+	var haptics_name := Label.new()
+	haptics_name.text = "   Vibration"
+	haptics_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	haptics_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiTheme.style_label(haptics_name, 34, Palette.TEXT)
+	haptics_row.add_child(haptics_name)
+	_haptics_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	haptics_row.add_child(_haptics_state)
+	_haptics.button_pressed = _initial_haptics
+	_show_toggle_state(_haptics_state, _initial_haptics)
+	_haptics.toggled.connect(func(enabled: bool) -> void:
+		_show_toggle_state(_haptics_state, enabled)
+		haptics_changed.emit(enabled))
+	column.add_child(_haptics)
+	_note(column, "A short tick when you make a move or complete a seal.")
 
 	_section(column, "Progress")
 	_reset.text = "Reset progress"
@@ -104,6 +133,10 @@ func handle_back() -> bool:
 
 
 # Accessors for tests.
+func haptics_toggle() -> Button:
+	return _haptics
+
+
 func reduced_motion_toggle() -> Button:
 	return _reduced_motion
 
@@ -127,6 +160,11 @@ func status_text() -> String:
 func _show_reduced_motion_state(enabled: bool) -> void:
 	_reduced_motion_state.text = "On   " if enabled else "Off   "
 	UiTheme.style_label(_reduced_motion_state, 34, Palette.MINT_SUCCESS if enabled else Palette.TEXT_MUTED)
+
+
+func _show_toggle_state(label: Label, enabled: bool) -> void:
+	label.text = "On   " if enabled else "Off   "
+	UiTheme.style_label(label, 34, Palette.MINT_SUCCESS if enabled else Palette.TEXT_MUTED)
 
 
 func _on_reset_confirmed() -> void:

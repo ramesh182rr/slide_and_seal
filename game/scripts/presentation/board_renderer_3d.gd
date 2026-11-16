@@ -30,6 +30,9 @@ var _section_frames: Dictionary[String, MeshInstance3D] = {}
 var _batches: Array[Dictionary] = []
 var _theme: WorldTheme = WorldTheme.for_world("")
 var _decor: IslandDecor
+var _pieces: PieceKit
+var _seal_column: MeshInstance3D
+var _seal_burst: CPUParticles3D
 ## Idle-animated decoration: spun about +Y each frame (core crystal, seal rings).
 var _spinners: Array[Node3D] = []
 var _spin_speeds: Array[float] = []
@@ -53,6 +56,7 @@ func build(level: LevelDefinition, state: PuzzleState) -> void:
 	_outline = null
 	_level = level
 	_theme = WorldTheme.for_world(level.world_id)
+	_pieces = PieceKit.new(_library, _theme)
 	_decor = IslandDecor.new()
 	_decor.name = "Island"
 	_decor.animate = animate
@@ -68,7 +72,7 @@ func build(level: LevelDefinition, state: PuzzleState) -> void:
 	_fixtures = MechanismFixtures3D.new()
 	_fixtures.name = "Fixtures"
 	add_child(_fixtures)
-	_fixtures.build(level, _library)
+	_fixtures.build(level, _library, _pieces)
 	_build_objects(state)
 	_build_core()
 	_preview_root = Node3D.new()
@@ -119,6 +123,71 @@ func decor() -> IslandDecor:
 	return _decor
 
 
+## The seal completes: a burst of light and a surge up its column. Decoration only; skipped when
+## motion is reduced.
+func celebrate() -> void:
+	if not animate or _seal_burst == null:
+		return
+	_seal_burst.restart()
+	_seal_burst.emitting = true
+	var tween := create_tween()
+	tween.tween_property(_seal_column, "scale", Vector3(1.8, 2.4, 1.8), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_seal_column, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_SINE)
+
+
+## A block has landed: a quick squash so it has weight. Decoration only.
+func land_pulse(object_id: String) -> void:
+	var node: Node3D = _objects.get(object_id)
+	if node == null or not animate:
+		return
+	var tween := create_tween()
+	tween.tween_property(node, "scale", Vector3(1.08, 0.86, 1.08), 0.06)
+	tween.tween_property(node, "scale", Vector3.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+static var _mote_quad: QuadMesh
+static var _fade: Curve
+
+
+static func _mote_mesh() -> QuadMesh:
+	if _mote_quad == null:
+		_mote_quad = QuadMesh.new()
+		_mote_quad.size = Vector2(0.13, 0.13)
+	return _mote_quad
+
+
+## Particles shrink to nothing over their life.
+static func _fade_curve() -> Curve:
+	if _fade == null:
+		_fade = Curve.new()
+		_fade.add_point(Vector2(0, 0.6))
+		_fade.add_point(Vector2(0.15, 1.0))
+		_fade.add_point(Vector2(1, 0.0))
+	return _fade
+
+
+func _mote_material(color: Color) -> StandardMaterial3D:
+	var material := _library.glow("mote", color, 1.6, 1.0)
+	if material.albedo_texture == null:
+		material.albedo_texture = radial_texture()
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		material.billboard_keep_scale = true
+	return material
+
+
+## Startup warm-up only: one of every piece of this world, under the board but in view, so their
+## shaders compile behind the splash even when this level does not use them.
+func add_warmup_pieces() -> void:
+	var at := BoardCoords.board_center(_level.board_size) + Vector3(0, -2.0, 0)
+	var samples: Array[Node3D] = [_pieces.block(true), _pieces.block(false),
+		_pieces.gate(Palette.MECHANISM_AMBER, false), _pieces.gate(Palette.GATE_INVERTED, true)]
+	for i: int in samples.size():
+		samples[i].position = at + Vector3(i - 1.5, 0, 0)
+		add_child(samples[i])
+
+
 ## Lets the scenery cut away tall pieces on the camera's side (presentation only).
 func set_view_yaw(yaw_degrees: float) -> void:
 	if _decor != null:
@@ -127,6 +196,9 @@ func set_view_yaw(yaw_degrees: float) -> void:
 
 func set_animate(enabled: bool) -> void:
 	animate = enabled
+	var trail := _core.get_node_or_null("Trail") as CPUParticles3D if _core != null else null
+	if trail != null:
+		trail.emitting = enabled
 	if _decor != null:
 		_decor.animate = enabled
 
@@ -407,6 +479,28 @@ func _build_seal() -> void:
 	var beam := _add_mesh(column, _library.glow("seal_column", Palette.MINT_SUCCESS, 0.9, 0.16), Vector3(0, 0.75, 0), root)
 	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_add_glow_pool(at, Palette.MINT_SUCCESS, 1.4, 0.55)
+	_seal_column = beam
+	# The burst for the moment the seal completes (see celebrate()).
+	_seal_burst = CPUParticles3D.new()
+	_seal_burst.name = "Burst"
+	_seal_burst.one_shot = true
+	_seal_burst.emitting = false
+	_seal_burst.amount = 56
+	_seal_burst.lifetime = 1.2
+	_seal_burst.explosiveness = 0.95
+	_seal_burst.mesh = _mote_mesh()
+	_seal_burst.material_override = _mote_material(Palette.MINT_SUCCESS)
+	_seal_burst.direction = Vector3.UP
+	_seal_burst.spread = 70.0
+	_seal_burst.gravity = Vector3(0, -3.2, 0)
+	_seal_burst.initial_velocity_min = 1.6
+	_seal_burst.initial_velocity_max = 3.6
+	_seal_burst.scale_amount_min = 0.6
+	_seal_burst.scale_amount_max = 1.5
+	_seal_burst.scale_amount_curve = _fade_curve()
+	_seal_burst.position = Vector3(0, 0.2, 0)
+	_seal_burst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(_seal_burst)
 
 
 ## A soft additive glow on the floor (no light source: cheap on phones).
@@ -475,41 +569,14 @@ func _build_gravity_zones() -> void:
 # --- Dynamic pieces -----------------------------------------------------------
 
 func _build_objects(state: PuzzleState) -> void:
-	# Worn, painted steel: low metalness so the plate keeps its own colour under phone lighting.
-	var metal := _library.pbr("rusty_metal_02", Color(0.8, 0.86, 0.95), 1.4, 0.85, 0.3)
-	# Vertex colours are shade factors on the scanned metal: pushable blocks bright, fixed ones darker.
-	var pushable_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Color(1, 1, 1), Color(0.82, 0.82, 0.82))
-	var fixed_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Color(0.62, 0.62, 0.62), Color(0.5, 0.5, 0.5))
-	# Pushable blocks carry a glowing square on top: they are the pieces that move.
-	var lamp := _library.glow("block_lamp", Palette.CYAN_ENERGY, 1.6)
-	var frame := TorusMesh.new()
-	frame.inner_radius = 0.2
-	frame.outer_radius = 0.235
-	frame.rings = 4
-	frame.ring_segments = 3
 	var band := BoxMesh.new()
 	band.size = Vector3(BLOCK_SIZE + 0.02, 0.12, BLOCK_SIZE + 0.02)
-	# Every block that can move has lit corner edges, so blocks never read as wall stubs.
-	var edge := BoxMesh.new()
-	edge.size = Vector3(0.035, BLOCK_SIZE * 0.8, 0.035)
-	var edges := SurfaceTool.new()
-	edges.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for corner: Vector2 in [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]:
-		var c := corner * (BLOCK_SIZE * 0.5 - 0.005)
-		edges.append_from(edge, 0, Transform3D(Basis.IDENTITY, Vector3(c.x, 0, c.y)))
-	var edge_mesh := edges.commit()
-	var edge_material := _library.glow("block_edge", Color("#CFE6FF"), 1.3)
 	for obj: MovableObject in state.objects:
-		var node := _add_mesh(pushable_mesh if obj.pushable else fixed_mesh, metal, Vector3.ZERO)
+		# Each world has its own block (PieceKit); pushable ones carry the cyan top mark everywhere.
+		var node := _pieces.block(obj.pushable)
+		add_child(node)
 		node.name = "Object_%s" % obj.id
 		_objects[obj.id] = node
-		var lit := _add_mesh(edge_mesh, edge_material, Vector3.ZERO, node)
-		lit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if obj.pushable:
-			var mark := _add_mesh(frame, lamp, Vector3(0, BLOCK_SIZE * 0.5 + 0.005, 0), node)
-			mark.rotation.y = PI / 4.0
-			mark.scale = Vector3(1, 0.3, 1)
-			mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if obj.polarity != 0:
 			# Magnetic blocks: a coloured band and a +/- symbol (colour is never the only cue).
 			var positive := obj.polarity > 0
@@ -535,8 +602,9 @@ func _build_core() -> void:
 	var spinner := Node3D.new()
 	spinner.name = "Crystal"
 	_core.add_child(spinner)
-	_add_mesh(MeshKit.octahedron(0.28, 0.4), _library.crystal("core", Palette.CYAN_ENERGY, 2.4, 0.9), Vector3.ZERO, spinner)
-	_add_mesh(MeshKit.octahedron(0.12, 0.18), _library.glow("core_heart", Color(0.85, 1.0, 1.0), 3.0), Vector3.ZERO,
+	var cut := _pieces.core_meshes()
+	_add_mesh(cut[0], _library.crystal("core", Palette.CYAN_ENERGY, 2.4, 0.9), Vector3.ZERO, spinner)
+	_add_mesh(cut[1], _library.glow("core_heart", Color(0.85, 1.0, 1.0), 3.0), Vector3.ZERO,
 		spinner).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_spin(spinner, 1.1)
 	var orbit := Node3D.new()
@@ -550,6 +618,27 @@ func _build_core() -> void:
 	var ring_node := _add_mesh(ring, _library.glow("core_ring", Palette.CYAN_ENERGY, 1.8), Vector3.ZERO, orbit)
 	ring_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_spin(orbit, -0.7)
+	# Motes of energy drift off the core and trail behind it as it travels.
+	var trail := CPUParticles3D.new()
+	trail.name = "Trail"
+	trail.amount = 22
+	trail.lifetime = 0.75
+	trail.local_coords = false
+	trail.mesh = _mote_mesh()
+	trail.material_override = _mote_material(Palette.CYAN_ENERGY)
+	trail.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	trail.emission_sphere_radius = 0.16
+	trail.direction = Vector3.UP
+	trail.spread = 35.0
+	trail.gravity = Vector3(0, 0.35, 0)
+	trail.initial_velocity_min = 0.1
+	trail.initial_velocity_max = 0.35
+	trail.scale_amount_min = 0.4
+	trail.scale_amount_max = 1.0
+	trail.scale_amount_curve = _fade_curve()
+	trail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	trail.emitting = animate
+	_core.add_child(trail)
 	# A glow pool on the floor instead of a point light: on phones (Compatibility renderer) every
 	# object a light reaches is drawn again, so the core lights its surroundings this way for free.
 	var pool := QuadMesh.new()

@@ -43,7 +43,6 @@ var _margin := MarginContainer.new()
 var _leave_dialog := LeaveDialog.new()
 var _view_buttons: Dictionary[IconButton.Icon, IconButton] = {}
 var _top_bar := PanelContainer.new()
-var _status_card := PanelContainer.new()
 
 
 func _ready() -> void:
@@ -87,9 +86,25 @@ func _ready() -> void:
 	_world.uppercase = true
 	_world.add_theme_constant_override("line_spacing", 0)
 	titles.add_child(_world)
-	UiTheme.style_title(_title, 40, Palette.TEXT)
+	UiTheme.style_title(_title, 36, Palette.TEXT)
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title.clip_text = true
 	titles.add_child(_title)
+	# Move counter: "3 / 5" under a small caption, in the bar (no separate status box).
+	var counter := VBoxContainer.new()
+	counter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	counter.alignment = BoxContainer.ALIGNMENT_CENTER
+	counter.add_theme_constant_override("separation", -4)
+	header.add_child(counter)
+	var caption := Label.new()
+	caption.text = "MOVES"
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiTheme.style_label(caption, 20, Palette.TEXT_MUTED)
+	counter.add_child(caption)
+	UiTheme.style_label(_actions, 34, Palette.TEXT)
+	_actions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_actions.custom_minimum_size = Vector2(120, 0)
+	counter.add_child(_actions)
 	for entry: Array in [[_undo, "Undo", undo_requested], [_restart, "Restart", restart_requested]]:
 		var button: IconButton = entry[0]
 		button.custom_minimum_size = Vector2(96, 96)
@@ -98,22 +113,15 @@ func _ready() -> void:
 		button.pressed.connect(func() -> void: request.emit())
 		header.add_child(button)
 
-	# Status card: phase, action count and what can be used now.
-	_status_card.add_theme_stylebox_override("panel", _card_style())
-	_status_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_status_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	column.add_child(_status_card)
-	var status_column := VBoxContainer.new()
-	status_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	status_column.add_theme_constant_override("separation", 4)
-	_status_card.add_child(status_column)
-	UiTheme.style_label(_status, 30, Palette.CYAN_ENERGY)
-	UiTheme.style_label(_actions, 26, Palette.TEXT_MUTED)
+	# One slim hint line under the bar; what can be used appears only when there is something.
+	for label: Label in [_status, _available]:
+		label.add_theme_color_override("font_outline_color", Color(0.01, 0.03, 0.07, 0.85))
+		label.add_theme_constant_override("outline_size", 10)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		column.add_child(label)
+	UiTheme.style_label(_status, 28, Palette.CYAN_ENERGY.lightened(0.25))
 	UiTheme.style_label(_available, 26, Palette.MECHANISM_AMBER)
-	_available.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_available.custom_minimum_size = Vector2(760, 0)
-	for label: Label in [_status, _actions, _available]:
-		status_column.add_child(label)
+	_available.visible = false
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -146,15 +154,6 @@ static func _bar_style(accent: Color) -> StyleBoxFlat:
 	return style
 
 
-static func _card_style() -> StyleBoxFlat:
-	var style := UiTheme.box(Color(0.03, 0.06, 0.12, 0.62), Color(UiTheme.METAL_BORDER, 0.2), 22)
-	style.content_margin_left = 24
-	style.content_margin_right = 24
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
-	return style
-
-
 ## A slim vertical cluster on the right edge, centred on the board band. Only the buttons take
 ## input; the gaps between them pass touches through to the board.
 func _build_view_controls() -> void:
@@ -174,7 +173,7 @@ func _build_view_controls() -> void:
 	for spec: Array in specs:
 		var button := IconButton.new(spec[0] as IconButton.Icon)
 		button.custom_minimum_size = Vector2(VIEW_BUTTON_SIZE, VIEW_BUTTON_SIZE)
-		button.modulate.a = 0.85
+		button.modulate.a = 0.7
 		button.pressed.connect(spec[1] as Callable)
 		cluster.add_child(button)
 		_view_buttons[spec[0] as IconButton.Icon] = button
@@ -222,6 +221,8 @@ func set_available_mechanisms(mechanisms: PackedStringArray, completed: bool) ->
 		for mechanism: String in mechanisms:
 			names.append(MECHANISM_LABELS.get(mechanism, mechanism))
 		_available.text = "Available: %s. %s." % [", ".join(names), _how_to(mechanisms)]
+	# The empty-list reminder duplicates the hint line, so it stays off screen.
+	_available.visible = not completed and not mechanisms.is_empty()
 
 
 func available_text() -> String:
@@ -262,9 +263,13 @@ func _apply_safe_area() -> void:
 func update_view(level: LevelDefinition, state: PuzzleState, can_run: bool, can_undo: bool,
 		can_restart: bool, locked: bool) -> void:
 	_status.text = _phase_text(state.phase)
-	_actions.text = "Actions %d  /  Target %d" % [state.mechanism_action_count, level.target_actions]
+	_actions.text = "%d / %d" % [state.mechanism_action_count, level.target_actions]
+	# Over target: the count turns amber (the number itself still tells the story).
+	_actions.add_theme_color_override("font_color",
+		Palette.MECHANISM_AMBER if state.mechanism_action_count > level.target_actions else Palette.TEXT)
 	_run.text = "Run" if state.phase == PuzzleState.Phase.SETUP else "Resume"
 	_run.disabled = locked or not can_run
+	_run.visible = state.phase != PuzzleState.Phase.LEVEL_COMPLETED  # The completion card takes over.
 	_undo.disabled = locked or not can_undo
 	_restart.disabled = locked or not can_restart
 

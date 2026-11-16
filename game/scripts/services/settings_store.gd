@@ -10,6 +10,8 @@ var path: String
 var load_notes: PackedStringArray = PackedStringArray()
 ## Skip animations: committed results appear instantly (docs/01 §12 accessibility).
 var reduced_motion: bool = false
+## Short vibration ticks on moves, rejections and completion.
+var haptics: bool = true
 
 
 func _init(p_path: String = DEFAULT_PATH) -> void:
@@ -20,7 +22,9 @@ func load_from_disk() -> void:
 	var result := SafeJsonFile.read(path, SCHEMA_VERSION, func(_data: Dictionary) -> bool: return true, "settings")
 	load_notes = result.notes
 	reduced_motion = bool(result.data.get("reduced_motion", false))
+	haptics = bool(result.data.get("haptics", true))
 
 
 func save_to_disk() -> bool:
-	return SafeJsonFile.write(path, {"schema_version": SCHEMA_VERSION, "reduced_motion": reduced_motion})
+	return SafeJsonFile.write(path, {"schema_version": SCHEMA_VERSION, "reduced_motion": reduced_motion,
+		"haptics": haptics})

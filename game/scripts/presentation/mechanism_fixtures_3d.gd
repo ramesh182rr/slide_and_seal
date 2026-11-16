@@ -13,6 +13,7 @@ const LEVER_TILT := 0.5
 
 var _level: LevelDefinition
 var _library: MaterialLibrary
+var _pieces: PieceKit
 var _symbols: Dictionary[String, String] = {}
 var _gates: Dictionary[String, MeshInstance3D] = {}
 var _switch_lamps: Dictionary[String, MeshInstance3D] = {}
@@ -28,9 +29,10 @@ var _magnet_labels: Dictionary[String, Label3D] = {}
 var _beam_root: Node3D
 
 
-func build(level: LevelDefinition, library: MaterialLibrary) -> void:
+func build(level: LevelDefinition, library: MaterialLibrary, pieces: PieceKit = null) -> void:
 	_level = level
 	_library = library
+	_pieces = pieces if pieces != null else PieceKit.new(library, WorldTheme.for_world(level.world_id))
 	_symbols = compute_symbols(level)
 	for switch_def: SwitchDefinition in level.switches:
 		_build_switch(switch_def)
@@ -292,35 +294,14 @@ func _build_switch(switch_def: SwitchDefinition) -> void:
 	_label(switch_def.id, at + Vector3(0, LABEL_HEIGHT + 0.1, 0), Palette.TEXT)
 
 
-## A heavy metal door block with glowing bands on every side. Closed gates stand on the cell;
-## open ones sink into the floor so only their glowing top shows.
+## The world's own gate (PieceKit) in the gate's colour. Closed gates stand on the cell; open ones
+## sink into the floor so only their glowing top shows.
 func _build_gate(gate: GateDefinition) -> void:
 	var color := Palette.GATE_INVERTED if gate.inverted else Palette.MECHANISM_AMBER
-	# The door itself is tinted with its colour, so amber and inverted (pink) gates differ at a glance.
-	var body := MeshKit.bevel_box(Vector3(0.86, GATE_HEIGHT, 0.86), 0.06, Color(1, 1, 1), Color(0.78, 0.78, 0.78))
-	var node := _mesh(body, BoardCoords.cell_to_world(gate.position), true)
-	# Scanned rusty steel, tinted with the gate's colour (amber, or pink when inverted).
-	node.material_override = _library.pbr("rusty_metal_02", color.lerp(Color.WHITE, 0.15), 1.2, 0.9, 0.35)
+	var node := _pieces.gate(color, gate.inverted)
+	node.position = BoardCoords.cell_to_world(gate.position)
+	add_child(node)
 	node.name = "Gate_%s" % gate.id
-	var band_material := _library.glow("gate_band_inverted" if gate.inverted else "gate_band", color, 1.5)
-	for height: float in [0.16]:
-		var band := BoxMesh.new()
-		band.size = Vector3(0.872, 0.04, 0.872)
-		var band_node := MeshInstance3D.new()
-		band_node.mesh = band
-		band_node.position = Vector3(0, height, 0)
-		band_node.material_override = band_material
-		band_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		node.add_child(band_node)
-	var cap := BoxMesh.new()
-	cap.size = Vector3(0.26, 0.02, 0.26)
-	var cap_node := MeshInstance3D.new()
-	cap_node.mesh = cap
-	cap_node.position = Vector3(0, GATE_HEIGHT * 0.5 + 0.005, 0)
-	cap_node.rotation.y = PI / 4.0
-	cap_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	cap_node.material_override = _library.glow("gate_cap_inverted" if gate.inverted else "gate_cap", color, 1.0)
-	node.add_child(cap_node)
 	_gates[gate.id] = node
 	_label(gate.id, BoardCoords.cell_to_world(gate.position, LABEL_HEIGHT), color)
 

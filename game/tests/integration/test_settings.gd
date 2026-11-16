@@ -73,6 +73,19 @@ func test_reduced_motion_is_saved_and_applied_to_gameplay() -> void:
 	restarted.free()
 
 
+func test_vibration_setting_is_saved_and_reaches_gameplay() -> void:
+	var app := _spawn()
+	assert_true(app.settings().haptics, "on by default")
+	_settings_screen(app).haptics_toggle().button_pressed = false  # Emits `toggled`.
+	assert_false(app.settings().haptics)
+	app.free()
+	var restarted := _spawn(false)
+	assert_false(restarted.settings().haptics, "persisted across app restarts")
+	restarted.start_level("world_01_level_001")
+	assert_false((restarted.current_screen() as GameplayController).haptics)
+	restarted.free()
+
+
 func test_reset_progress_asks_first_and_cancel_keeps_progress() -> void:
 	var app := _spawn()
 	app.progress().record_completion("world_01_level_001", 0)
