@@ -6,7 +6,7 @@ extends RefCounted
 ## mechanism always looks the same in every world.
 
 ## Environment family (M13): what the board stands on and what surrounds it.
-enum Style { ISLAND, FROST, FOUNDRY, PORTAL, TEMPLE, NEON, VOID }
+enum Style { ISLAND, FROST, FOUNDRY, PORTAL, TEMPLE, NEON, VOID, COLOSSAL }
 
 var world_id := ""
 var style := Style.ISLAND
@@ -70,6 +70,16 @@ static func for_world(id: String) -> WorldTheme:
 		"world_01_awakening":
 			t.title = "The Awakening"
 			t.rock_surface = ["mossy_rock", Color(0.8, 0.85, 0.78), 0.35, 1.0, 1.0]
+			# M16: a colossal overgrown maze in mist (owner direction).
+			t.style = Style.COLOSSAL
+			t.sky_top = Color("#0B1418")
+			t.sky_bottom = Color("#3C5A58")
+			t.horizon = Color("#8FB4A4")
+			t.nebula = Color("#3A5A5E")
+			t.fog = Color("#5E7F78")
+			t.key_light = Color("#FFF1D6")
+			t.fill_light = Color("#8FC6C0")
+			t.ambient = Color("#A8C0B8")
 			t.tagline = "Ancient stone wakes to soft cyan energy."
 			t.accent = Color("#5FE3C8")
 			t.sky_top = Color("#040B17")

@@ -23,6 +23,8 @@ Downloaded 2026-11-16 at 1k resolution. Textures: `_diff` (albedo), `_nor` (Open
 | rock_09 | https://polyhaven.com/a/rock_09 | Floating rocks (model: `assets/models/rock_09.glb`) |
 | Barrel_01 | https://polyhaven.com/a/Barrel_01 | World 3 deck props (model: `assets/models/Barrel_01.glb`, "explosive" texture variant) |
 | barrel_03 | https://polyhaven.com/a/barrel_03 | World 3 deck props (model: `assets/models/barrel_03.glb`) |
+| concrete_moss | https://polyhaven.com/a/concrete_moss | World 1 colossal maze walls |
+| overgrown_concrete_pavers | https://polyhaven.com/a/overgrown_concrete_pavers | World 1 arena ground |
 | kloofendal_misty_morning_puresky | https://polyhaven.com/a/kloofendal_misty_morning_puresky | Soft sky HDRI for reflections only (never shown) |
 
 The scanned models in `assets/models/` are decimated for phones by

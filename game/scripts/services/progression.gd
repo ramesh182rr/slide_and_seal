@@ -4,12 +4,17 @@ extends RefCounted
 ## (docs/01 §10). Stars never gate progression.
 
 
+## TEMPORARY (owner request, 2026-11-16, D-037): every level is open so the whole game can be
+## reviewed on a phone. Set to false to restore solve-to-unlock. Tests turn it off (run_tests.gd).
+static var unlock_all: bool = true
+
+
 ## The first level is always open; every other level opens when the one before it is completed.
 static func is_unlocked(catalog: LevelCatalog, progress: ProgressStore, level_id: String) -> bool:
 	var entry := catalog.entry(level_id)
 	if entry == null:
 		return false
-	if entry.order == 0:
+	if unlock_all or entry.order == 0:
 		return true
 	return progress.is_completed(catalog.entries[entry.order - 1].level_id)
 

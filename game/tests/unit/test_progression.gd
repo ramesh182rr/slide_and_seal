@@ -31,3 +31,14 @@ func test_stars() -> void:
 	assert_eq(Progression.stars(4, 6, 4), 3, "proven optimum matched")
 	assert_eq(Progression.stars(4, 6, -1), 2, "no proven optimum: never three stars")
 	assert_eq(Progression.stars(0, 0, 0), 3)
+
+
+## D-037 (temporary): with the review switch on, every level is open; off, the normal rule applies.
+func test_unlock_all_switch_opens_every_level() -> void:
+	var catalog := LevelCatalog.load_default()
+	var progress := ProgressStore.new("user://test_progress_unlock_all.json")
+	var last: String = catalog.entries[catalog.entries.size() - 1].level_id
+	assert_false(Progression.is_unlocked(catalog, progress, last), "locked under the normal rule")
+	Progression.unlock_all = true
+	assert_true(Progression.is_unlocked(catalog, progress, last), "open while the review switch is on")
+	Progression.unlock_all = false

@@ -59,6 +59,8 @@ func build(board_size: Vector2i, theme: WorldTheme, library: MaterialLibrary) ->
 			_build_neon()
 		WorldTheme.Style.VOID:
 			_build_void()
+		WorldTheme.Style.COLOSSAL:
+			_build_colossal()
 		_:
 			_build_island(0.75)
 			_build_flank_crystals()
@@ -138,6 +140,96 @@ func _build_flank_crystals() -> void:
 		Vector3(h.x * 0.3, -1.7, h.y * 0.85)]
 	for i: int in flank.size():
 		_crystals(self, _centre + flank[i], 0.9 + _theme.crystal.a * 0.4, 20 + i)
+
+
+## World 1: the arena of a colossal maze. Towering weathered concrete panels ring an overgrown
+## courtyard; one wall holds a great door standing ajar with light behind it; ivy and vines hang
+## from the walls. Walls on the camera's side are cut away.
+func _build_colossal() -> void:
+	var margin := 1.3
+	var half := _board_half + Vector2(margin, margin)
+	var height := 6.0
+	var thickness := 1.1
+	# Cool grey weathered concrete (the scan is warm; the tint takes the yellow out).
+	var concrete := _library.pbr("concrete_moss", Color(0.5, 0.6, 0.66), 0.45, 1.0, 1.0)
+	var pavers := _library.pbr("overgrown_concrete_pavers", Color(0.42, 0.52, 0.5), 0.5, 1.0, 1.0)
+	var leaf_a := _library.get_material("ivy_leaf", Color(0.2, 0.42, 0.16), 0.0, 1.0, 0.0, 0.7)
+	var leaf_b := _library.get_material("ivy_leaf_light", Color(0.34, 0.56, 0.22), 0.0, 1.0, 0.0, 0.7)
+	var vine := _library.get_material("ivy_vine", Color(0.16, 0.22, 0.1), 0.0, 1.0, 0.0, 0.9)
+	# The courtyard: one great paved slab, then rock and the hanging boulder beneath.
+	_begin()
+	MeshKit.append_bevel_box(_tool(pavers), _centre + Vector3(0, -0.5, 0),
+		Vector3(half.x * 2.0 + thickness * 2.0, 0.5, half.y * 2.0 + thickness * 2.0), 0.08, Color.WHITE, Color(0.6, 0.6, 0.6))
+	_flush(self, "Courtyard")
+	var rim := half + Vector2(thickness + 0.3, thickness + 0.3)
+	_mesh(MeshKit.normalize_shades(MeshKit.rock_island(rim, 2.0, 11, _theme.rock,
+		_theme.stone_dark.lerp(_theme.foliage, 0.5), 36)), _rock(), _centre + Vector3(0, -0.74, 0))
+	_hang_boulder(rim * 0.92, maxf(rim.x, rim.y) * 1.3 + 2.5, -1.2)
+	for side: int in 4:
+		var along_x := side < 2
+		var sign := -1.0 if side % 2 == 0 else 1.0
+		var outward := Vector2(0, sign) if along_x else Vector2(sign, 0)
+		var length := (half.x if along_x else half.y) * 2.0 + thickness * 2.0
+		var base := _centre + Vector3(outward.x * (half.x + thickness * 0.5), -0.25, outward.y * (half.y + thickness * 0.5))
+		var along := Vector3(1, 0, 0) if along_x else Vector3(0, 0, 1)
+		var inward := Vector3(-outward.x, 0, -outward.y)
+		var node := Node3D.new()
+		node.name = "MazeWall_%d" % side
+		add_child(node)
+		_begin()
+		# Panels about 2.2 wide with dark seams; the far (-z) wall has the great door in its middle.
+		var count := maxi(3, int(round(length / 2.2)))
+		var width := length / count
+		var door := side == 0 or side == 2  # The two walls the default view faces.
+		for k: int in count:
+			var t := -length * 0.5 + (k + 0.5) * width
+			var is_door := door and (k == count / 2)
+			var tall := height * (0.92 + MeshKit.hash01(side, k, 111) * 0.16)
+			var panel_width := width - 0.07
+			if is_door:
+				# Two door leaves standing ajar, with a slot of light between them.
+				for leaf: float in [-1.0, 1.0]:
+					var leaf_w := panel_width * 0.36
+					MeshKit.append_bevel_box(_tool(concrete), base + along * (t + leaf * (panel_width * 0.5 - leaf_w * 0.5))
+						+ Vector3(0, tall * 0.5, 0), (Vector3(leaf_w, tall, thickness * 0.8) if along_x else Vector3(thickness * 0.8, tall, leaf_w)),
+						0.06, Color(0.8, 0.8, 0.8), Color(0.62, 0.62, 0.62), Vector2(k * 3.1, side * 1.7))
+				var light := _library.glow("maze_door_light", Color("#FFE2A6"), 1.2)
+				MeshKit.append_bevel_box(_tool(light), base + along * t + Vector3(0, tall * 0.45, 0),
+					(Vector3(panel_width * 0.28, tall * 0.9, 0.05) if along_x else Vector3(0.05, tall * 0.9, panel_width * 0.28)), 0.0,
+					Color.WHITE, Color.WHITE)
+				continue
+			MeshKit.append_bevel_box(_tool(concrete), base + along * t + Vector3(0, tall * 0.5, 0),
+				(Vector3(panel_width, tall, thickness) if along_x else Vector3(thickness, tall, panel_width)), 0.08,
+				Color.WHITE, Color(0.74, 0.74, 0.74), Vector2(k * 3.1, side * 1.7))
+			# A ledge near the top, like cast formwork.
+			MeshKit.append_bevel_box(_tool(concrete), base + along * t + Vector3(0, tall - 0.5, 0) + inward * 0.04,
+				(Vector3(panel_width, 0.22, thickness + 0.1) if along_x else Vector3(thickness + 0.1, 0.22, panel_width)), 0.04,
+				Color(0.9, 0.9, 0.9), Color(0.66, 0.66, 0.66))
+			# Ivy: a drift of leaves spilling down from the top of some panels, and hanging vines.
+			if MeshKit.hash01(side, k, 112) < 0.7:
+				var face := base + inward * (thickness * 0.5 + 0.03)
+				var reach := tall * (0.35 + MeshKit.hash01(side, k, 113) * 0.5)
+				var leaves := int(reach * 34.0)
+				for n: int in leaves:
+					var fall := pow(MeshKit.hash01(side * 64 + k, n, 114), 1.6) * reach
+					var spread := panel_width * 0.5 * (1.0 - fall / reach * 0.55)
+					var across := (MeshKit.hash01(side * 64 + k, n, 115) - 0.5) * 2.0 * spread
+					var centre := face + along * (t + across) + Vector3(0, tall - 0.1 - fall, 0) \
+						+ inward * MeshKit.hash01(n, k, 116) * 0.06
+					var size := 0.1 + MeshKit.hash01(n, side, 117) * 0.1
+					var tilt := (MeshKit.hash01(n, k, 118) - 0.5) * 1.2
+					var up := (Vector3.UP * cos(tilt) + along * sin(tilt)) * size
+					var across_vec := along.rotated(inward, tilt) * size * 0.8
+					var material: Material = leaf_a if MeshKit.hash01(n, k, 119) < 0.6 else leaf_b
+					MeshKit.quad(_tool(material), centre - across_vec - up, centre + across_vec - up, centre + across_vec + up,
+						centre - across_vec + up, inward, Color.WHITE, Vector2.ZERO, Vector2.RIGHT, Vector2.ONE, Vector2.DOWN)
+				for v: int in 3:
+					var x := t + (MeshKit.hash01(side * 8 + k, v, 120) - 0.5) * panel_width * 0.8
+					var drop := reach * (0.6 + MeshKit.hash01(side * 8 + k, v, 121) * 0.6)
+					var top := face + along * x + Vector3(0, tall - 0.05, 0) + inward * 0.03
+					MeshKit.append_cylinder(_tool(vine), top, top + Vector3(0, -drop, 0), 0.018, Color.WHITE, 4, false)
+		_flush(node, "MazeWallMesh")
+		_tall.append([node, outward])
 
 
 ## World 2: a frozen stone chamber. Ice-block walls with icicles, frost pillars at the corners and

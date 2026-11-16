@@ -191,6 +191,11 @@ The player can rotate the board **view** to any angle around the board centre. T
 - **Why:** the emulator could not present Vulkan (black screen), so the shipped APK could not be checked there. Compatibility also runs on more phones and is usually smoother on mid-range ones. The M11 art (glow, fog, procedural materials, off-screen sky) looks the same under it.
 - **Consequence:** point lights are avoided on the board (each lit object would be drawn again); the core lights the floor with an additive glow pool instead.
 
+### D-037 — All levels unlocked for review (2026-11-16, owner request; temporary)
+- `Progression.unlock_all = true` opens every level, so the owner can test the whole game on a phone.
+- Solve-to-unlock (P-013) returns by setting it to `false`. Tests always run with it off.
+- **Before release:** turn it off.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -410,6 +415,12 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Effects:** the trail, landing squash, completion burst and star reveal are decoration. They never delay input beyond the existing playback, and are off with reduced motion.
 - **Vibration:** on by default, with a Settings toggle.
 - **HUD:** the move counter moved into the top bar. The "No mechanisms here" reminder is no longer shown, because the hint line already says to run the core.
+
+### P-030 — Colossal-maze direction, World 1 first (M16, awaiting review)
+- **Direction:** the owner asked for the feel of a colossal maze arena: towering weathered walls, overgrowth, mist, great doors. World 1 is the first slice.
+- **Scope so far:** only the scenery around the board changes. The board, pieces, rules and readability are untouched. Walls stay off the cells and are cut away on the camera's side.
+- **Originality:** it is an original setting. No names, characters or designs from any film or book are used.
+- **Open question for the owner:** extend this to the other worlds (each keeping its own material and colour), or keep it as World 1's identity only.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

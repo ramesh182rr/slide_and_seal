@@ -5,6 +5,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — M16: All levels unlocked for review; World 1 becomes a colossal overgrown maze
+
+Owner request: unlock all levels for now, so the UI can be tested (solve-to-unlock returns later). Make the game feel like a real colossal-maze arena.
+
+**Changed**
+- **All levels are unlocked (temporary, D-037).** `Progression.unlock_all` is `true`. Setting it to `false` restores solve-to-unlock. The test runner turns it off, so the tests still cover the real rule. Stars, best results and Continue are unchanged.
+- **World 1 "The Awakening" is now the arena of a colossal maze** (`WorldTheme.Style.COLOSSAL`, P-030):
+  - Towering weathered concrete panels, 6 units tall with uneven tops, dark seams and a cast ledge, ring an overgrown paved courtyard.
+  - The two walls the default view faces each hold a great door standing ajar, with warm light in the gap.
+  - Ivy spills down from the wall tops (about 34 leaves per unit of reach, in two greens), with hanging vines.
+  - Walls on the camera's side are cut away, as in the other worlds.
+  - The sky and light are a misty grey-green dusk instead of teal night.
+  - The courtyard sits on the rock rim and the scanned boulder, so the arena still floats.
+  - New CC0 scans: `concrete_moss` (walls, tinted cool grey) and `overgrown_concrete_pavers` (courtyard). Both are listed in `LICENSE.md`.
+
+**Verified**
+- 345 tests pass. 1 is new: the unlock switch opens every level, and the normal rule applies when it is off.
+- World 1 costs 169 draw calls on its largest level (was 161). After the splash, level loads take 45–62 ms, and no frame goes over 25 ms when switching worlds (desktop, Compatibility).
+- The export completes with exit 0 and no errors or warnings. The APK is 64 MB (was 58 MB).
+- On the emulator, with the real APK: the campaign shows every level open in Worlds 1 and 2; a World 2 level and World 1's last level both opened directly. No crash and no game errors.
+
+**Not verified**
+- The frame rate on a real phone.
+
+**Known limitations**
+- Only World 1 has the colossal-maze treatment. The other worlds keep their M13–M15 look until the owner approves the direction.
+
 ### 2026-11-16 — M15: Pieces per world, game feel and a quieter UI
 
 Owner report: blocks, the core and gates looked the same in every world and felt boring; the UI had unnecessary text.

@@ -38,6 +38,7 @@ var _started := false
 ## Tests run on the first frame, not in _initialize: only then is the root viewport inside the
 ## tree, so scenes added by tests receive _ready like in the real game.
 func _process(_delta: float) -> bool:
+	Progression.unlock_all = false  # Tests cover the real solve-to-unlock rule (D-037).
 	if _started:
 		return false
 	_started = true
