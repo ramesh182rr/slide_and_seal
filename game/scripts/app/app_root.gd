@@ -18,6 +18,8 @@ const SETTINGS := "settings"
 @export var quit_on_exit: bool = true
 ## Where progress is saved. Tests point this at a scratch file.
 @export var progress_path: String = ProgressStore.DEFAULT_PATH
+## Startup brand reveal over Home (skipped when instant_playback is on, e.g. in tests).
+@export var show_splash: bool = true
 ## Where settings are saved. Tests point this at a scratch file.
 @export var settings_path: String = SettingsStore.DEFAULT_PATH
 
@@ -47,6 +49,11 @@ func _ready() -> void:
 			start_level(arg.trim_prefix("--level="))
 			return
 	show_home()
+	if show_splash and not instant_playback:
+		var splash := SplashOverlay.new()
+		splash.name = "Splash"
+		splash.reduced_motion = _settings.reduced_motion
+		add_child(splash)
 
 
 func catalog() -> LevelCatalog:

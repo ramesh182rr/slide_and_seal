@@ -5,6 +5,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — Release build: app icon, startup screen, Compatibility renderer
+
+Owner report: the APK showed a black screen on the Android emulator. Owner request: add an app icon and a startup screen, and build an APK without errors or crashes that plays smoothly.
+
+**Fixed**
+- **Black screen on the emulator.** The game was running, but the emulator's software Vulkan driver could not present frames ("Couldn't present to Vulkan queue"); real phones were not affected. Android now uses the Compatibility (OpenGL ES 3) renderer (D-036, owner-approved), and the real APK displays on the emulator.
+- **Export error "No project icon specified"** is gone: the export now completes with no errors or warnings.
+
+**Added**
+- **App icon:** a glowing hexagon around an isometric cube (the energy core's chamber) on a dark teal gradient. Android launcher icons cover every density, including adaptive foreground/background layers and a monochrome layer for themed icons.
+- **Startup screen:**
+  - Android's boot splash shows the emblem and wordmark on the game's dark background.
+  - An in-game reveal (`SplashOverlay`) then continues seamlessly from it: the emblem brightens, a halo widens and the tagline fades in, then it fades out over Home (about 1.6 s).
+  - A tap skips it, and reduced motion shortens it to a quick fade. It is skipped when `instant_playback` is on (tests).
+- **`BrandMark`:** one emblem drawing shared by the icon generator, the boot splash, the reveal and Home.
+- **`tools/generate_brand_assets.gd`:** regenerates the icon and splash PNGs in `game/assets/brand/` from code. No external art.
+
+**Changed**
+- **Renderers:** Android uses the Compatibility renderer with 2x MSAA. Desktop development still uses the Mobile renderer.
+- **The core no longer carries a point light.** In Compatibility every object a light reaches is drawn again. An additive glow pool on the floor gives the same look for free.
+- **Draw calls** (desktop, same frame, Compatibility): The Awakening 160, Gravity Works 178. Before the first performance fix they were 510 and 636.
+- `CLAUDE.md`: the renderer rule, the emulator notes and the brand-asset command are updated.
+
+**Verified**
+- 338 tests pass (1 new: the reveal appears over Home, a tap skips it, and tests skip it).
+- The export completes with exit 0 and no errors or warnings. The APK holds 15 catalog levels and no retired levels, tests or tools.
+- On the emulator, with a fresh install of the real APK:
+  - The launcher icon appears in the app drawer.
+  - Boot splash → reveal → Home.
+  - Continue → level 1 → Run → Resume → seal complete (3 stars).
+  - Next level → level 2 → Run → system Back → "Leave this puzzle?" dialog.
+  - It all ran in one app process: no crash and no game errors in the log.
+
+**Not verified**
+- The frame rate on a real phone. The emulator renders in software, so its speed says nothing about a device.
+
 ### 2026-11-16 — M11: Art pass: themed worlds, floating islands and a new UI
 
 Owner request: the worlds and screens looked too plain next to the product concept art, and should feel realistic and immersive. Everything is presentation only: no simulation, rule or level data changed.

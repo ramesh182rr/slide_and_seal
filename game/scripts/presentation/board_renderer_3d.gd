@@ -536,11 +536,18 @@ func _build_core() -> void:
 	var ring_node := _add_mesh(ring, _library.glow("core_ring", Palette.CYAN_ENERGY, 1.8), Vector3.ZERO, orbit)
 	ring_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_spin(orbit, -0.7)
-	var glow := OmniLight3D.new()
-	glow.light_color = Palette.CYAN_ENERGY
-	glow.light_energy = 1.4
-	glow.omni_range = 2.6
-	_core.add_child(glow)
+	# A glow pool on the floor instead of a point light: on phones (Compatibility renderer) every
+	# object a light reaches is drawn again, so the core lights its surroundings this way for free.
+	var pool := QuadMesh.new()
+	pool.size = Vector2.ONE * 1.5
+	pool.orientation = PlaneMesh.FACE_Y
+	var pool_material := _library.glow("core_pool", Palette.CYAN_ENERGY, 0.7, 1.0)
+	if pool_material.albedo_texture == null:
+		pool_material.albedo_texture = _radial_texture()
+		pool_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		pool_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	var pool_node := _add_mesh(pool, pool_material, Vector3(0, -CORE_HEIGHT + 0.03, 0), _core)
+	pool_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## A pivot per section (content at authored orientation; turned in sync_to_state), a fixed frame

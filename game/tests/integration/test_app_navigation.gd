@@ -77,6 +77,27 @@ func test_starts_at_home_and_play_opens_level_select() -> void:
 	app.free()
 
 
+func test_startup_reveal_covers_home_and_a_tap_skips_it() -> void:
+	var app: AppRoot = (load(APP_SCENE) as PackedScene).instantiate()
+	app.quit_on_exit = false
+	app.settings_path = "user://test_settings_unused.json"
+	TestFiles.remove_progress(TEST_PROGRESS)
+	app.progress_path = TEST_PROGRESS
+	(Engine.get_main_loop() as SceneTree).root.add_child(app)
+	var splash := app.get_node_or_null("Splash") as SplashOverlay
+	assert_not_null(splash, "the brand reveal plays on a normal start")
+	assert_eq(app.current_screen_name(), AppRoot.HOME, "Home is already underneath")
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	splash._on_input(tap)
+	assert_true(splash.is_finished(), "a tap skips the reveal")
+	app.free()
+	var quiet := _spawn()
+	assert_null(quiet.get_node_or_null("Splash"), "no reveal with instant playback (tests)")
+	quiet.free()
+
+
 func test_continue_opens_the_next_level_to_play() -> void:
 	var app := _spawn()
 	assert_eq(app.next_level_to_play().level_id, "world_01_level_001", "fresh save: the first level")

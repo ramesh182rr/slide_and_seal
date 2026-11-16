@@ -186,6 +186,11 @@ The player can rotate the board **view** to any angle around the board centre. T
   - no action may close a gate on the core or a block
 - **Presentation:** inverted gates are pink instead of amber, and their symbol carries a "¬" (e.g. "¬C"), so the difference reads without colour. A lever's label lists every gate it affects (e.g. "A ¬C").
 
+### D-036 — Android uses the Compatibility renderer (2026-11-16, owner-approved)
+- Android/iOS builds render with Compatibility (OpenGL ES 3): `rendering/renderer/rendering_method.mobile="gl_compatibility"`, with 2x MSAA on mobile. Desktop stays on the Mobile renderer.
+- **Why:** the emulator could not present Vulkan (black screen), so the shipped APK could not be checked there. Compatibility also runs on more phones and is usually smoother on mid-range ones. The M11 art (glow, fog, procedural materials, off-screen sky) looks the same under it.
+- **Consequence:** point lights are avoided on the board (each lit object would be drawn again); the core lights the floor with an additive glow pool instead.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 

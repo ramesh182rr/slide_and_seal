@@ -94,18 +94,4 @@ class Emblem:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var c := size * 0.5
-		var r := minf(size.y * 0.5, 80.0)
-		var hexagon := PackedVector2Array()
-		for i: int in 7:
-			hexagon.append(c + Vector2.from_angle(-PI / 2.0 + TAU * i / 6.0) * r)
-		draw_polyline(hexagon, Color(Palette.CYAN_ENERGY, 0.25), 14.0, true)
-		draw_polyline(hexagon, Palette.CYAN_ENERGY, 4.0, true)
-		var inner := PackedVector2Array()
-		for i: int in 7:
-			inner.append(c + Vector2.from_angle(-PI / 2.0 + TAU * i / 6.0) * r * 0.56)
-		draw_colored_polygon(inner.slice(0, 6), Color(Palette.CYAN_ENERGY, 0.18))
-		draw_polyline(inner, Color("#DDF6FF"), 3.0, true)
-		for i: int in [1, 3, 5]:
-			draw_line(c, inner[i], Color("#DDF6FF"), 3.0, true)
-		draw_circle(c, r * 0.08, Color.WHITE)
+		BrandMark.draw_emblem(self, size * 0.5, minf(size.y * 0.5, 80.0))
