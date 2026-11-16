@@ -196,6 +196,11 @@ The player can rotate the board **view** to any angle around the board centre. T
 - Solve-to-unlock (P-013) returns by setting it to `false`. Tests always run with it off.
 - **Before release:** turn it off.
 
+### D-038 — Colossal arenas in every world (2026-11-17, owner-approved; resolves P-030)
+- Every world is the arena of a colossal maze, built from its own material, colour, wall dressing and door light.
+- Scenery stays off the cells, and camera-side walls are cut away.
+- The setting is original; nothing is taken from any film or book.
+
 ### Approval of P-001 – P-006 (2026-11-15)
 The project owner approved all provisional M1 choices below. They now carry the same weight as approved decisions.
 
@@ -421,6 +426,11 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Scope so far:** only the scenery around the board changes. The board, pieces, rules and readability are untouched. Walls stay off the cells and are cut away on the camera's side.
 - **Originality:** it is an original setting. No names, characters or designs from any film or book are used.
 - **Open question for the owner:** extend this to the other worlds (each keeping its own material and colour), or keep it as World 1's identity only.
+
+### P-031 — Readability palette and chunky UI (M17, awaiting review)
+- **Colour roles in every world:** the floor is the darkest and calmest surface. Wall blocks carry a world-specific cap. Movable blocks are the brightest, most saturated pieces, and never share the floor's hue.
+- **Gate colours stay reserved:** blocks avoid amber and pink.
+- **UI:** raised buttons that sink when pressed, a press bounce, vivid primary actions, a pulse on the next level to play, and a stars-first completion card.
 
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 

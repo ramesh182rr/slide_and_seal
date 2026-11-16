@@ -5,6 +5,79 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-17 — M17: Colossal arenas for every world; clear walls, blocks and floors; chunkier UI
+
+Owner approval: carry the colossal-maze treatment to all worlds. Owner report: walls and blocks still look alike across levels, and floors and blocks blend together. Owner request: UI and feel on par with the big casual mobile games.
+
+**Changed: every world is a colossal arena** (`IslandDecor._build_arena`, D-038)
+- One shared builder makes each arena from that world's own materials:
+  - 6-unit wall panels with seams and a cast ledge
+  - a paved courtyard
+  - two great doors ajar, with the world's own light
+  - rock and the scanned boulder beneath
+- Camera-side walls are cut away. All worlds name their walls `Wall_0..3`.
+- **Wall dressing, courtyard and door light per world:**
+
+  | World | Walls | Courtyard | Door light |
+  |---|---|---|---|
+  | 1 | cool concrete with ivy and vines | overgrown paving | warm |
+  | 2 | ice-tinted masonry with snow tops, icicles and frozen falls of light | deep-blue ice | cyan |
+  | 3 | rusted steel with pipes, flanges and hot vents | steel plate | orange |
+  | 4 | violet stone with glowing rune strips | indigo marble | violet |
+  | 5 | sandstone masonry with gold bands | warm marble | gold |
+  | 6 | dark steel panels with teal and magenta neon | dark steel | magenta |
+  | 7 | dark rock split by glowing cracks | dark rock | orange |
+
+- **Landmarks kept inside the courtyard:** tanks, barrels and the lava glow (World 3), portal rings (World 4), marble columns and the seal ring (World 5).
+- **Removed:** the separate frost chamber, foundry frame, neon plinth, void monolith and plain-island builders. The arena replaces them.
+
+**Changed: walls, blocks and floors now read apart**
+- **Floors** are darker and calmer in every world.
+- **Wall blocks** on the board get a cap per world, so they have their own silhouette:
+
+  | World | Wall cap |
+  |---|---|
+  | 1 | moss |
+  | 2 | snow |
+  | 3 | a steel plate with a hot core |
+  | 4 | an amethyst point |
+  | 5 | gold |
+  | 6 | a magenta neon frame |
+  | 7 | lava cracks |
+
+- **Blocks** are recoloured against their floor:
+
+  | World | Block | Floor |
+  |---|---|---|
+  | 1 | bright limestone | dark teal stone |
+  | 2 | frosted white-cyan ice with lit edges | deep blue |
+  | 3 | teal-blue painted steel | brown plate |
+  | 4 | vivid magenta-violet crystal | indigo |
+  | 5 | lapis blue with gold bands | tan marble |
+  | 6 | silver with neon edges | dark steel |
+  | 7 | pale ash stone with lava cracks | dark rock |
+
+**Changed: UI**
+- **Buttons** are chunky: a face standing on a darker base, which sinks when pressed, with a squash-and-spring bounce on every button.
+- **Primary actions** are vivid, with bold outlined text: Run/Resume and Next level in green, Continue in cyan.
+- **Campaign tiles:**
+  - Sealed levels wear their world's colour.
+  - The next level to play breathes gently.
+- **Completion card:** three large stars first, then "SEAL COMPLETE", centred.
+
+**Verified**
+- 346 tests pass. 1 is new: every world builds four arena walls and hides the two on the camera's side.
+- 101–182 draw calls per board. After the splash, no frame over 25 ms when switching worlds; level loads take 44–66 ms (desktop, Compatibility).
+- The export completes with exit 0 and no errors or warnings. The APK is 64 MB.
+- On the emulator, with the real APK: Home → Campaign → a World 2 level → Run. No crash and no game errors. Startup to Home took about 18 s there (software rendering).
+
+**Not verified**
+- The frame rate and startup time on a real phone.
+
+**Known limitations**
+- Still no sound or music. Worlds 3, 4 and 7 still have no puzzles.
+- On Home and the campaign card, the top of the tall walls is cropped by the preview frame.
+
 ### 2026-11-16 — M16: All levels unlocked for review; World 1 becomes a colossal overgrown maze
 
 Owner request: unlock all levels for now, so the UI can be tested (solve-to-unlock returns later). Make the game feel like a real colossal-maze arena.

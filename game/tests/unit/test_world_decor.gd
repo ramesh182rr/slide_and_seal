@@ -64,3 +64,17 @@ func test_every_world_builds_its_own_pieces_at_cell_size() -> void:
 			gate.free()
 		assert_eq(kit.core_meshes().size(), 2)
 	assert_eq(block_materials.size(), WorldTheme.ALL_WORLDS.size(), "each world's pushable block has its own material")
+
+
+## M17: every world is a colossal arena whose camera-side walls are cut away.
+func test_every_world_has_arena_walls_with_cutaway() -> void:
+	for id: String in WorldTheme.ALL_WORLDS:
+		var decor := _decor(id)
+		decor.set_view_yaw(45.0)
+		for side: int in 4:
+			assert_not_null(decor.get_node_or_null("Wall_%d" % side), "%s has arena wall %d" % [id, side])
+		assert_true((decor.get_node("Wall_0") as Node3D).visible and (decor.get_node("Wall_2") as Node3D).visible,
+			"%s: far walls stay" % id)
+		assert_false((decor.get_node("Wall_1") as Node3D).visible or (decor.get_node("Wall_3") as Node3D).visible,
+			"%s: near walls are hidden" % id)
+		decor.free()

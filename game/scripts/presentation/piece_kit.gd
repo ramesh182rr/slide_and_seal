@@ -49,18 +49,18 @@ func _block_parts(pushable: bool) -> Array:
 	var decor := {}  # material → SurfaceTool
 	match _theme.style:
 		WorldTheme.Style.FROST:
-			# A block of clear ice with a cap of snow.
-			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.1), _library.crystal("ice_block",
-				Color(0.16, 0.42, 0.9) if pushable else Color(0.12, 0.28, 0.62), 0.22, 0.93)])
-			var snow := _library.pbr("snow_02", Color(0.95, 0.98, 1.0), 1.5, 1.0, 1.0)
-			MeshKit.append_bevel_box(_tool(decor, snow), Vector3(0, S * 0.5 + 0.02, 0), Vector3(S * 0.86, 0.05, S * 0.86), 0.02,
-				Color.WHITE, Color(0.85, 0.85, 0.85))
+			# A block of bright frosted ice: near-white against the deep blue floor.
+			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.1), _library.get_material(
+				"ice_block" if pushable else "ice_block_dark",
+				Color(0.82, 0.96, 1.0) if pushable else Color(0.5, 0.68, 0.86), 0.22, 1.0, 0.1, 0.12)])
+			var frost := _library.glow("ice_block_edge", Color("#7FE3FF"), 1.4)
+			_edge_frame(_tool(decor, frost), S * 0.5 - 0.03, 0.02)
 		WorldTheme.Style.FOUNDRY:
 			# A riveted steel crate with a hazard band.
 			# Slate-blue painted steel: cool against the foundry's oranges, and unlike the amber gates.
 			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.05),
 				_library.get_material("crate_paint" if pushable else "crate_paint_dark",
-					Color(0.36, 0.47, 0.6) if pushable else Color(0.24, 0.3, 0.4), 0.0, 1.0, 0.25, 0.5)])
+					Color(0.24, 0.56, 0.78) if pushable else Color(0.16, 0.36, 0.52), 0.0, 1.0, 0.25, 0.5)])
 			var paint := _library.get_material("hazard_paint", HAZARD, 0.0, 1.0, 0.1, 0.55)
 			var black := _library.get_material("hazard_black", Color(0.08, 0.08, 0.09), 0.0, 1.0, 0.1, 0.6)
 			MeshKit.append_bevel_box(_tool(decor, paint), Vector3(0, 0.02, 0), Vector3(S + 0.012, 0.16, S + 0.012), 0.0,
@@ -75,13 +75,15 @@ func _block_parts(pushable: bool) -> Array:
 					0.045, Color.WHITE, 8)
 		WorldTheme.Style.PORTAL:
 			# A cut amethyst with a bright heart.
-			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.17), _library.crystal("amethyst_block",
-				Color(0.5, 0.28, 0.92) if pushable else Color(0.32, 0.18, 0.6), 0.4, 0.96)])
+			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.17), _library.get_material(
+				"amethyst_block" if pushable else "amethyst_block_dark",
+				Color(0.8, 0.22, 0.95) if pushable else Color(0.46, 0.14, 0.6), 0.35, 1.0, 0.2, 0.2)])
 			parts.append([MeshKit.octahedron(0.16, 0.22), _library.glow("amethyst_heart", Color(0.9, 0.8, 1.0), 2.0)])
 		WorldTheme.Style.TEMPLE:
 			# Marble banded with gold.
 			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.06, top, side),
-				_library.pbr("marble_01", Color(1.0, 0.97, 0.9), 1.2, 0.6, 1.0)])
+				_library.get_material("lapis_block" if pushable else "lapis_block_dark",
+					Color(0.14, 0.4, 0.95) if pushable else Color(0.1, 0.24, 0.6), 0.0, 1.0, 0.15, 0.3)])
 			var gold := _library.glow("piece_gold", GOLD, 1.4)
 			for y: float in [S * 0.5 - 0.14, -S * 0.5 + 0.14]:
 				MeshKit.append_bevel_box(_tool(decor, gold), Vector3(0, y, 0), Vector3(S + 0.012, 0.045, S + 0.012), 0.0,
@@ -89,13 +91,14 @@ func _block_parts(pushable: bool) -> Array:
 		WorldTheme.Style.NEON:
 			# A dark tech cube traced in light.
 			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.04, top, side),
-				_library.pbr("blue_metal_plate", Color(0.34, 0.34, 0.44), 1.0, 0.7, 0.4)])
+				_library.get_material("neon_block" if pushable else "neon_block_dark",
+					Color(0.8, 0.85, 0.95) if pushable else Color(0.5, 0.54, 0.64), 0.0, 1.0, 0.3, 0.35)])
 			var line := _library.glow("piece_neon", NEON_TEAL if pushable else NEON_MAGENTA, 1.8)
 			_edge_frame(_tool(decor, line), S * 0.5 + 0.004, 0.022)
 		WorldTheme.Style.VOID:
 			# Obsidian split by glowing cracks.
 			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.08, top, side),
-				_library.pbr("dark_rock", Color(1.0, 0.95, 1.0), 1.0, 0.6, 1.0)])
+				_library.pbr("castle_wall_slates", Color(0.95, 0.9, 0.98), 1.3, 0.8, 1.0)])
 			var lava := _library.glow("piece_lava", LAVA, 1.8)
 			for face: int in 4:
 				var normal := Vector3(1, 0, 0).rotated(Vector3.UP, face * PI / 2.0)
@@ -112,7 +115,7 @@ func _block_parts(pushable: bool) -> Array:
 		_:
 			# A hewn stone block, its corners inlaid with light, with moss creeping over one edge.
 			parts.append([MeshKit.bevel_box(Vector3.ONE * S, 0.09, top, side),
-				_library.pbr("castle_wall_slates", Color(1.0, 0.96, 0.86), 1.3, 1.0, 1.0)])
+				_library.pbr("castle_wall_slates", Color(1.25, 1.18, 1.0), 1.3, 1.0, 1.0)])
 			var light := _library.glow("block_edge", Color("#CFE6FF"), 1.3)
 			for corner: Vector2 in _corners():
 				var c := corner * (S * 0.5 - 0.005)
@@ -132,7 +135,7 @@ func _push_mark() -> Mesh:
 	if not _parts.has("push_mark"):
 		var tool := SurfaceTool.new()
 		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var y := S * 0.5 + (0.055 if _theme.style == WorldTheme.Style.FROST else 0.012)
+		var y := S * 0.5 + 0.012
 		var r := 0.2
 		for i: int in 4:
 			var a := Vector3(r, 0, 0).rotated(Vector3.UP, i * PI / 2.0)

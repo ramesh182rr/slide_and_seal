@@ -373,6 +373,50 @@ func _build_walls() -> void:
 		_batch_at_world("trim", band_x, trim, at + Vector3(0, 0, -face), section, false)
 		_batch_at_world("trim", band_z, trim, at + Vector3(face, 0, 0), section, false)
 		_batch_at_world("trim", band_z, trim, at + Vector3(-face, 0, 0), section, false)
+		_wall_cap(cell, section)
+
+
+## Each world crowns its wall blocks differently, so walls have their own silhouette and never
+## read as blocks: moss, snow, a steel plate, an amethyst point, gold, a neon frame, lava cracks.
+func _wall_cap(cell: Vector2i, section: RotatingSectionDefinition) -> void:
+	var top := WALL_HEIGHT - 0.2
+	var at := BoardCoords.cell_to_world(cell, top)
+	match _theme.style:
+		WorldTheme.Style.FROST:
+			var batch := _batch("wallcap", _library.pbr("snow_02", Color(0.96, 0.98, 1.0), 1.2, 1.0, 1.0), section, false)
+			MeshKit.append_bevel_box(batch["tool"], at + Vector3(0, 0.05, 0) - batch["origin"], Vector3(0.88, 0.12, 0.88), 0.05,
+				Color.WHITE, Color(0.82, 0.82, 0.82))
+		WorldTheme.Style.FOUNDRY:
+			var batch := _batch("wallcap", _library.surface_spec(_theme.metal_surface), section, false)
+			MeshKit.append_bevel_box(batch["tool"], at + Vector3(0, 0.03, 0) - batch["origin"], Vector3(0.74, 0.06, 0.74), 0.02,
+				Color.WHITE, Color(0.7, 0.7, 0.7))
+			var hot := _batch("wallcap_glow", _library.glow("foundry_hot", Color("#FF7A1A"), 2.2), section, false)
+			MeshKit.append_bevel_box(hot["tool"], at + Vector3(0, 0.065, 0) - hot["origin"], Vector3(0.3, 0.012, 0.3), 0.0,
+				Color.WHITE, Color.WHITE)
+		WorldTheme.Style.PORTAL:
+			var batch := _batch("wallcap", _library.crystal("wall_amethyst", Color(0.62, 0.4, 0.98), 0.7, 0.95), section, false)
+			MeshKit.append_cone(batch["tool"], at - batch["origin"], at + Vector3(0, 0.34, 0) - batch["origin"], 0.34, Color.WHITE, 4)
+		WorldTheme.Style.TEMPLE:
+			var batch := _batch("wallcap", _library.glow("temple_gold", Color("#F2C46A"), 1.6), section, false)
+			MeshKit.append_bevel_box(batch["tool"], at + Vector3(0, 0.025, 0) - batch["origin"], Vector3(0.62, 0.05, 0.62), 0.0,
+				Color.WHITE, Color.WHITE)
+		WorldTheme.Style.NEON:
+			var batch := _batch("wallcap", _library.glow("neon_magenta", Color("#FF3FA0"), 2.0), section, false)
+			for side: int in 4:
+				var along_x := side < 2
+				var sign := -1.0 if side % 2 == 0 else 1.0
+				var centre := at + (Vector3(0, 0.012, sign * 0.3) if along_x else Vector3(sign * 0.3, 0.012, 0))
+				MeshKit.append_bevel_box(batch["tool"], centre - batch["origin"],
+					Vector3(0.64, 0.024, 0.04) if along_x else Vector3(0.04, 0.024, 0.64), 0.0, Color.WHITE, Color.WHITE)
+		WorldTheme.Style.VOID:
+			var batch := _batch("wallcap", _library.glow("void_vein", Color("#FF8A2A"), 2.0), section, false)
+			for turn: int in 2:
+				var size := Vector3(0.6, 0.02, 0.05) if turn == 0 else Vector3(0.05, 0.02, 0.6)
+				MeshKit.append_bevel_box(batch["tool"], at + Vector3(0, 0.01, 0) - batch["origin"], size, 0.0, Color.WHITE, Color.WHITE)
+		_:
+			var batch := _batch("wallcap", _library.pbr("mossy_rock", Color(0.5, 0.86, 0.42), 1.4, 1.0, 1.0), section, false)
+			MeshKit.append_bevel_box(batch["tool"], at + Vector3(0, 0.035, 0) - batch["origin"], Vector3(0.84, 0.08, 0.84), 0.03,
+				Color.WHITE, Color(0.78, 0.78, 0.78))
 
 
 ## Emissive inlay along every route: a diamond stud per node plus connectors between neighbours.

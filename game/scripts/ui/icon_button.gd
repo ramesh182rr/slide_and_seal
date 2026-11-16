@@ -24,6 +24,7 @@ func _init(p_icon: Icon = Icon.RESET_VIEW, p_text: String = "") -> void:
 
 func _ready() -> void:
 	_update_padding()
+	UiTheme.add_press_bounce(self)
 
 
 ## Text buttons get room on the left for the icon.
@@ -47,11 +48,12 @@ func _draw() -> void:
 		return
 	var font_color := "font_disabled_color" if disabled else ("font_pressed_color" if button_pressed else "font_color")
 	var color := get_theme_color(font_color)
-	var c := size * 0.5
-	var r := minf(size.x, size.y) * 0.26
+	var lift := UiTheme.DEPTH * 0.5 if not button_pressed else 0.0
+	var c := size * 0.5 - Vector2(0, lift)
+	var r := minf(size.x, size.y) * 0.24
 	if text != "":
 		r = minf(size.y, 96.0) * 0.22
-		c = Vector2(22.0 + r * 1.1, size.y * 0.5)
+		c = Vector2(26.0 + r * 1.1, size.y * 0.5 - lift)
 	draw_icon(self, icon_kind, c, r, color)
 
 

@@ -29,14 +29,17 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 16)
 	add_child(column)
-	var header := HBoxContainer.new()
-	column.add_child(header)
+	# The reward first: three big stars, then the title.
+	_stars.custom_minimum_size = Vector2(360, 110)
+	_stars.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(_stars)
 	var title := Label.new()
-	title.text = "Seal complete"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiTheme.style_title(title, 44, Palette.MINT_SUCCESS)
-	header.add_child(title)
-	header.add_child(_stars)
+	title.text = "SEAL COMPLETE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiTheme.style_title(title, 50, Palette.MINT_SUCCESS)
+	column.add_child(title)
+	_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UiTheme.style_label(_summary, 30, Palette.TEXT_MUTED)
 	column.add_child(_summary)
 	UiTheme.style_label(_best, 28, Palette.MECHANISM_AMBER)
@@ -52,6 +55,7 @@ func _ready() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		var request: Signal = entry[2]
 		button.pressed.connect(func() -> void: request.emit())
+		UiTheme.add_press_bounce(button)
 		buttons.add_child(button)
 	UiTheme.make_primary(_next)
 

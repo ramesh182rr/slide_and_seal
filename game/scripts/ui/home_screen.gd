@@ -77,7 +77,7 @@ func _ready() -> void:
 	resume.custom_minimum_size = Vector2(0, 132)
 	resume.add_theme_font_size_override("font_size", 38)
 	resume.clip_text = true
-	UiTheme.make_primary(resume, Palette.CYAN_ENERGY)
+	UiTheme.make_primary(resume, UiTheme.PLAY_CYAN)
 	resume.pressed.connect(func() -> void: continue_requested.emit())
 	column.add_child(resume)
 	var play := IconButton.new(IconButton.Icon.GRID, "Campaign")

@@ -44,26 +44,16 @@ func build(board_size: Vector2i, theme: WorldTheme, library: MaterialLibrary) ->
 	_library = library
 	_centre = BoardCoords.board_center(board_size)
 	_board_half = Vector2(board_size.x, board_size.y) * 0.5 * BoardCoords.CELL_SIZE
+	# Every world is the arena of a colossal maze (M17), built from its own materials; some add
+	# their landmark pieces inside the courtyard.
+	_build_arena()
 	match theme.style:
-		WorldTheme.Style.FROST:
-			_build_frost()
 		WorldTheme.Style.FOUNDRY:
 			_build_foundry()
 		WorldTheme.Style.PORTAL:
-			_build_island(0.75)
 			_build_portals()
 		WorldTheme.Style.TEMPLE:
-			_build_island(0.75)
 			_build_temple()
-		WorldTheme.Style.NEON:
-			_build_neon()
-		WorldTheme.Style.VOID:
-			_build_void()
-		WorldTheme.Style.COLOSSAL:
-			_build_colossal()
-		_:
-			_build_island(0.75)
-			_build_flank_crystals()
 	_build_fragments()
 	set_view_yaw(_view_yaw)
 
@@ -102,19 +92,6 @@ func visible_tall_count() -> int:
 
 # --- Styles -----------------------------------------------------------------------
 
-## A floating rock island under the board (World 1 and the island-based worlds).
-func _build_island(margin: float) -> void:
-	var half := _board_half + Vector2(margin, margin)
-	var top_color := _theme.stone_dark.lerp(_theme.foliage, _theme.foliage.a * 0.6)
-	# A shallow rim of cut rock (moss in World 1) right under the board…
-	var rim_depth := maxf(_board_half.x, _board_half.y) * 0.6 + 1.0
-	var island := _mesh(MeshKit.normalize_shades(MeshKit.rock_island(half, rim_depth, 11, _theme.rock, top_color, 36)),
-		_rock(), _centre + Vector3(0, -0.62, 0))
-	island.name = "Island"
-	# …and a scanned boulder hanging beneath it as the island's mass.
-	_hang_boulder(half * 0.92, maxf(_board_half.x, _board_half.y) * 1.6 + 2.5, -0.95)
-
-
 ## The scanned boulder, turned upside down and fitted under the board: top at `top_y`, footprint
 ## `half` (x, z), `depth` deep.
 func _hang_boulder(half: Vector2, depth: float, top_y: float) -> void:
@@ -132,39 +109,58 @@ func _hang_boulder(half: Vector2, depth: float, top_y: float) -> void:
 		_centre.z + (box.position.z + box.size.z * 0.5) * scale.z)
 
 
-func _build_flank_crystals() -> void:
-	if _theme.crystal.a <= 0.0:
-		return
-	var h := _board_half + Vector2(0.75, 0.75)
-	var flank: Array[Vector3] = [Vector3(-h.x * 0.7, -1.0, h.y + 0.05), Vector3(h.x + 0.05, -1.3, h.y * 0.4),
-		Vector3(h.x * 0.3, -1.7, h.y * 0.85)]
-	for i: int in flank.size():
-		_crystals(self, _centre + flank[i], 0.9 + _theme.crystal.a * 0.4, 20 + i)
-
-
-## World 1: the arena of a colossal maze. Towering weathered concrete panels ring an overgrown
-## courtyard; one wall holds a great door standing ajar with light behind it; ivy and vines hang
-## from the walls. Walls on the camera's side are cut away.
-func _build_colossal() -> void:
+## The arena of a colossal maze, in this world's materials. Towering wall panels with dark seams
+## and a cast ledge ring a paved courtyard; the two walls the default view faces each hold a great
+## door standing ajar with light behind it. Each world dresses its walls differently (ivy, icicles,
+## pipes, runes, gold, neon, lava). Walls on the camera's side are cut away (named Wall_0..3:
+## -z, +z, -x, +x). The courtyard rests on rock and the scanned boulder, so the arena floats.
+func _build_arena() -> void:
+	var style := _theme.style
 	var margin := 1.3
 	var half := _board_half + Vector2(margin, margin)
 	var height := 6.0
 	var thickness := 1.1
-	# Cool grey weathered concrete (the scan is warm; the tint takes the yellow out).
-	var concrete := _library.pbr("concrete_moss", Color(0.5, 0.6, 0.66), 0.45, 1.0, 1.0)
-	var pavers := _library.pbr("overgrown_concrete_pavers", Color(0.42, 0.52, 0.5), 0.5, 1.0, 1.0)
-	var leaf_a := _library.get_material("ivy_leaf", Color(0.2, 0.42, 0.16), 0.0, 1.0, 0.0, 0.7)
-	var leaf_b := _library.get_material("ivy_leaf_light", Color(0.34, 0.56, 0.22), 0.0, 1.0, 0.0, 0.7)
-	var vine := _library.get_material("ivy_vine", Color(0.16, 0.22, 0.1), 0.0, 1.0, 0.0, 0.9)
-	# The courtyard: one great paved slab, then rock and the hanging boulder beneath.
+	var wall: StandardMaterial3D
+	var court: StandardMaterial3D
+	var door_light := Color("#FFE2A6")
+	match style:
+		WorldTheme.Style.FROST:
+			wall = _library.pbr("castle_wall_slates", Color(0.5, 0.68, 0.9), 0.5, 0.5, 1.0)
+			court = _library.pbr("snow_02", Color(0.3, 0.4, 0.6), 0.5, 0.6, 1.0)
+			door_light = Color("#9FE8FF")
+		WorldTheme.Style.FOUNDRY:
+			wall = _library.pbr("rusty_metal_02", Color(0.42, 0.38, 0.36), 0.35, 0.9, 0.4)
+			court = _library.pbr("metal_plate", Color(0.55, 0.5, 0.46), 0.6, 0.9, 0.25)
+			door_light = Color("#FF8A2A")
+		WorldTheme.Style.PORTAL:
+			wall = _library.pbr("castle_wall_slates", Color(0.4, 0.34, 0.6), 0.5, 1.0, 1.0)
+			court = _library.pbr("marble_01", Color(0.26, 0.22, 0.42), 0.4, 0.8, 1.0)
+			door_light = Color("#C9A8FF")
+		WorldTheme.Style.TEMPLE:
+			wall = _library.pbr("castle_wall_slates", Color(0.86, 0.76, 0.58), 0.5, 1.0, 1.0)
+			court = _library.pbr("marble_01", Color(0.6, 0.55, 0.46), 0.4, 0.8, 1.0)
+			door_light = Color("#FFD98A")
+		WorldTheme.Style.NEON:
+			wall = _library.pbr("blue_metal_plate", Color(0.3, 0.3, 0.42), 0.35, 0.8, 0.4)
+			court = _library.pbr("blue_metal_plate", Color(0.2, 0.2, 0.3), 0.45, 0.8, 0.4)
+			door_light = Color("#FF3FA0")
+		WorldTheme.Style.VOID:
+			wall = _library.pbr("dark_rock", Color(0.62, 0.62, 0.7), 0.4, 0.8, 1.0)
+			court = _library.pbr("dark_rock", Color(0.4, 0.4, 0.46), 0.5, 0.9, 1.0)
+			door_light = Color("#FF8A2A")
+		_:
+			# Cool grey weathered concrete (the scan is warm; the tint takes the yellow out).
+			wall = _library.pbr("concrete_moss", Color(0.5, 0.6, 0.66), 0.45, 1.0, 1.0)
+			court = _library.pbr("overgrown_concrete_pavers", Color(0.42, 0.52, 0.5), 0.5, 1.0, 1.0)
 	_begin()
-	MeshKit.append_bevel_box(_tool(pavers), _centre + Vector3(0, -0.5, 0),
+	MeshKit.append_bevel_box(_tool(court), _centre + Vector3(0, -0.5, 0),
 		Vector3(half.x * 2.0 + thickness * 2.0, 0.5, half.y * 2.0 + thickness * 2.0), 0.08, Color.WHITE, Color(0.6, 0.6, 0.6))
 	_flush(self, "Courtyard")
 	var rim := half + Vector2(thickness + 0.3, thickness + 0.3)
 	_mesh(MeshKit.normalize_shades(MeshKit.rock_island(rim, 2.0, 11, _theme.rock,
-		_theme.stone_dark.lerp(_theme.foliage, 0.5), 36)), _rock(), _centre + Vector3(0, -0.74, 0))
+		_theme.stone_dark.lerp(_theme.foliage, _theme.foliage.a * 0.5), 36)), _rock(), _centre + Vector3(0, -0.74, 0))
 	_hang_boulder(rim * 0.92, maxf(rim.x, rim.y) * 1.3 + 2.5, -1.2)
+	var light := _library.glow("arena_door_light", door_light, 1.2)
 	for side: int in 4:
 		var along_x := side < 2
 		var sign := -1.0 if side % 2 == 0 else 1.0
@@ -173,210 +169,154 @@ func _build_colossal() -> void:
 		var base := _centre + Vector3(outward.x * (half.x + thickness * 0.5), -0.25, outward.y * (half.y + thickness * 0.5))
 		var along := Vector3(1, 0, 0) if along_x else Vector3(0, 0, 1)
 		var inward := Vector3(-outward.x, 0, -outward.y)
+		var face := base + inward * (thickness * 0.5 + 0.03)
 		var node := Node3D.new()
-		node.name = "MazeWall_%d" % side
+		node.name = "Wall_%d" % side
 		add_child(node)
 		_begin()
-		# Panels about 2.2 wide with dark seams; the far (-z) wall has the great door in its middle.
 		var count := maxi(3, int(round(length / 2.2)))
 		var width := length / count
 		var door := side == 0 or side == 2  # The two walls the default view faces.
 		for k: int in count:
 			var t := -length * 0.5 + (k + 0.5) * width
-			var is_door := door and (k == count / 2)
 			var tall := height * (0.92 + MeshKit.hash01(side, k, 111) * 0.16)
 			var panel_width := width - 0.07
-			if is_door:
+			if door and k == count / 2:
 				# Two door leaves standing ajar, with a slot of light between them.
 				for leaf: float in [-1.0, 1.0]:
 					var leaf_w := panel_width * 0.36
-					MeshKit.append_bevel_box(_tool(concrete), base + along * (t + leaf * (panel_width * 0.5 - leaf_w * 0.5))
+					MeshKit.append_bevel_box(_tool(wall), base + along * (t + leaf * (panel_width * 0.5 - leaf_w * 0.5))
 						+ Vector3(0, tall * 0.5, 0), (Vector3(leaf_w, tall, thickness * 0.8) if along_x else Vector3(thickness * 0.8, tall, leaf_w)),
 						0.06, Color(0.8, 0.8, 0.8), Color(0.62, 0.62, 0.62), Vector2(k * 3.1, side * 1.7))
-				var light := _library.glow("maze_door_light", Color("#FFE2A6"), 1.2)
 				MeshKit.append_bevel_box(_tool(light), base + along * t + Vector3(0, tall * 0.45, 0),
 					(Vector3(panel_width * 0.28, tall * 0.9, 0.05) if along_x else Vector3(0.05, tall * 0.9, panel_width * 0.28)), 0.0,
 					Color.WHITE, Color.WHITE)
 				continue
-			MeshKit.append_bevel_box(_tool(concrete), base + along * t + Vector3(0, tall * 0.5, 0),
+			MeshKit.append_bevel_box(_tool(wall), base + along * t + Vector3(0, tall * 0.5, 0),
 				(Vector3(panel_width, tall, thickness) if along_x else Vector3(thickness, tall, panel_width)), 0.08,
 				Color.WHITE, Color(0.74, 0.74, 0.74), Vector2(k * 3.1, side * 1.7))
 			# A ledge near the top, like cast formwork.
-			MeshKit.append_bevel_box(_tool(concrete), base + along * t + Vector3(0, tall - 0.5, 0) + inward * 0.04,
+			MeshKit.append_bevel_box(_tool(wall), base + along * t + Vector3(0, tall - 0.5, 0) + inward * 0.04,
 				(Vector3(panel_width, 0.22, thickness + 0.1) if along_x else Vector3(thickness + 0.1, 0.22, panel_width)), 0.04,
 				Color(0.9, 0.9, 0.9), Color(0.66, 0.66, 0.66))
-			# Ivy: a drift of leaves spilling down from the top of some panels, and hanging vines.
-			if MeshKit.hash01(side, k, 112) < 0.7:
-				var face := base + inward * (thickness * 0.5 + 0.03)
-				var reach := tall * (0.35 + MeshKit.hash01(side, k, 113) * 0.5)
-				var leaves := int(reach * 34.0)
-				for n: int in leaves:
-					var fall := pow(MeshKit.hash01(side * 64 + k, n, 114), 1.6) * reach
-					var spread := panel_width * 0.5 * (1.0 - fall / reach * 0.55)
-					var across := (MeshKit.hash01(side * 64 + k, n, 115) - 0.5) * 2.0 * spread
-					var centre := face + along * (t + across) + Vector3(0, tall - 0.1 - fall, 0) \
-						+ inward * MeshKit.hash01(n, k, 116) * 0.06
-					var size := 0.1 + MeshKit.hash01(n, side, 117) * 0.1
-					var tilt := (MeshKit.hash01(n, k, 118) - 0.5) * 1.2
-					var up := (Vector3.UP * cos(tilt) + along * sin(tilt)) * size
-					var across_vec := along.rotated(inward, tilt) * size * 0.8
-					var material: Material = leaf_a if MeshKit.hash01(n, k, 119) < 0.6 else leaf_b
-					MeshKit.quad(_tool(material), centre - across_vec - up, centre + across_vec - up, centre + across_vec + up,
-						centre - across_vec + up, inward, Color.WHITE, Vector2.ZERO, Vector2.RIGHT, Vector2.ONE, Vector2.DOWN)
-				for v: int in 3:
-					var x := t + (MeshKit.hash01(side * 8 + k, v, 120) - 0.5) * panel_width * 0.8
-					var drop := reach * (0.6 + MeshKit.hash01(side * 8 + k, v, 121) * 0.6)
-					var top := face + along * x + Vector3(0, tall - 0.05, 0) + inward * 0.03
-					MeshKit.append_cylinder(_tool(vine), top, top + Vector3(0, -drop, 0), 0.018, Color.WHITE, 4, false)
-		_flush(node, "MazeWallMesh")
-		_tall.append([node, outward])
-
-
-## World 2: a frozen stone chamber. Ice-block walls with icicles, frost pillars at the corners and
-## a frozen fall of light; the walls on the camera's side are cut away.
-func _build_frost() -> void:
-	var margin := 1.3
-	var half := _board_half + Vector2(margin, margin)
-	var ice := _theme.stone
-	var deep := _theme.stone_dark
-	# Floor ring of ice flagstones around the board, on a slab.
-	var slab := _surface("frost_slab", 0.35)
-	_begin()
-	MeshKit.append_bevel_box(_tool(slab), _centre + Vector3(0, -0.55, 0), Vector3(half.x * 2.0 + 0.6, 0.6, half.y * 2.0 + 0.6),
-		0.1, deep.lightened(0.1), deep.darkened(0.3))
-	var x0 := int(floor(_centre.x - half.x))
-	var x1 := int(ceil(_centre.x + half.x))
-	var z0 := int(floor(_centre.z - half.y))
-	var z1 := int(ceil(_centre.z + half.y))
-	for z: int in range(z0, z1 + 1):
-		for x: int in range(x0, x1 + 1):
-			var inside := absf(x - _centre.x) < _board_half.x + 0.2 and absf(z - _centre.z) < _board_half.y + 0.2
-			if inside or MeshKit.hash01(x, z, 61) < 0.08:
-				continue
-			var lift := MeshKit.hash01(x, z, 62) * 0.06
-			var tone := ice.darkened(0.1 + MeshKit.hash01(x, z, 63) * 0.2)
-			MeshKit.append_bevel_box(_tool(slab), Vector3(x, -0.3 + lift, z), Vector3(0.92, 0.2, 0.92), 0.05, tone,
-				deep, Vector2(MeshKit.hash01(x, z, 64), MeshKit.hash01(x, z, 65)) * 6.0)
-	_flush(self, "FrostFloor")
-	# Rock beneath, as if the chamber were cut out of a floating glacier.
-	_mesh(MeshKit.normalize_shades(MeshKit.rock_island(half + Vector2(0.4, 0.4), 1.6, 17, _theme.rock,
-		deep.darkened(0.2), 36)), _rock(), _centre + Vector3(0, -0.85, 0))
-	_hang_boulder(half * 0.95, maxf(half.x, half.y) * 1.5 + 2.0, -1.2)
-	# Four walls of stacked ice blocks, each its own node for the cutaway.
-	var wall_height := 2.4
-	var thickness := 0.55
-	for side: int in 4:
-		var along_x := side < 2
-		var sign := -1.0 if side % 2 == 0 else 1.0
-		var outward := Vector2(0, sign) if along_x else Vector2(sign, 0)
-		var length := (half.x if along_x else half.y) * 2.0 + thickness * 2.0
-		var base := _centre + Vector3(outward.x * (half.x + thickness * 0.5), -0.25, outward.y * (half.y + thickness * 0.5))
-		var node := Node3D.new()
-		node.name = "Wall_%d" % side
-		add_child(node)
-		_begin()
-		var courses := 4
-		var course_h := wall_height / courses
-		for c: int in courses:
-			var offset := 0.5 if c % 2 == 1 else 0.0
-			var count := int(ceil(length)) + 1
-			for k: int in count:
-				var t := -length * 0.5 + (k - offset) * 1.0
-				var a := maxf(t, -length * 0.5)
-				var b := minf(t + 1.0, length * 0.5)
-				if b - a < 0.15:
-					continue
-				var mid := (a + b) * 0.5
-				var pos := base + (Vector3(mid, 0, 0) if along_x else Vector3(0, 0, mid)) + Vector3(0, course_h * (c + 0.5), 0)
-				var size := Vector3(b - a - 0.04, course_h - 0.04, thickness) if along_x else Vector3(thickness, course_h - 0.04, b - a - 0.04)
-				var tone := ice.darkened(0.15 + MeshKit.hash01(side * 31 + k, c, 66) * 0.2)
-				MeshKit.append_bevel_box(_tool(slab), pos, size, 0.05, tone.lightened(0.2), tone,
-					Vector2(MeshKit.hash01(k, c, 67), MeshKit.hash01(k, side, 68)) * 6.0)
-		# Snow cap and icicles along the inner top edge.
-		var top := base + Vector3(0, wall_height + 0.06, 0)
-		var cap_size := Vector3(length, 0.12, thickness + 0.1) if along_x else Vector3(thickness + 0.1, 0.12, length)
-		MeshKit.append_bevel_box(_tool(slab), top, cap_size, 0.05, Color("#E8F4FF"), ice.lightened(0.3))
-		var icicle := _crystal_material(Color("#BFE6FF"), 0.5, 0.85)
-		var inner_face := -(thickness * 0.5 + 0.02)
-		var steps := int(length / 0.35)
-		for k: int in steps:
-			if MeshKit.hash01(side, k, 69) < 0.35:
-				continue
-			var t := -length * 0.5 + (k + 0.5) * 0.35
-			var drop := 0.25 + MeshKit.hash01(side, k, 70) * 0.7
-			var at := top + (Vector3(t, -0.06, outward.y * inner_face) if along_x else Vector3(outward.x * inner_face, -0.06, t))
-			MeshKit.append_cone(_tool(icicle), at, at + Vector3(0, -drop, 0), 0.05 + drop * 0.04, Color.WHITE, 5)
-		# A frozen fall of light down the middle of the wall.
-		var fall := _library.glow("frost_fall", Color("#8FE0FF"), 1.1, 0.35)
-		var fall_box := BoxMesh.new()
-		fall_box.size = Vector3(0.5, wall_height, 0.02) if along_x else Vector3(0.02, wall_height, 0.5)
-		var fall_at := base + Vector3(0, wall_height * 0.5, 0) + Vector3(outward.x, 0, outward.y) * -(thickness * 0.5 + 0.015)
-		(_tool(fall)).append_from(fall_box, 0, Transform3D(Basis.IDENTITY, fall_at))
+			_dress_panel(style, side, k, face + along * t, along, inward, panel_width, tall)
 		_flush(node, "WallMesh")
 		_tall.append([node, outward])
-	# Frost pillars at the corners: stacked drums with a glowing crystal crown.
-	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-		var node := Node3D.new()
-		node.name = "Pillar"
-		add_child(node)
-		_begin()
-		var at := _centre + Vector3(corner.x * (half.x + thickness * 0.5), -0.25, corner.y * (half.y + thickness * 0.5))
-		var y := 2.6
-		_column(node, at, 0.65, _library.pbr("marble_01", Color(0.62, 0.78, 1.0), 1.0, 0.35, 1.0, 1.0, false))
-		_flush(node, "PillarMesh")
-		_crystals(node, at + Vector3(0, y, 0), 1.1, 80 + int(corner.x * 3 + corner.y))
-		_tall.append([node, corner])
 
 
-## World 3: an industrial foundry deck. A riveted frame with pipes, flanges and glowing vents,
-## pressure tanks at the corners, and support legs down into a lava sea.
+## One wall panel's dressing. `at` is the foot of the panel's inner face, `along` runs across it.
+func _dress_panel(style: WorldTheme.Style, side: int, k: int, at: Vector3, along: Vector3, inward: Vector3,
+		width: float, tall: float) -> void:
+	var along_x := absf(along.x) > 0.5
+	var key := side * 64 + k
+	match style:
+		WorldTheme.Style.FROST:
+			# Snow on the top, icicles under the ledge, and now and then a frozen fall of light.
+			var snow := _library.pbr("snow_02", Color(0.95, 0.98, 1.0), 0.6, 1.0, 1.0)
+			MeshKit.append_bevel_box(_tool(snow), at - inward * 0.55 + Vector3(0, tall + 0.07, 0),
+				(Vector3(width, 0.16, 1.2) if along_x else Vector3(1.2, 0.16, width)), 0.06, Color.WHITE, Color(0.85, 0.85, 0.85))
+			var icicle := _crystal_material(Color("#BFE6FF"), 0.5, 0.85)
+			var steps := int(width / 0.3)
+			for n: int in steps:
+				if MeshKit.hash01(key, n, 69) < 0.3:
+					continue
+				var drop := 0.3 + MeshKit.hash01(key, n, 70) * 0.9
+				var top := at + along * (-width * 0.5 + (n + 0.5) * 0.3) + Vector3(0, tall - 0.6, 0) + inward * 0.08
+				MeshKit.append_cone(_tool(icicle), top, top + Vector3(0, -drop, 0), 0.05 + drop * 0.04, Color.WHITE, 5)
+			if MeshKit.hash01(side, k, 71) < 0.35:
+				var fall := _library.glow("frost_fall", Color("#8FE0FF"), 1.1, 0.35)
+				MeshKit.append_bevel_box(_tool(fall), at + Vector3(0, tall * 0.45, 0),
+					(Vector3(0.5, tall * 0.9, 0.02) if along_x else Vector3(0.02, tall * 0.9, 0.5)), 0.0, Color.WHITE, Color.WHITE)
+		WorldTheme.Style.FOUNDRY:
+			# Pipes with flanges run along the wall; a hot vent glows in every panel.
+			var metal := _library.surface_spec(_theme.metal_surface)
+			var hot := _library.glow("foundry_hot", Color("#FF7A1A"), 2.2)
+			for p: int in 2:
+				var y := tall * (0.3 + p * 0.28)
+				var radius := 0.13 - p * 0.03
+				var centre := at + Vector3(0, y, 0) + inward * (radius + 0.02)
+				MeshKit.append_cylinder(_tool(metal), centre - along * (width * 0.5 + 0.04), centre + along * (width * 0.5 + 0.04),
+					radius, Color(0.7, 0.7, 0.7), 8, false)
+				MeshKit.append_cylinder(_tool(metal), centre - along * 0.06, centre + along * 0.06, radius + 0.05, Color.WHITE, 8)
+			MeshKit.append_bevel_box(_tool(hot), at + Vector3(0, tall * 0.14, 0),
+				(Vector3(width * 0.5, 0.14, 0.02) if along_x else Vector3(0.02, 0.14, width * 0.5)), 0.0, Color.WHITE, Color.WHITE)
+		WorldTheme.Style.PORTAL:
+			# A glowing rune strip down each panel, with crystals growing from its foot.
+			var rune := _library.glow("portal_ring", Palette.PORTAL_VIOLET, 2.0)
+			var y := tall * 0.9
+			while y > tall * 0.25:
+				var seg := 0.3 + MeshKit.hash01(key, int(y * 10.0), 72) * 0.5
+				MeshKit.append_bevel_box(_tool(rune), at + Vector3(0, y - seg * 0.5, 0),
+					(Vector3(0.07, seg, 0.02) if along_x else Vector3(0.02, seg, 0.07)), 0.0, Color.WHITE, Color.WHITE)
+				y -= seg + 0.14
+		WorldTheme.Style.TEMPLE:
+			# Bands of gold.
+			var gold := _library.glow("temple_gold", Color("#F2C46A"), 1.6)
+			for y: float in [tall * 0.2, tall * 0.74]:
+				MeshKit.append_bevel_box(_tool(gold), at + Vector3(0, y, 0),
+					(Vector3(width, 0.09, 0.02) if along_x else Vector3(0.02, 0.09, width)), 0.0, Color.WHITE, Color.WHITE)
+		WorldTheme.Style.NEON:
+			# Strips of neon, teal and magenta.
+			var strip := _library.glow("neon_teal", Color("#3FF2E0"), 2.0) if k % 3 != 0 \
+				else _library.glow("neon_magenta", Color("#FF3FA0"), 2.0)
+			MeshKit.append_bevel_box(_tool(strip), at + Vector3(0, tall * 0.5, 0),
+				(Vector3(0.07, tall * 0.94, 0.02) if along_x else Vector3(0.02, tall * 0.94, 0.07)), 0.0, Color.WHITE, Color.WHITE)
+			MeshKit.append_bevel_box(_tool(strip), at + Vector3(0, tall * 0.62, 0),
+				(Vector3(width * 0.7, 0.05, 0.02) if along_x else Vector3(0.02, 0.05, width * 0.7)), 0.0, Color.WHITE, Color.WHITE)
+		WorldTheme.Style.VOID:
+			# Glowing cracks split the stone.
+			var vein := _library.glow("void_vein", Color("#FF8A2A"), 2.0)
+			for c: int in 2:
+				var drift := (MeshKit.hash01(key, c, 81) - 0.5) * width * 0.6
+				var y := tall * (0.95 - c * 0.2)
+				while y > tall * 0.15:
+					var seg := 0.3 + MeshKit.hash01(key, c * 13 + int(y * 10.0), 82) * 0.4
+					MeshKit.append_bevel_box(_tool(vein), at + along * drift + Vector3(0, y - seg * 0.5, 0),
+						(Vector3(0.05, seg, 0.02) if along_x else Vector3(0.02, seg, 0.05)), 0.0, Color.WHITE, Color.WHITE)
+					drift += (MeshKit.hash01(key, c * 7 + int(y * 10.0), 83) - 0.5) * 0.3
+					y -= seg
+		_:
+			# Ivy: a drift of leaves spilling down from the top of most panels, and hanging vines.
+			if MeshKit.hash01(side, k, 112) >= 0.7:
+				return
+			var leaf_a := _library.get_material("ivy_leaf", Color(0.2, 0.42, 0.16), 0.0, 1.0, 0.0, 0.7)
+			var leaf_b := _library.get_material("ivy_leaf_light", Color(0.34, 0.56, 0.22), 0.0, 1.0, 0.0, 0.7)
+			var vine := _library.get_material("ivy_vine", Color(0.16, 0.22, 0.1), 0.0, 1.0, 0.0, 0.9)
+			var reach := tall * (0.35 + MeshKit.hash01(side, k, 113) * 0.5)
+			for n: int in int(reach * 34.0):
+				var fall := pow(MeshKit.hash01(key, n, 114), 1.6) * reach
+				var spread := width * 0.5 * (1.0 - fall / reach * 0.55)
+				var across := (MeshKit.hash01(key, n, 115) - 0.5) * 2.0 * spread
+				var centre := at + along * across + Vector3(0, tall - 0.1 - fall, 0) + inward * MeshKit.hash01(n, k, 116) * 0.06
+				var size := 0.1 + MeshKit.hash01(n, side, 117) * 0.1
+				var tilt := (MeshKit.hash01(n, k, 118) - 0.5) * 1.2
+				var up := (Vector3.UP * cos(tilt) + along * sin(tilt)) * size
+				var across_vec := along.rotated(inward, tilt) * size * 0.8
+				var material: Material = leaf_a if MeshKit.hash01(n, k, 119) < 0.6 else leaf_b
+				MeshKit.quad(_tool(material), centre - across_vec - up, centre + across_vec - up, centre + across_vec + up,
+					centre - across_vec + up, inward, Color.WHITE, Vector2.ZERO, Vector2.RIGHT, Vector2.ONE, Vector2.DOWN)
+			for v: int in 3:
+				var x := (MeshKit.hash01(side * 8 + k, v, 120) - 0.5) * width * 0.8
+				var drop := reach * (0.6 + MeshKit.hash01(side * 8 + k, v, 121) * 0.6)
+				var top := at + along * x + Vector3(0, tall - 0.05, 0) + inward * 0.03
+				MeshKit.append_cylinder(_tool(vine), top, top + Vector3(0, -drop, 0), 0.018, Color.WHITE, 4, false)
+
+
+## World 3's landmarks inside the arena: pressure tanks and stacked barrels at the courtyard
+## corners, and the glow of lava far below.
 func _build_foundry() -> void:
 	var metal := _surface("foundry_metal", 0.45, 0.6)
 	var hot := _library.glow("foundry_hot", Color("#FF7A1A"), 2.2)
 	var beam_color := Color("#3A3C42")
 	var pipe_color := Color("#55524E")
 	var half := _board_half
-	_begin()
-	# Frame beams around the deck.
-	var beam := 0.5
-	for side: int in 4:
-		var along_x := side < 2
-		var sign := -1.0 if side % 2 == 0 else 1.0
-		var length := (half.x if along_x else half.y) * 2.0 + beam * 2.0 + 0.36
-		var at := _centre + (Vector3(0, -0.4, sign * (half.y + 0.18 + beam * 0.5)) if along_x
-			else Vector3(sign * (half.x + 0.18 + beam * 0.5), -0.4, 0))
-		var size := Vector3(length, 0.6, beam) if along_x else Vector3(beam, 0.6, length)
-		MeshKit.append_bevel_box(_tool(metal), at, size, 0.06, beam_color.lightened(0.1), beam_color)
-		# Pipes along the outer face, with flanges, and hot vents in the beam.
-		var out := Vector3(0, 0, sign) if along_x else Vector3(sign, 0, 0)
-		var dir := Vector3(1, 0, 0) if along_x else Vector3(0, 0, 1)
-		for p: int in 2:
-			var offset := out * (beam * 0.5 + 0.14 + p * 0.22) + Vector3(0, -0.2 - p * 0.32, 0)
-			var radius := 0.11 - p * 0.03
-			MeshKit.append_cylinder(_tool(metal), at + offset - dir * length * 0.5, at + offset + dir * length * 0.5,
-				radius, pipe_color.darkened(p * 0.2), 8, false)
-			var flanges := int(length / 1.6)
-			for f: int in flanges:
-				var t := -length * 0.5 + (f + 0.5) * length / flanges
-				MeshKit.append_cylinder(_tool(metal), at + offset + dir * (t - 0.05), at + offset + dir * (t + 0.05),
-					radius + 0.04, pipe_color.lightened(0.15), 8)
-		var vents := int(length / 2.2)
-		for v: int in vents:
-			var t := -length * 0.5 + (v + 0.5) * length / vents
-			MeshKit.append_bevel_box(_tool(hot), at + dir * t + out * (beam * 0.5 + 0.005) + Vector3(0, -0.02, 0),
-				(Vector3(0.36, 0.12, 0.01) if along_x else Vector3(0.01, 0.12, 0.36)), 0.0, Color.WHITE, Color.WHITE)
-	# Support legs into the lava.
-	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-		var at := _centre + Vector3(corner.x * (half.x + 0.4), -0.6, corner.y * (half.y + 0.4))
-		MeshKit.append_cylinder(_tool(metal), at, at + Vector3(0, -9.0, 0), 0.32, beam_color.darkened(0.2), 8)
-	_flush(self, "FoundryFrame")
 	# Pressure tanks at the corners (tall: cut away on the camera's side).
 	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
 		var node := Node3D.new()
 		node.name = "Tank"
 		add_child(node)
 		_begin()
-		var at := _centre + Vector3(corner.x * (half.x + 0.95), -0.7, corner.y * (half.y + 0.95))
+		var at := _centre + Vector3(corner.x * (half.x + 0.75), -0.25, corner.y * (half.y + 0.75))
 		MeshKit.append_cylinder(_tool(metal), at, at + Vector3(0, 1.9, 0), 0.5, pipe_color, 12)
 		MeshKit.append_cylinder(_tool(metal), at + Vector3(0, 1.9, 0), at + Vector3(0, 2.15, 0), 0.32, pipe_color.lightened(0.2), 12)
 		MeshKit.append_cylinder(_tool(hot), at + Vector3(0, 1.0, 0), at + Vector3(0, 1.18, 0), 0.51, Color.WHITE, 12, false)
@@ -394,7 +334,7 @@ func _build_foundry() -> void:
 			if barrel == null:
 				continue
 			var along := Vector3(-corner.x, 0, 0) if k == 1 else Vector3(0, 0, -corner.y)
-			var at := _centre + Vector3(corner.x * (half.x + 0.4), -0.1, corner.y * (half.y + 0.4)) + along * (0.0 if k == 0 else 0.55)
+			var at := _centre + Vector3(corner.x * (half.x + 0.3), -0.25, corner.y * (half.y + 0.3)) + along * (0.0 if k == 0 else 0.55)
 			var instance := _mesh(barrel, ModelLibrary.material(_library, model, Color(0.85, 0.8, 0.75)), Vector3.ZERO, node)
 			var box := barrel.get_aabb()
 			var scale := 0.5 / box.size.y
@@ -431,7 +371,7 @@ func _build_portals() -> void:
 		node.name = "Portal"
 		add_child(node)
 		_begin()
-		var at := _centre + Vector3(corner.x * h.x, -0.6, corner.y * h.y)
+		var at := _centre + Vector3(corner.x * h.x, -0.25, corner.y * h.y)
 		var facing := Vector3(-corner.x, 0, -corner.y).normalized()
 		var side := facing.cross(Vector3.UP)
 		MeshKit.append_bevel_box(_tool(stone), at + Vector3(0, 0.15, 0), Vector3(1.2, 0.3, 1.2), 0.06,
@@ -461,7 +401,7 @@ func _build_temple() -> void:
 		node.name = "Column"
 		add_child(node)
 		_begin()
-		var at := _centre + Vector3(corner.x * h.x, -0.6, corner.y * h.y)
+		var at := _centre + Vector3(corner.x * h.x, -0.25, corner.y * h.y)
 		_column(node, at, 0.7, _library.pbr("marble_01", Color(0.92, 0.9, 0.86), 1.0, 0.7, 1.0, 1.0, false))
 		MeshKit.append_cylinder(_tool(gold), at + Vector3(0, 2.52, 0), at + Vector3(0, 2.56, 0), 0.31, Color.WHITE, 20)
 		_flush(node, "ColumnMesh")
@@ -471,7 +411,7 @@ func _build_temple() -> void:
 	spinner.position = _centre + Vector3(0, -2.4, 0)
 	add_child(spinner)
 	_begin()
-	var radius := maxf(_board_half.x, _board_half.y) + 2.2
+	var radius := maxf(_board_half.x, _board_half.y) + 4.4
 	MeshKit.append_torus(_tool(gold), Vector3.ZERO, Vector3.UP, radius, 0.06, Color.WHITE, 64, 4)
 	MeshKit.append_torus(_tool(gold), Vector3.ZERO, Vector3.UP, radius * 0.86, 0.03, Color.WHITE, 64, 4)
 	for k: int in 12:
@@ -480,108 +420,6 @@ func _build_temple() -> void:
 		MeshKit.append_bevel_box(_tool(gold), at, Vector3(0.18, 0.04, 0.18), 0.0, Color.WHITE, Color.WHITE)
 	_flush(spinner, "SealRingMesh")
 	_spinners.append(spinner)
-
-
-## World 6: dark tech masonry on stepped plinths, ringed by tall circuit pillars with neon strips.
-func _build_neon() -> void:
-	var metal := _surface("neon_body", 0.55, 0.3)
-	var teal := _library.glow("neon_teal", Color("#3FF2E0"), 2.0)
-	var magenta := _library.glow("neon_magenta", Color("#FF3FA0"), 2.0)
-	var dark := _theme.stone_dark
-	_begin()
-	# Stepped plinths under the board.
-	for step: int in 3:
-		var grow := 0.5 + step * 0.6
-		MeshKit.append_bevel_box(_tool(metal), _centre + Vector3(0, -0.85 - step * 0.55, 0),
-			Vector3(_board_half.x * 2.0 + grow * 2.0, 0.5, _board_half.y * 2.0 + grow * 2.0) * Vector3(1.0 - step * 0.12, 1, 1.0 - step * 0.12),
-			0.06, dark.lightened(0.08), dark.darkened(0.2))
-		var trim := _board_half + Vector2(grow, grow) * (1.0 - step * 0.12)
-		for side: int in 4:
-			var along_x := side < 2
-			var sign := -1.0 if side % 2 == 0 else 1.0
-			var y := -0.68 - step * 0.55
-			var at := _centre + (Vector3(0, y, sign * (_board_half.y + grow) * (1.0 - step * 0.12) + sign * 0.006) if along_x
-				else Vector3(sign * (_board_half.x + grow) * (1.0 - step * 0.12) + sign * 0.006, y, 0))
-			var size := Vector3(trim.x * 1.6, 0.03, 0.01) if along_x else Vector3(0.01, 0.03, trim.y * 1.6)
-			MeshKit.append_bevel_box(_tool(magenta if step % 2 == 0 else teal), at, size, 0.0, Color.WHITE, Color.WHITE)
-	_flush(self, "NeonPlinth")
-	# Circuit pillars around the board, rising from the depths to varied heights.
-	var h := _board_half + Vector2(1.6, 1.6)
-	var count := 10
-	for i: int in count:
-		var angle := TAU * (i + 0.5) / count
-		var dir := Vector2(cos(angle), sin(angle))
-		# Push onto the rectangle around the board.
-		var scale := minf(h.x / maxf(absf(dir.x), 0.001), h.y / maxf(absf(dir.y), 0.001))
-		var p := dir * scale
-		var top := 0.6 + MeshKit.hash01(i, 1, 71) * 2.6
-		var width := 0.55 + MeshKit.hash01(i, 2, 71) * 0.35
-		var node := Node3D.new()
-		node.name = "NeonPillar"
-		add_child(node)
-		_begin()
-		var base := _centre + Vector3(p.x, 0, p.y)
-		MeshKit.append_bevel_box(_tool(metal), base + Vector3(0, (top - 7.0) * 0.5, 0), Vector3(width, top + 7.0, width), 0.05,
-			dark.lightened(0.15), dark)
-		var strip := teal if i % 3 != 0 else magenta
-		var face := Vector3(-dir.x, 0, -dir.y).normalized() * (width * 0.5 + 0.006)
-		var strip_size := Vector3(0.06, top + 5.0, 0.01) if absf(dir.y) > absf(dir.x) else Vector3(0.01, top + 5.0, 0.06)
-		MeshKit.append_bevel_box(_tool(strip), base + face * Vector3(1, 0, 1) + Vector3(0, (top - 5.0) * 0.5, 0), strip_size,
-			0.0, Color.WHITE, Color.WHITE)
-		MeshKit.append_bevel_box(_tool(strip), base + Vector3(0, top + 0.03, 0), Vector3(width * 0.6, 0.04, width * 0.6), 0.0,
-			Color.WHITE, Color.WHITE)
-		_flush(node, "NeonPillarMesh")
-		if top > 1.2:
-			_tall.append([node, dir])
-
-
-## World 7: an obsidian monolith in deep space, its sides split by glowing lava veins.
-func _build_void() -> void:
-	var stone := _surface("void_stone", 0.75)
-	var vein := _library.glow("void_vein", Color("#FF8A2A"), 2.0)
-	var half := _board_half + Vector2(0.5, 0.5)
-	var depth := 3.2
-	_begin()
-	MeshKit.append_bevel_box(_tool(stone), _centre + Vector3(0, -0.6 - depth * 0.5, 0), Vector3(half.x * 2.0, depth, half.y * 2.0),
-		0.12, _theme.stone_dark.lightened(0.05), _theme.rock)
-	# Veins: jagged vertical cracks down each face.
-	for side: int in 4:
-		var along_x := side < 2
-		var sign := -1.0 if side % 2 == 0 else 1.0
-		var length := (half.x if along_x else half.y) * 2.0
-		var cracks := int(length / 1.7)
-		for c: int in cracks:
-			var t := -length * 0.5 + (c + 0.5) * length / cracks + (MeshKit.hash01(side, c, 81) - 0.5) * 0.8
-			var y := -0.7
-			var drift := 0.0
-			while y > -0.6 - depth + 0.2:
-				var seg := 0.25 + MeshKit.hash01(side, c * 13 + int(-y * 10), 82) * 0.35
-				var step := (MeshKit.hash01(side, c * 7 + int(-y * 10), 83) - 0.5) * 0.25
-				var a := t + drift
-				var at := _centre + (Vector3(a, y - seg * 0.5, sign * (half.y + 0.006)) if along_x
-					else Vector3(sign * (half.x + 0.006), y - seg * 0.5, a))
-				MeshKit.append_bevel_box(_tool(vein), at, (Vector3(0.04, seg, 0.01) if along_x else Vector3(0.01, seg, 0.04)), 0.0,
-					Color.WHITE, Color.WHITE)
-				drift += step
-				y -= seg
-	_flush(self, "VoidSlab")
-	# Broken teeth along the rim.
-	_begin()
-	for side: int in 4:
-		var along_x := side < 2
-		var sign := -1.0 if side % 2 == 0 else 1.0
-		var length := (half.x if along_x else half.y) * 2.0
-		var teeth := int(length / 0.9)
-		for k: int in teeth:
-			if MeshKit.hash01(side, k, 84) < 0.4:
-				continue
-			var t := -length * 0.5 + (k + 0.5) * length / teeth
-			var tall := 0.15 + MeshKit.hash01(side, k, 85) * 0.35
-			var at := _centre + (Vector3(t, -0.6 + tall * 0.5, sign * (half.y - 0.2)) if along_x
-				else Vector3(sign * (half.x - 0.2), -0.6 + tall * 0.5, t))
-			MeshKit.append_bevel_box(_tool(stone), at, Vector3(0.5, tall, 0.35) if along_x else Vector3(0.35, tall, 0.5), 0.05,
-				_theme.stone, _theme.stone_dark)
-	_flush(self, "VoidRim")
 
 
 ## Floating pieces around the scene: rock islets, ice shards, tech cubes or debris per style.

@@ -19,6 +19,7 @@ var _level_texts: Dictionary[String, PackedStringArray] = {}
 var _level_stars: Dictionary[String, int] = {}
 var _grids: Array[GridContainer] = []
 var _pages: Array[Page] = []
+var _next_level_id := ""
 var _world_index := 0
 var _margin := MarginContainer.new()
 var _backdrop: Backdrop
@@ -109,6 +110,7 @@ func _ready() -> void:
 			grid.add_child(button)
 			_level_buttons[level_id] = button
 	show_world(_initial_world())
+	_pulse_next_level()
 
 
 func _build_card(column: VBoxContainer) -> void:
@@ -183,6 +185,23 @@ func show_world(index: int) -> void:
 	_next.disabled = _world_index == _pages.size() - 1
 	if page.diorama_path != "":
 		_diorama.show_level(page.diorama_path)
+
+
+## The next level to play breathes gently, so the eye lands on it (menus only; no gameplay).
+func _pulse_next_level() -> void:
+	for entry: LevelCatalog.Entry in _catalog.entries:
+		if _progress.best_actions(entry.level_id) < 0 and Progression.is_unlocked(_catalog, _progress, entry.level_id):
+			var button := _level_buttons[entry.level_id]
+			var tween := button.create_tween().set_loops()
+			tween.tween_callback(func() -> void: button.pivot_offset = button.size * 0.5)
+			tween.tween_property(button, "scale", Vector2(1.045, 1.045), 0.7).set_trans(Tween.TRANS_SINE)
+			tween.tween_property(button, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
+			_next_level_id = entry.level_id
+			return
+
+
+func next_level_id() -> String:
+	return _next_level_id
 
 
 func current_world_index() -> int:
@@ -264,11 +283,13 @@ func _level_tile(entry: LevelCatalog.Entry, world_theme: WorldTheme) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.disabled = not unlocked
 	if unlocked:
-		var style := UiTheme.box(UiTheme.GLASS, Color(world_theme.accent, 0.55 if best < 0 else 0.3), 26)
-		if best < 0:
-			style.shadow_color = Color(world_theme.accent, 0.3)
-			style.shadow_size = 12
-		button.add_theme_stylebox_override("normal", style)
+		# Sealed levels wear their world's colour; open ones wait in deep navy with a lit rim.
+		var face := world_theme.accent.darkened(0.62) if best >= 0 else UiTheme.SOLID
+		var edge := world_theme.accent.darkened(0.8) if best >= 0 else UiTheme.SOLID_EDGE
+		button.add_theme_stylebox_override("normal", UiTheme.raised(face, edge, Color(world_theme.accent, 0.8), 28))
+		button.add_theme_stylebox_override("hover", UiTheme.raised(face.lightened(0.06), edge, world_theme.accent, 28))
+		button.add_theme_stylebox_override("pressed", UiTheme.sunk(face.lightened(0.1), edge, world_theme.accent, 28))
+	UiTheme.add_press_bounce(button)
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER

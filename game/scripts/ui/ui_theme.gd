@@ -11,13 +11,22 @@ const METAL_BORDER := Color(0.55, 0.66, 0.8, 0.35)
 static var _display_font: FontVariation
 
 
+## How far a button's face sits above its base, and how far it sinks when pressed.
+const DEPTH := 8
+const SOLID := Color(0.1, 0.17, 0.3)
+const SOLID_EDGE := Color(0.04, 0.08, 0.16)
+const PLAY_GREEN := Color("#2FBF71")
+const PLAY_CYAN := Color("#1FB6D1")
+
+
 static func make_theme() -> Theme:
 	var theme := Theme.new()
 	theme.default_font_size = 34
-	theme.set_stylebox("normal", "Button", box(GLASS, METAL_BORDER))
-	theme.set_stylebox("hover", "Button", box(GLASS_LIGHT, Color(Palette.CYAN_ENERGY, 0.7)))
-	theme.set_stylebox("pressed", "Button", box(Color(0.12, 0.22, 0.34, 0.95), Palette.CYAN_ENERGY))
-	theme.set_stylebox("disabled", "Button", box(Color(0.04, 0.06, 0.11, 0.6), Color(METAL_BORDER, 0.15)))
+	theme.set_stylebox("normal", "Button", raised(SOLID, SOLID_EDGE, METAL_BORDER))
+	theme.set_stylebox("hover", "Button", raised(SOLID.lightened(0.06), SOLID_EDGE, Color(Palette.CYAN_ENERGY, 0.7)))
+	theme.set_stylebox("pressed", "Button", sunk(SOLID.lightened(0.1), SOLID_EDGE, Palette.CYAN_ENERGY))
+	theme.set_stylebox("disabled", "Button", raised(Color(0.07, 0.1, 0.17, 0.75), Color(0.03, 0.05, 0.1, 0.75),
+		Color(METAL_BORDER, 0.12)))
 	theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	theme.set_color("font_color", "Button", Palette.TEXT)
 	theme.set_color("font_hover_color", "Button", Palette.TEXT)
@@ -38,6 +47,41 @@ static func box(background: Color, border: Color, radius: int = 24) -> StyleBoxF
 	return style
 
 
+## A chunky button face standing on a darker base (the base shows as a thick bottom edge).
+static func raised(face: Color, edge: Color, rim: Color, radius: int = 26) -> StyleBoxFlat:
+	var style := box(face, edge, radius)
+	style.set_border_width_all(0)
+	style.border_width_bottom = DEPTH
+	style.shadow_color = Color(rim, rim.a * 0.6)
+	style.shadow_size = 3
+	style.content_margin_bottom = 20 + DEPTH
+	return style
+
+
+## The same button pushed down: the base nearly hidden and the face shifted to meet it.
+static func sunk(face: Color, edge: Color, rim: Color, radius: int = 26) -> StyleBoxFlat:
+	var style := raised(face, edge, rim, radius)
+	style.border_width_bottom = 2
+	style.expand_margin_top = -float(DEPTH - 2)
+	style.content_margin_top = 20 + DEPTH - 2
+	style.content_margin_bottom = 22
+	return style
+
+
+## Gives `button` a quick squash when pressed and a spring back on release (menus and HUD).
+static func add_press_bounce(button: BaseButton) -> void:
+	var press := func() -> void:
+		button.pivot_offset = button.size * 0.5
+		var tween := button.create_tween()
+		tween.tween_property(button, "scale", Vector2(0.95, 0.95), 0.05)
+	var release := func() -> void:
+		button.pivot_offset = button.size * 0.5
+		var tween := button.create_tween()
+		tween.tween_property(button, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	button.button_down.connect(press)
+	button.button_up.connect(release)
+
+
 ## A floating glass panel with a soft shadow and an accent-tinted border.
 static func panel(accent: Color = Palette.CYAN_ENERGY, radius: int = 28) -> StyleBoxFlat:
 	var style := box(GLASS, Color(accent, 0.45), radius)
@@ -48,22 +92,24 @@ static func panel(accent: Color = Palette.CYAN_ENERGY, radius: int = 28) -> Styl
 	return style
 
 
-## The glowing look for a screen's primary action: a lit energy fill with a bright rim.
-static func make_primary(button: Button, accent: Color = Palette.MINT_SUCCESS) -> void:
-	var normal := box(Color(accent.darkened(0.55), 0.92), accent)
-	normal.set_border_width_all(3)
-	normal.shadow_color = Color(accent, 0.35)
-	normal.shadow_size = 14
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(accent.darkened(0.45), 0.95)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(accent.darkened(0.3), 1.0)
-	pressed.shadow_size = 22
+## The vivid look for a screen's primary action: a bright face on a deep base, white bold text.
+static func make_primary(button: Button, accent: Color = PLAY_GREEN) -> void:
+	var edge := accent.darkened(0.45)
+	var normal := raised(accent, edge, accent)
+	normal.shadow_color = Color(accent, 0.45)
+	normal.shadow_size = 12
+	var hover := raised(accent.lightened(0.08), edge, accent)
+	hover.shadow_color = Color(accent, 0.55)
+	hover.shadow_size = 14
+	var pressed := sunk(accent.lightened(0.12), edge, accent)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_font_override("font", display_font())
+	button.add_theme_color_override("font_outline_color", Color(edge, 0.9))
+	button.add_theme_constant_override("outline_size", 8)
 
 
 ## A bolder, wider-spaced variant of the UI font for titles only (docs/06 §7).

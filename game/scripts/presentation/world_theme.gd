@@ -16,8 +16,8 @@ var seam_glow := Color(0, 0, 0, 0)
 var tile_roughness := 0.86
 var tile_metallic := 0.0
 ## Scanned surfaces (MaterialLibrary.pbr): [texture set, tint, uv scale, roughness ×, metalness ×].
-var floor_surface: Array = ["mossy_rock", Color(0.62, 0.8, 0.84), 0.55, 1.0, 1.0]
-var wall_surface: Array = ["castle_wall_slates", Color(0.9, 0.9, 0.88), 0.8, 1.0, 1.0]
+var floor_surface: Array = ["mossy_rock", Color(0.4, 0.54, 0.58), 0.55, 1.0, 1.0]
+var wall_surface: Array = ["castle_wall_slates", Color(0.58, 0.66, 0.6), 0.8, 1.0, 1.0]
 var rock_surface: Array = ["cliff_side", Color(0.75, 0.72, 0.7), 0.3, 1.0, 1.0]
 var metal_surface: Array = ["rusty_metal_02", Color(0.7, 0.7, 0.72), 0.6, 0.9, 0.4]
 ## Tint for the scanned rock models (island underside, floating rocks).
@@ -119,8 +119,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.rock = Color("#1C2A44")
 			t.sky_top = Color("#02060F")
 			t.sky_bottom = Color("#0F2648")
-			t.floor_surface = ["snow_02", Color(0.55, 0.68, 0.86), 0.6, 0.5, 1.0]
-			t.wall_surface = ["castle_wall_slates", Color(0.7, 0.86, 1.0), 0.8, 0.5, 1.0]
+			t.floor_surface = ["snow_02", Color(0.34, 0.46, 0.7), 0.6, 0.5, 1.0]
+			t.wall_surface = ["castle_wall_slates", Color(0.86, 0.94, 1.0), 0.8, 0.5, 1.0]
 			t.rock_surface = ["cliff_side", Color(0.45, 0.55, 0.75), 0.3, 1.0, 1.0]
 			t.rock_model_tint = Color(0.5, 0.6, 0.8)
 		"world_03_push_protocol":
@@ -146,8 +146,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.stone = Color("#4A4C52")
 			t.stone_dark = Color("#24252A")
 			t.rock = Color("#2A2522")
-			t.floor_surface = ["metal_plate", Color(0.95, 0.85, 0.72), 0.7, 0.9, 0.25]
-			t.wall_surface = ["rusty_metal_02", Color(0.75, 0.68, 0.62), 0.7, 1.0, 1.0]
+			t.floor_surface = ["metal_plate", Color(0.62, 0.55, 0.5), 0.7, 0.9, 0.25]
+			t.wall_surface = ["rusty_metal_02", Color(0.5, 0.4, 0.36), 0.7, 1.0, 0.4]
 			t.rock_surface = ["dark_rock", Color(0.6, 0.5, 0.45), 0.4, 1.0, 1.0]
 			t.metal_surface = ["rusty_metal_02", Color(0.75, 0.68, 0.62), 0.6, 0.9, 0.4]
 			t.rock_model_tint = Color(0.45, 0.38, 0.35)
@@ -168,8 +168,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.ambient = Color("#9A8CC0")
 			t.fog = Color("#22163E")
 			t.style = Style.PORTAL
-			t.floor_surface = ["marble_01", Color(0.72, 0.64, 0.92), 0.5, 0.8, 1.0]
-			t.wall_surface = ["castle_wall_slates", Color(0.72, 0.66, 0.92), 0.8, 1.0, 1.0]
+			t.floor_surface = ["marble_01", Color(0.3, 0.26, 0.52), 0.5, 0.8, 1.0]
+			t.wall_surface = ["castle_wall_slates", Color(0.66, 0.6, 0.88), 0.8, 1.0, 1.0]
 			t.rock_surface = ["cliff_side", Color(0.55, 0.48, 0.75), 0.3, 1.0, 1.0]
 			t.rock_model_tint = Color(0.6, 0.52, 0.8)
 		"world_05_sealed_chambers":
@@ -191,8 +191,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.style = Style.TEMPLE
 			t.stone = Color("#6E7278")
 			t.stone_dark = Color("#3C3E44")
-			t.floor_surface = ["marble_01", Color(1.0, 0.97, 0.9), 0.5, 0.7, 1.0]
-			t.wall_surface = ["castle_wall_slates", Color(1.0, 0.92, 0.78), 0.8, 1.0, 1.0]
+			t.floor_surface = ["marble_01", Color(0.62, 0.54, 0.44), 0.5, 0.7, 1.0]
+			t.wall_surface = ["marble_01", Color(1.0, 0.98, 0.94), 0.9, 0.6, 1.0]
 		"world_06_shifting_labyrinth":
 			t.title = "The Shifting Labyrinth"
 			t.tagline = "Turning floors and charged stone shift beneath you."
@@ -221,8 +221,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.nebula = Color("#1E6A80")
 			t.crystal = Color(0.3, 0.95, 0.9, 0.8)
 			t.fog = Color("#2A0C1C")
-			t.floor_surface = ["blue_metal_plate", Color(0.62, 0.62, 0.78), 0.5, 0.8, 1.0]
-			t.wall_surface = ["blue_metal_plate", Color(0.42, 0.42, 0.55), 0.6, 0.8, 1.0]
+			t.floor_surface = ["blue_metal_plate", Color(0.36, 0.36, 0.5), 0.5, 0.8, 0.5]
+			t.wall_surface = ["blue_metal_plate", Color(0.2, 0.2, 0.28), 0.6, 0.8, 0.5]
 			t.rock_surface = ["dark_rock", Color(0.5, 0.45, 0.55), 0.4, 1.0, 1.0]
 			t.metal_surface = ["blue_metal_plate", Color(0.4, 0.4, 0.5), 0.6, 0.8, 1.0]
 			t.rock_model_tint = Color(0.42, 0.38, 0.48)
@@ -252,8 +252,8 @@ static func for_world(id: String) -> WorldTheme:
 			t.horizon = Color("#C86A2A")
 			t.nebula = Color("#2A4AA8")
 			t.crystal = Color(0.55, 0.8, 1.0, 0.6)
-			t.floor_surface = ["dark_rock", Color(0.8, 0.8, 0.85), 0.5, 0.8, 1.0]
-			t.wall_surface = ["dark_rock", Color(0.6, 0.6, 0.66), 0.6, 0.9, 1.0]
+			t.floor_surface = ["dark_rock", Color(0.55, 0.55, 0.62), 0.5, 0.8, 1.0]
+			t.wall_surface = ["dark_rock", Color(1.0, 1.0, 1.1), 0.6, 0.9, 1.0]
 			t.rock_surface = ["dark_rock", Color(0.5, 0.5, 0.55), 0.35, 1.0, 1.0]
 			t.rock_model_tint = Color(0.35, 0.35, 0.4)
 		_:
