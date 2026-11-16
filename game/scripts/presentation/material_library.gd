@@ -54,6 +54,49 @@ func surface(key: String, roughness: float = 0.88, metallic: float = 0.0, uv_sca
 	return material
 
 
+const PBR_DIR := "res://assets/third_party/polyhaven"
+
+
+## A physically based material from a scanned CC0 texture set (see PBR_DIR/LICENSE.md):
+## albedo × `tint`, OpenGL normal map, and the packed ARM map (R ambient occlusion, G roughness,
+## B metalness). `roughness` / `metallic` scale the scanned values (lower roughness = glossier).
+## With `vertex_shade`, mesh vertex colours multiply the albedo (per-tile shade variation).
+func pbr(set_name: String, tint: Color = Color.WHITE, uv_scale: float = 1.0, roughness: float = 1.0,
+		metallic: float = 1.0, normal_strength: float = 1.0, vertex_shade: bool = true) -> StandardMaterial3D:
+	var key := "p|%s|%s|%.3f|%.3f|%.3f|%.3f|%s" % [set_name, tint.to_html(), uv_scale, roughness, metallic,
+		normal_strength, vertex_shade]
+	if _cache.has(key):
+		return _cache[key]
+	var base := "%s/%s/%s" % [PBR_DIR, set_name, set_name]
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = load(base + "_diff.jpg")
+	material.albedo_color = tint
+	material.vertex_color_use_as_albedo = vertex_shade
+	material.vertex_color_is_srgb = true
+	material.normal_enabled = true
+	material.normal_texture = load(base + "_nor.jpg")
+	material.normal_scale = normal_strength
+	var arm: Texture2D = load(base + "_arm.jpg")
+	material.roughness_texture = arm
+	material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+	material.roughness = roughness
+	material.metallic_texture = arm
+	material.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+	material.metallic = metallic
+	material.ao_enabled = true
+	material.ao_texture = arm
+	material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	material.uv1_scale = Vector3(uv_scale, uv_scale, 1.0)
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_cache[key] = material
+	return material
+
+
+## Material for a WorldTheme surface spec: [set, tint, uv scale, roughness, metallic].
+func surface_spec(spec: Array, vertex_shade: bool = true) -> StandardMaterial3D:
+	return pbr(spec[0], spec[1], spec[2], spec[3], spec[4], 1.0, vertex_shade)
+
+
 ## Unshaded glowing material (energy inlays, trims, beams): bright under the glow pass.
 func glow(key: String, color: Color, energy: float = 2.0, alpha: float = 1.0) -> StandardMaterial3D:
 	key = "g|%s|%s|%.3f|%.3f" % [key, color.to_html(), energy, alpha]

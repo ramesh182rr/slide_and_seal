@@ -103,11 +103,31 @@ func visible_tall_count() -> int:
 ## A floating rock island under the board (World 1 and the island-based worlds).
 func _build_island(margin: float) -> void:
 	var half := _board_half + Vector2(margin, margin)
-	var depth := maxf(_board_half.x, _board_half.y) * 1.5 + 2.0
 	var top_color := _theme.stone_dark.lerp(_theme.foliage, _theme.foliage.a * 0.6)
-	var island := _mesh(MeshKit.rock_island(half, depth, 11, _theme.rock, top_color, 36), _rock(),
-		_centre + Vector3(0, -0.62, 0))
+	# A shallow rim of cut rock (moss in World 1) right under the board…
+	var rim_depth := maxf(_board_half.x, _board_half.y) * 0.6 + 1.0
+	var island := _mesh(MeshKit.normalize_shades(MeshKit.rock_island(half, rim_depth, 11, _theme.rock, top_color, 36)),
+		_rock(), _centre + Vector3(0, -0.62, 0))
 	island.name = "Island"
+	# …and a scanned boulder hanging beneath it as the island's mass.
+	_hang_boulder(half * 0.92, maxf(_board_half.x, _board_half.y) * 1.6 + 2.5, -0.95)
+
+
+## The scanned boulder, turned upside down and fitted under the board: top at `top_y`, footprint
+## `half` (x, z), `depth` deep.
+func _hang_boulder(half: Vector2, depth: float, top_y: float) -> void:
+	var boulder := ModelLibrary.mesh("boulder_01")
+	if boulder == null:
+		return
+	var box := boulder.get_aabb()
+	var scale := Vector3(half.x * 2.0 / box.size.x, depth / box.size.y, half.y * 2.0 / box.size.z)
+	var node := _mesh(boulder, ModelLibrary.material(_library, "boulder_01", _theme.rock_model_tint), Vector3.ZERO)
+	node.name = "Boulder"
+	node.basis = Basis(Vector3.RIGHT, PI).scaled(scale)
+	# Flipped about X: y → -y·sy and z → -z·sz.
+	node.position = Vector3(_centre.x - (box.position.x + box.size.x * 0.5) * scale.x,
+		top_y + box.position.y * scale.y,
+		_centre.z + (box.position.z + box.size.z * 0.5) * scale.z)
 
 
 func _build_flank_crystals() -> void:
@@ -147,8 +167,9 @@ func _build_frost() -> void:
 				deep, Vector2(MeshKit.hash01(x, z, 64), MeshKit.hash01(x, z, 65)) * 6.0)
 	_flush(self, "FrostFloor")
 	# Rock beneath, as if the chamber were cut out of a floating glacier.
-	_mesh(MeshKit.rock_island(half + Vector2(0.4, 0.4), maxf(half.x, half.y) * 1.4 + 2.0, 17, _theme.rock,
-		deep.darkened(0.2), 36), _rock(), _centre + Vector3(0, -0.85, 0))
+	_mesh(MeshKit.normalize_shades(MeshKit.rock_island(half + Vector2(0.4, 0.4), 1.6, 17, _theme.rock,
+		deep.darkened(0.2), 36)), _rock(), _centre + Vector3(0, -0.85, 0))
+	_hang_boulder(half * 0.95, maxf(half.x, half.y) * 1.5 + 2.0, -1.2)
 	# Four walls of stacked ice blocks, each its own node for the cutaway.
 	var wall_height := 2.4
 	var thickness := 0.55
@@ -208,13 +229,8 @@ func _build_frost() -> void:
 		add_child(node)
 		_begin()
 		var at := _centre + Vector3(corner.x * (half.x + thickness * 0.5), -0.25, corner.y * (half.y + thickness * 0.5))
-		var y := 0.0
-		for d: int in 5:
-			var r := 0.42 if d % 2 == 0 else 0.36
-			var h := 0.55 if d % 2 == 0 else 0.15
-			MeshKit.append_cylinder(_tool(slab), at + Vector3(0, y, 0), at + Vector3(0, y + h, 0), r,
-				ice.darkened(0.1 if d % 2 == 0 else 0.3), 8)
-			y += h
+		var y := 2.6
+		_column(node, at, 0.65, _library.pbr("marble_01", Color(0.62, 0.78, 1.0), 1.0, 0.35, 1.0, 1.0, false))
 		_flush(node, "PillarMesh")
 		_crystals(node, at + Vector3(0, y, 0), 1.1, 80 + int(corner.x * 3 + corner.y))
 		_tall.append([node, corner])
@@ -275,6 +291,26 @@ func _build_foundry() -> void:
 		MeshKit.append_cylinder(_tool(hot), at + Vector3(0, 2.15, 0), at + Vector3(0, 2.2, 0), 0.12, Color.WHITE, 8)
 		_flush(node, "TankMesh")
 		_tall.append([node, corner])
+	# Barrels stacked at the deck corners (scanned CC0 models), cut away on the camera's side.
+	for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		var node := Node3D.new()
+		node.name = "Barrels"
+		add_child(node)
+		for k: int in 3:
+			var model := "Barrel_01" if (k + int(corner.x + 2)) % 2 == 0 else "barrel_03"
+			var barrel := ModelLibrary.mesh(model)
+			if barrel == null:
+				continue
+			var along := Vector3(-corner.x, 0, 0) if k == 1 else Vector3(0, 0, -corner.y)
+			var at := _centre + Vector3(corner.x * (half.x + 0.4), -0.1, corner.y * (half.y + 0.4)) + along * (0.0 if k == 0 else 0.55)
+			var instance := _mesh(barrel, ModelLibrary.material(_library, model, Color(0.85, 0.8, 0.75)), Vector3.ZERO, node)
+			var box := barrel.get_aabb()
+			var scale := 0.5 / box.size.y
+			instance.scale = Vector3.ONE * scale
+			instance.rotation.y = MeshKit.hash01(k, int(corner.x * 3 + corner.y), 91) * TAU
+			instance.position = at - Vector3(0, box.position.y * scale, 0)
+		_tall.append([node, corner])
+
 	# The lava below: a glowing pool that fades out at its edges (additive, so it melts into the
 	# sky instead of ending in a hard rectangle), plus a brighter core under the deck.
 	for layer: int in 2:
@@ -334,10 +370,8 @@ func _build_temple() -> void:
 		add_child(node)
 		_begin()
 		var at := _centre + Vector3(corner.x * h.x, -0.6, corner.y * h.y)
-		MeshKit.append_bevel_box(_tool(stone), at + Vector3(0, 0.1, 0), Vector3(0.8, 0.2, 0.8), 0.05, _theme.stone, _theme.stone_dark)
-		MeshKit.append_cylinder(_tool(stone), at + Vector3(0, 0.2, 0), at + Vector3(0, 2.6, 0), 0.26, _theme.stone.lightened(0.1), 12)
-		MeshKit.append_cylinder(_tool(gold), at + Vector3(0, 2.6, 0), at + Vector3(0, 2.75, 0), 0.34, Color.WHITE, 12)
-		MeshKit.append_bevel_box(_tool(stone), at + Vector3(0, 2.85, 0), Vector3(0.7, 0.2, 0.7), 0.04, _theme.stone, _theme.stone_dark)
+		_column(node, at, 0.7, _library.pbr("marble_01", Color(0.92, 0.9, 0.86), 1.0, 0.7, 1.0, 1.0, false))
+		MeshKit.append_cylinder(_tool(gold), at + Vector3(0, 2.52, 0), at + Vector3(0, 2.56, 0), 0.31, Color.WHITE, 20)
 		_flush(node, "ColumnMesh")
 		_tall.append([node, corner])
 	var spinner := Node3D.new()
@@ -466,7 +500,6 @@ func _build_fragments() -> void:
 		Vector3(-outer.x * 0.4, -4.4, outer.y + 0.4), Vector3(outer.x * 0.6, -1.8, outer.y + 0.7),
 		Vector3(outer.x + 0.1, -4.8, outer.y * 0.7), Vector3(-outer.x + 0.1, -5.4, -outer.y * 0.6),
 	]
-	var top_color := _theme.stone_dark.lerp(_theme.foliage, _theme.foliage.a * 0.6)
 	for i: int in spots.size():
 		var size := 0.45 + MeshKit.hash01(i, 3, 5) * 0.55
 		var fragment := Node3D.new()
@@ -486,9 +519,13 @@ func _build_fragments() -> void:
 				_flush(fragment, "Cube")
 				fragment.rotation = Vector3(MeshKit.hash01(i, 7) * 0.6, MeshKit.hash01(i, 8) * TAU, 0)
 			_:
-				var mesh := _mesh(MeshKit.rock_island(Vector2(size, size * 0.85), size * 2.2, 40 + i, _theme.rock, top_color, 10),
-					_rock(), Vector3.ZERO, fragment)
-				mesh.rotation.y = MeshKit.hash01(i, 9) * TAU
+				# Scanned rocks, alternating two shapes, at varied sizes and turns.
+				var model := "rock_07" if i % 2 == 0 else "rock_09"
+				var rock := ModelLibrary.mesh(model)
+				if rock != null:
+					var mesh := _mesh(rock, ModelLibrary.material(_library, model, _theme.rock_model_tint), Vector3.ZERO, fragment)
+					mesh.rotation = Vector3(MeshKit.hash01(i, 10) * 0.8, MeshKit.hash01(i, 9) * TAU, MeshKit.hash01(i, 11) * 0.6)
+					mesh.scale = Vector3.ONE * size * 0.75
 				if _theme.crystal.a > 0.0 and i % 2 == 0:
 					_crystals(fragment, Vector3.ZERO, 0.5 + size * 0.4, i)
 		_fragments.append(fragment)
@@ -497,12 +534,31 @@ func _build_fragments() -> void:
 
 # --- Helpers ----------------------------------------------------------------------
 
+## A fluted column (tools/blender/build_props.py, 1 wide × 4 tall) standing at `at`, `width` wide.
+func _column(parent: Node3D, at: Vector3, width: float, material: Material) -> void:
+	var column := ModelLibrary.mesh("column")
+	if column == null:
+		return
+	var box := column.get_aabb()
+	var scale := width / maxf(box.size.x, 0.001)
+	var instance := _mesh(column, material, Vector3.ZERO, parent)
+	instance.name = "Column"
+	instance.scale = Vector3.ONE * scale
+	instance.position = at - Vector3(0, box.position.y * scale, 0)
+
 func _rock() -> StandardMaterial3D:
-	return _library.surface("island_rock", 0.95, 0.0, 0.45, 1.0)
+	return _library.surface_spec(_theme.rock_surface)
 
 
-func _surface(key: String, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
-	return _library.surface(key, roughness, metallic, 0.6)
+## Scanned material for a scenery role: metal for machinery, floor stone for the void monolith,
+## wall stone (masonry) for everything built.
+func _surface(key: String, _roughness: float, _metallic: float = 0.0) -> StandardMaterial3D:
+	match key:
+		"foundry_metal", "neon_body":
+			return _library.surface_spec(_theme.metal_surface)
+		"void_stone":
+			return _library.surface_spec(_theme.floor_surface)
+	return _library.surface_spec(_theme.wall_surface)
 
 
 func _crystal_material(color: Color, emission: float, alpha: float) -> StandardMaterial3D:
@@ -533,6 +589,8 @@ func _flush(parent: Node3D, base_name: String) -> void:
 		var instance := MeshInstance3D.new()
 		instance.name = "%s_%d" % [base_name, index]
 		instance.mesh = (_tools[material] as SurfaceTool).commit()
+		if MeshKit.is_shaded_pbr(material):
+			instance.mesh = MeshKit.normalize_shades(instance.mesh)
 		instance.material_override = material
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(instance)

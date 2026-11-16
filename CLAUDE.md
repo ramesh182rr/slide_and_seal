@@ -77,6 +77,11 @@ Never claim something works unless it was actually tested or verified. Priority:
 - `docs/LEVEL_SCHEMA.md`: the current level JSON schema. Keep it in sync with `LevelLoader`.
 - **Run tests:** `tools/run_tests.sh` (an import pass, then the headless runner; exit code 0 means all tests passed). Run it after every change to simulation, model, data or tests.
 - **Player data:** tests and scratch scripts must never read or write the real player files (`user://progress.json`, `user://settings.json`). Set `AppRoot.progress_path` and `AppRoot.settings_path` to `user://test_*.json` files and remove them in `after_each()` (or at the end of a script).
+- **3D assets:**
+  - Realistic surfaces are CC0 Poly Haven scans in `game/assets/third_party/polyhaven/<set>/` (`_diff`, `_nor` OpenGL normal, `_arm` = AO/roughness/metal). Every new asset needs a row in that folder's `LICENSE.md`. Use only CC0 or project-made art.
+  - Import textures with `compress/mode=2` (VRAM), mipmaps on, and `compress/normal_map=1` for `_nor`. Cap textures for small props at 512 px (`process/size_limit`).
+  - Use them through `MaterialLibrary.pbr()` / `surface_spec()`, never the importer's own materials.
+  - Models live in `game/assets/models/`. Scans are decimated by `blender --background --factory-startup --python tools/blender/process_rocks.py -- <download dir> game/assets/models`. Original props (column, seal dais) come from `tools/blender/build_props.py -- game/assets/models`. Load them through `ModelLibrary`.
 - **Showcase boards** (`game/data/showcase/world_NN_showcase.json`): display-only boards for worlds without levels ("Coming soon" in the campaign). They are not in the catalog and are not validated for solvability.
 - **Adding a level:** put `<id>.json` in `game/data/levels/`, list it in `game/data/catalog.json` (a test fails otherwise), then run the validator and copy the proven minimum into `optimal_actions`.
 - **Validate levels:** `tools/validate_levels.sh`. It checks the schema, solvability, the proven minimum against the level's scoring, and runs the softlock scan (about 40 s for the slice). Run it after any change to level data or simulation rules. Never hand-write `optimal_actions`; copy it from the validator's proven minimum.

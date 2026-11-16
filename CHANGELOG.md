@@ -5,6 +5,52 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — M14: Realistic art: scanned materials, real 3D models and image-based reflections
+
+Owner request: the look still felt half-cooked and not realistic. Make it look real, use 3D models, and polish the first impression.
+
+**Added**
+- **Scanned PBR materials** (Poly Haven, CC0; `game/assets/third_party/polyhaven/`, with `LICENSE.md` listing every source).
+  - Each surface uses albedo, an OpenGL normal map and a packed AO/roughness/metal map at 1K. Props are capped at 512 px.
+  - The sets: `mossy_rock`, `castle_wall_slates`, `cliff_side`, `dark_rock`, `marble_01`, `snow_02`, `metal_plate`, `rusty_metal_02` and `blue_metal_plate`.
+  - `MaterialLibrary.pbr()` / `surface_spec()` build these materials into the shared static cache, so no shader recompiles.
+- **Per-world surfaces** (`WorldTheme.floor_surface`, `wall_surface`, `rock_surface`, `metal_surface`, `rock_model_tint`):
+  - World 1: mossy stone floor and slate masonry.
+  - World 2: icy snow floor and ice-tinted masonry.
+  - World 3: diamond-plate deck and rusted steel.
+  - World 4: lavender marble.
+  - World 5: temple marble.
+  - World 6: blue steel panels.
+  - World 7: dark rock.
+- **Real 3D models** (`game/assets/models/`, loaded through `ModelLibrary`):
+  - **Scanned rocks** (`boulder_01`, `rock_07`, `rock_09`), decimated for phones by `tools/blender/process_rocks.py`. The script welds the glTF seam vertices, then decimates in repeated passes: the boulder goes from 66k to 6k triangles, the rocks from 12–15k to 2.5k.
+    - The boulder, turned upside down, now forms each island's hanging mass.
+    - Scanned rocks replace the procedural floating fragments.
+  - **Scanned barrels** (`Barrel_01`, `barrel_03`) stand stacked on the World 3 deck corners. Those on the camera side are hidden.
+  - **Original models** from `tools/blender/build_props.py`:
+    - a fluted classical column with entasis, torus mouldings and capital (about 5k triangles), for the World 5 marble columns and the World 2 ice columns
+    - a carved hexagonal seal dais with an engraved ring channel (680 triangles), now under every level's seal
+- **Image-based reflections:** a soft-sky HDRI (`kloofendal_misty_morning_puresky`) lights reflections on every stage; it is never shown. Verified working in the Compatibility renderer.
+
+**Changed**
+- **Lighting:** AgX tonemapping (was Filmic), slightly lower key and ambient light. The baked ambient occlusion in the scans now gives depth to crevices and seams.
+- **Vertex colours:** in procedural meshes they become relative shade factors on scanned materials (`MeshKit.normalize_shades`). Each scan keeps its true colour, while bevel edges, wall sides and per-tile variation stay darker.
+- **Blocks:** worn steel crates (light, cool-tinted).
+- **Gates:** rusted steel tinted amber, or pink when inverted.
+- **Levers, emitters, receivers and magnets:** machined steel.
+- **Plate steel:** low metalness throughout, so it keeps its colour instead of turning black under weak reflections.
+- **Startup warm-up:** one frame per scene (was two). On the emulator, startup to Home went from 22 s to 19 s; the emulator renders in software.
+
+**Verified**
+- 342 tests pass.
+- Draw calls are unchanged: 111–183 per board.
+- After the splash, no frame over 25 ms when switching worlds; campaign 34 ms, level loads 41–44 ms (desktop, Compatibility).
+- The export completes with exit 0 and no errors or warnings. The APK is 58 MB (was 29 MB; 71 MB before the 512 px cap on props).
+- On the emulator, with the real APK: Home, World 2 and World 5 cards, and a level played with Run → checkpoint → Resume. No crash and no game errors.
+
+**Not verified**
+- The frame rate and startup time on a real phone.
+
 ### 2026-11-16 — M13: No more freezes; a 3D environment for each world
 
 Owner report: switching between worlds lags, and the game lags a bit overall. Owner request: optimise further, and use the supplied reference images to build immersive 3D worlds.

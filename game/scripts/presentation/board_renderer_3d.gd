@@ -229,7 +229,7 @@ func _build_floor() -> void:
 	var size := _level.board_size
 	# The plinth: a thick beveled slab under the tiles (its gaps read as grout), with a glowing
 	# accent line around its top edge.
-	var plinth := _library.surface("plinth", 0.9, 0.05, 0.5)
+	var plinth := _library.surface_spec(_theme.wall_surface)
 	var extent := Vector3(size.x + 0.36, 0.5, size.y + 0.36)
 	var centre := BoardCoords.board_center(size)
 	var plinth_tool := _batch("plinth", plinth, null, false)
@@ -243,7 +243,7 @@ func _build_floor() -> void:
 		var offset := Vector3(0, -0.3, (extent.z * 0.5 + 0.005) * (1 if side == 0 else -1)) if along_x \
 			else Vector3((extent.x * 0.5 + 0.005) * (1 if side == 2 else -1), -0.3, 0)
 		_batch_at_world("plinth_edge", line, edge, centre + offset, null, false)
-	var stone := _library.surface("tile_stone", _theme.tile_roughness, _theme.tile_metallic, 0.6)
+	var stone := _library.surface_spec(_theme.floor_surface)
 	# Lava cracks / circuit seams: one glowing sheet under the tiles, seen only through their gaps.
 	if _theme.seam_glow.a > 0.0:
 		var sheet := PlaneMesh.new()
@@ -278,7 +278,7 @@ func _tile_color(cell: Vector2i, turntable: bool) -> Color:
 
 
 func _build_walls() -> void:
-	var stone := _library.surface("wall_stone", 0.82, 0.0, 0.6)
+	var stone := _library.surface_spec(_theme.wall_surface)
 	var trim := _library.glow("wall_trim", _theme.accent.darkened(0.15), 1.25)
 	var top_color := _theme.stone.lightened(0.16)
 	var side_color := _theme.stone.darkened(0.12)
@@ -366,23 +366,23 @@ func _build_seal() -> void:
 	root.name = "Seal"
 	root.position = at
 	add_child(root)
-	var pad := CylinderMesh.new()
-	pad.top_radius = 0.44
-	pad.bottom_radius = 0.47
-	pad.height = 0.06
-	pad.radial_segments = 6
-	var pad_node := _add_mesh(pad, _library.get_material("seal_pad", _theme.stone_dark.darkened(0.2), 0.0, 1.0, 0.7, 0.3),
-		Vector3(0, 0.03, 0), root)
-	pad_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# A carved hexagonal dais (tools/blender/build_props.py) in the world's floor stone.
+	var dais := ModelLibrary.mesh("seal_dais")
+	if dais != null:
+		var spec := _theme.floor_surface
+		var dais_node := _add_mesh(dais, _library.pbr(spec[0], (spec[1] as Color).darkened(0.25), 2.0, spec[3], spec[4], 1.0, false),
+			Vector3.ZERO, root)
+		dais_node.name = "Dais"
+		dais_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var seal_material := _library.glow("seal", Palette.MINT_SUCCESS, 2.0)
 	var outer := TorusMesh.new()
 	outer.inner_radius = 0.34
 	outer.outer_radius = 0.4
 	outer.rings = 6
 	outer.ring_segments = 4
-	_add_mesh(outer, seal_material, Vector3(0, 0.07, 0), root).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_add_mesh(outer, seal_material, Vector3(0, 0.125, 0), root).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var spinner := Node3D.new()
-	spinner.position = Vector3(0, 0.09, 0)
+	spinner.position = Vector3(0, 0.135, 0)
 	root.add_child(spinner)
 	var inner := TorusMesh.new()
 	inner.inner_radius = 0.16
@@ -475,11 +475,11 @@ func _build_gravity_zones() -> void:
 # --- Dynamic pieces -----------------------------------------------------------
 
 func _build_objects(state: PuzzleState) -> void:
-	var metal := _library.surface("block_metal", 0.45, 0.25, 0.8, 0.5)
-	var pushable_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Palette.METAL_HIGHLIGHT.darkened(0.05),
-		Palette.METAL_HIGHLIGHT.darkened(0.3))
-	var fixed_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Palette.METAL_HIGHLIGHT.darkened(0.2),
-		Palette.METAL_HIGHLIGHT.darkened(0.45))
+	# Worn, painted steel: low metalness so the plate keeps its own colour under phone lighting.
+	var metal := _library.pbr("rusty_metal_02", Color(0.8, 0.86, 0.95), 1.4, 0.85, 0.3)
+	# Vertex colours are shade factors on the scanned metal: pushable blocks bright, fixed ones darker.
+	var pushable_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Color(1, 1, 1), Color(0.82, 0.82, 0.82))
+	var fixed_mesh := MeshKit.bevel_box(Vector3.ONE * BLOCK_SIZE, 0.07, Color(0.62, 0.62, 0.62), Color(0.5, 0.5, 0.5))
 	# Pushable blocks carry a glowing square on top: they are the pieces that move.
 	var lamp := _library.glow("block_lamp", Palette.CYAN_ENERGY, 1.6)
 	var frame := TorusMesh.new()
@@ -637,6 +637,8 @@ func _flush_batches() -> void:
 		var instance := MeshInstance3D.new()
 		instance.name = batch["name"]
 		instance.mesh = (batch["tool"] as SurfaceTool).commit()
+		if MeshKit.is_shaded_pbr(batch["material"]):
+			instance.mesh = MeshKit.normalize_shades(instance.mesh)
 		instance.material_override = batch["material"]
 		if not batch["shadow"]:
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -25,6 +25,7 @@ To jump straight into a level: `godot --path game -- --level=world_05_reflector_
 ## Requirements
 
 - Godot 4.7.2 (`godot` on `PATH`, or set `GODOT=/path/to/godot`)
+- Blender 5.x, only to rebuild the 3D models (`tools/blender/`). Third-party art is CC0; see `game/assets/third_party/polyhaven/LICENSE.md`.
 
 ## Running the tests
 

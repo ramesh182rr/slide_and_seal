@@ -232,7 +232,7 @@ func _build_switch(switch_def: SwitchDefinition) -> void:
 		pedestal.bottom_radius = 0.32
 		pedestal.height = 0.24
 		var base := _mesh(pedestal, at + Vector3(0, 0.12, 0))
-		base.material_override = _library.get_material("lever_base", Palette.WALL.lightened(0.25), 0.0, 1.0, 0.5, 0.4)
+		base.material_override = _metal()
 		var crystal := SphereMesh.new()
 		crystal.radius = 0.17
 		crystal.height = 0.34
@@ -297,9 +297,10 @@ func _build_switch(switch_def: SwitchDefinition) -> void:
 func _build_gate(gate: GateDefinition) -> void:
 	var color := Palette.GATE_INVERTED if gate.inverted else Palette.MECHANISM_AMBER
 	# The door itself is tinted with its colour, so amber and inverted (pink) gates differ at a glance.
-	var body := MeshKit.bevel_box(Vector3(0.86, GATE_HEIGHT, 0.86), 0.06, color.darkened(0.35), color.darkened(0.62))
+	var body := MeshKit.bevel_box(Vector3(0.86, GATE_HEIGHT, 0.86), 0.06, Color(1, 1, 1), Color(0.78, 0.78, 0.78))
 	var node := _mesh(body, BoardCoords.cell_to_world(gate.position), true)
-	node.material_override = _library.surface("gate_metal", 0.5, 0.25, 0.8, 0.5)
+	# Scanned rusty steel, tinted with the gate's colour (amber, or pink when inverted).
+	node.material_override = _library.pbr("rusty_metal_02", color.lerp(Color.WHITE, 0.15), 1.2, 0.9, 0.35)
 	node.name = "Gate_%s" % gate.id
 	var band_material := _library.glow("gate_band_inverted" if gate.inverted else "gate_band", color, 1.5)
 	for height: float in [0.16]:
@@ -329,7 +330,7 @@ func _build_emitter(emitter: EmitterDefinition) -> void:
 	var body := BoxMesh.new()
 	body.size = Vector3(0.7, 0.55, 0.7)
 	var node := _mesh(body, at + Vector3(0, 0.27, 0))
-	node.material_override = _library.get_material("emitter", Palette.WALL.lightened(0.2), 0.0, 1.0, 0.6, 0.35)
+	node.material_override = _metal()
 	var nozzle := BoxMesh.new()
 	nozzle.size = Vector3(0.24, 0.24, 0.24)
 	var step := Grid.offset(emitter.direction)
@@ -350,7 +351,7 @@ func _build_reflector(reflector: ReflectorDefinition) -> void:
 	var base_node := MeshInstance3D.new()
 	base_node.mesh = base
 	base_node.position = Vector3(0, 0.05, 0)
-	base_node.material_override = _library.get_material("lever_base", Palette.WALL.lightened(0.25), 0.0, 1.0, 0.5, 0.4)
+	base_node.material_override = _metal()
 	pivot.add_child(base_node)
 	_switch_bases[reflector.id] = base_node
 	var slab := BoxMesh.new()
@@ -369,7 +370,7 @@ func _build_magnet(magnet: MagnetDefinition) -> void:
 	body.bottom_radius = 0.36
 	body.height = 0.5
 	var base := _mesh(body, at + Vector3(0, 0.25, 0))
-	base.material_override = _library.get_material("magnet_body", Palette.WALL.lightened(0.3), 0.0, 1.0, 0.7, 0.3)
+	base.material_override = _metal()
 	_switch_bases[magnet.id] = base
 	var cap := CylinderMesh.new()
 	cap.top_radius = 0.3
@@ -434,7 +435,7 @@ func _lamp_material(on: bool) -> StandardMaterial3D:
 
 
 func _metal() -> StandardMaterial3D:
-	return _library.get_material("fixture_metal", Color(0.36, 0.4, 0.46), 0.0, 1.0, 0.75, 0.32)
+	return _library.pbr("metal_plate", Color(0.6, 0.64, 0.7), 2.0, 0.7, 0.2, 1.0, false)
 
 
 func _portal_material(active: bool) -> StandardMaterial3D:

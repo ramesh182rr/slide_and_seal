@@ -262,3 +262,29 @@ static func append_torus(tool: SurfaceTool, centre: Vector3, normal: Vector3, ra
 			var tube_centre := centre + radial * radius
 			quad(tool, rings[i][k], rings[i][m], rings[n][m], rings[n][k], face - tube_centre, color,
 				Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0))
+
+
+## True for scanned (PBR) materials that use vertex colours as a shade multiplier.
+static func is_shaded_pbr(material: Material) -> bool:
+	var standard := material as StandardMaterial3D
+	return standard != null and standard.vertex_color_use_as_albedo and standard.normal_texture != null \
+		and standard.albedo_texture != null and not (standard.albedo_texture is NoiseTexture2D)
+
+
+## Turns absolute vertex colours into grey shade factors relative to the brightest vertex, so a
+## scanned texture keeps its own colour while edges, sides and per-tile variation stay darker.
+static func normalize_shades(mesh: ArrayMesh) -> ArrayMesh:
+	var result := ArrayMesh.new()
+	for surface: int in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(surface)
+		var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+		if not colors.is_empty():
+			var brightest := 0.001
+			for c: Color in colors:
+				brightest = maxf(brightest, c.get_luminance())
+			for i: int in colors.size():
+				var v := clampf(colors[i].get_luminance() / brightest, 0.25, 1.0)
+				colors[i] = Color(v, v, v)
+			arrays[Mesh.ARRAY_COLOR] = colors
+		result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return result

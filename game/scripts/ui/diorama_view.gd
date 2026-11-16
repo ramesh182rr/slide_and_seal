@@ -33,15 +33,16 @@ func _init() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_CLEAR_COLOR
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_energy = 0.65
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.ambient_light_energy = 0.5
+	environment.tonemap_mode = Environment.TONE_MAPPER_AGX
+	environment.tonemap_exposure = 1.15
 	environment.glow_enabled = true
 	environment.glow_intensity = 1.0
 	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	_environment.environment = environment
 	_viewport.add_child(_environment)
 	_key.rotation = Vector3(-0.95, 0.5, 0)
-	_key.light_energy = 1.25
+	_key.light_energy = 1.1
 	_viewport.add_child(_key)
 	_fill.rotation = Vector3(-0.5, -2.4, 0)
 	_fill.light_energy = 0.45

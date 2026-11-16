@@ -11,8 +11,8 @@ extends Node
 signal finished
 
 const GAMEPLAY_SCENE := preload("res://scenes/gameplay/gameplay_root.tscn")
-## Frames each scene stays on screen (the first frame compiles; the rest settle).
-const FRAMES_PER_STEP := 2
+## Frames each scene stays on screen: the first drawn frame compiles everything it uses.
+const FRAMES_PER_STEP := 1
 
 var _level_paths: PackedStringArray = []
 var _viewport := SubViewport.new()
