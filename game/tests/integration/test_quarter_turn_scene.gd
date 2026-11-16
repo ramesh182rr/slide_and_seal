@@ -40,7 +40,17 @@ func test_track_and_floor_inside_ride_the_platform() -> void:
 	var scene := _spawn()
 	var pivot := scene.get_board().section_pivot("turntable")
 	assert_not_null(pivot)
-	assert_true(pivot.get_child_count() >= 9 + 3, "9 floor tiles, the track inlay and the hub")
+	# Floor tiles and the track inlay are merged into static batches on the pivot, so they turn with it.
+	var batches := scene.get_board().static_batches(pivot)
+	var names := PackedStringArray()
+	for batch: MeshInstance3D in batches:
+		names.append(String(batch.name).get_slice("_", 1))
+	assert_true(names.has("floor") and names.has("route"), "floor and track inlay ride the pivot: %s" % names)
+	var vertices := 0
+	for batch: MeshInstance3D in batches:
+		vertices += batch.mesh.surface_get_array_len(0)
+	var box_vertices := BoxMesh.new().get_mesh_arrays()[Mesh.ARRAY_VERTEX].size() as int
+	assert_true(vertices >= 9 * box_vertices, "all 9 floor tiles are in the pivot's batches")
 	_assert_platform_matches_state(scene, "initial")
 	scene.free()
 

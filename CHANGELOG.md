@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-16 — Performance: static batching and cheaper shadows
+
+Owner report: the game lags a little on a real phone.
+
+**Changed**
+- **Static batching:** `BoardRenderer3D` merges floor tiles, walls and route inlays into one mesh per parent and material (`Static_*` nodes). Turntable contents keep their own batches on the section pivot, so they still turn.
+- **Shadows:**
+  - The flat floor, route and base no longer cast shadows; walls, blocks, gates and the core still do.
+  - The key light uses one orthogonal shadow split (was four), with a 60-unit maximum distance.
+  - On mobile, the shadow map is 2048 px with low soft-shadow filtering.
+- **Result** (measured on desktop, same frame):
+  - The Awakening: 510 → 88 draw calls (327 → 112 nodes).
+  - Gravity Works: 636 → 123 draw calls.
+  - Screenshots look unchanged.
+- `test_quarter_turn_scene` now checks the turntable's merged floor and track batches instead of counting separate tile nodes.
+
+**Not verified**
+- The frame rate on a real phone. The emulator cannot display Vulkan, so the gain on the device still needs the owner's check.
+
 ### 2026-11-15 — M10: Worlds 1–2 redesigned; inverted gates; gameplay Back button
 
 **Added**

@@ -23,6 +23,10 @@ var _preview_root: Node3D
 ## Per rotating section: a pivot at the section centre carrying everything inside it, and a fixed frame.
 var _section_pivots: Dictionary[String, Node3D] = {}
 var _section_frames: Dictionary[String, MeshInstance3D] = {}
+## Static geometry merged per (parent, material) into one mesh each: a board has hundreds of
+## tiles, walls and inlay pieces, and one draw call each was the main cost on phones.
+## Entries: {"parent": Node3D, "material": Material, "shadow": bool, "tool": SurfaceTool, "name": String}.
+var _batches: Array[Dictionary] = []
 
 
 ## Rebuilds everything for `level`, then snaps to `state`.
@@ -35,12 +39,14 @@ func build(level: LevelDefinition, state: PuzzleState) -> void:
 	_zone_plates.clear()
 	_section_pivots.clear()
 	_section_frames.clear()
+	_batches.clear()
 	_outline = null
 	_level = level
 	_build_section_pivots()
 	_build_floor()
 	_build_walls()
 	_build_route()
+	_flush_batches()
 	_build_markers()
 	_build_gravity_zones()
 	_fixtures = MechanismFixtures3D.new()
@@ -180,7 +186,8 @@ func _build_floor() -> void:
 	var size := _level.board_size
 	var base := BoxMesh.new()
 	base.size = Vector3(size.x + 0.4, 0.4, size.y + 0.4)
-	_add_mesh(base, _material("base", Palette.NAVY_SURFACE), BoardCoords.board_center(size) + Vector3(0, -0.4, 0))
+	var base_node := _add_mesh(base, _material("base", Palette.NAVY_SURFACE), BoardCoords.board_center(size) + Vector3(0, -0.4, 0))
+	base_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var tile := BoxMesh.new()
 	tile.size = Vector3(TILE_SIZE, 0.2, TILE_SIZE)
 	var tile_material := _material("tile", Palette.BOARD_SLATE)
@@ -190,7 +197,7 @@ func _build_floor() -> void:
 			var cell := Vector2i(x, y)
 			if not _level.is_wall(cell):
 				var inside := _level.section_at(cell) != null
-				_add_at_cell(tile, turntable_material if inside else tile_material, cell, -0.1)
+				_batch_at_cell("floor", tile, turntable_material if inside else tile_material, cell, -0.1, false)
 
 
 func _build_walls() -> void:
@@ -198,7 +205,7 @@ func _build_walls() -> void:
 	wall.size = Vector3(TILE_SIZE, WALL_HEIGHT, TILE_SIZE)
 	var wall_material := _material("wall", Palette.WALL, 0.0, 1.0, 0.3, 0.7)
 	for cell: Vector2i in _level.walls.keys():
-		_add_at_cell(wall, wall_material, cell, WALL_HEIGHT * 0.5 - 0.2)
+		_batch_at_cell("walls", wall, wall_material, cell, WALL_HEIGHT * 0.5 - 0.2, true)
 
 
 ## Emissive inlay along every route: a pad per node plus connectors between neighbours.
@@ -212,12 +219,12 @@ func _build_route() -> void:
 	along_z.size = Vector3(0.07, 0.02, BoardCoords.CELL_SIZE)
 	for route: RouteDefinition in _level.routes.values():
 		for i: int in route.nodes.size():
-			_add_at_cell(pad, inlay, route.nodes[i], 0.01)
+			_batch_at_cell("route", pad, inlay, route.nodes[i], 0.01, false)
 			if i > 0:
 				var a := BoardCoords.cell_to_world(route.nodes[i - 1], 0.01)
 				var b := BoardCoords.cell_to_world(route.nodes[i], 0.01)
-				_add_at_world(along_x if route.nodes[i].y == route.nodes[i - 1].y else along_z, inlay, (a + b) * 0.5,
-					_level.section_at(route.nodes[i]))
+				_batch_at_world("route", along_x if route.nodes[i].y == route.nodes[i - 1].y else along_z, inlay,
+					(a + b) * 0.5, _level.section_at(route.nodes[i]), false)
 
 
 func _build_markers() -> void:
@@ -340,6 +347,56 @@ func _add_at_world(mesh: Mesh, material: Material, world: Vector3, section: Rota
 		return _add_mesh(mesh, material, world)
 	var pivot := _section_pivots[section.id]
 	return _add_mesh(mesh, material, world - pivot.position, pivot)
+
+
+# --- Static batching ------------------------------------------------------------
+
+func _batch_at_cell(group: String, mesh: PrimitiveMesh, material: Material, cell: Vector2i, height: float,
+		shadow: bool) -> void:
+	_batch_at_world(group, mesh, material, BoardCoords.cell_to_world(cell, height), _level.section_at(cell), shadow)
+
+
+## Like _add_at_world, but appends the mesh to its (parent, material) batch instead of adding a node.
+func _batch_at_world(group: String, mesh: PrimitiveMesh, material: Material, world: Vector3,
+		section: RotatingSectionDefinition, shadow: bool) -> void:
+	var parent: Node3D = self
+	var local := world
+	if section != null:
+		parent = _section_pivots[section.id]
+		local = world - parent.position
+	var batch: Dictionary = {}
+	for entry: Dictionary in _batches:
+		if entry["parent"] == parent and entry["material"] == material:
+			batch = entry
+			break
+	if batch.is_empty():
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		batch = {"parent": parent, "material": material, "shadow": shadow, "tool": tool,
+			"name": "Static_%s_%d" % [group, _batches.size()]}
+		_batches.append(batch)
+	(batch["tool"] as SurfaceTool).append_from(mesh, 0, Transform3D(Basis.IDENTITY, local))
+
+
+func _flush_batches() -> void:
+	for batch: Dictionary in _batches:
+		var instance := MeshInstance3D.new()
+		instance.name = batch["name"]
+		instance.mesh = (batch["tool"] as SurfaceTool).commit()
+		instance.material_override = batch["material"]
+		if not batch["shadow"]:
+			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		(batch["parent"] as Node3D).add_child(instance)
+	_batches.clear()
+
+
+## Static batches under `parent` (tests and diagnostics).
+func static_batches(parent: Node3D = self) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	for child: Node in parent.get_children():
+		if child is MeshInstance3D and child.name.begins_with("Static_"):
+			found.append(child)
+	return found
 
 
 # --- Helpers ------------------------------------------------------------------
