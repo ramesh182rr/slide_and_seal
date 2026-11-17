@@ -58,6 +58,7 @@ func _ready() -> void:
 	_session = PuzzleSession.new(loaded.level)
 	_board.build(loaded.level, _session.get_state())
 	_apply_world_theme(_board.world_theme())
+	AudioDirector.set_world(loaded.level.world_id)
 	_camera_rig.frame_board(loaded.level.board_size)
 	_board.set_view_yaw(_camera_rig.yaw_degrees())
 	_update_swipe_vectors()
@@ -152,9 +153,17 @@ func request_action(action: PuzzleAction) -> ActionResult:
 	if not result.is_ok():
 		_hud.show_message(result.message)
 		_buzz(35)
+		AudioDirector.play("reject")
 		return result
 	_hud.clear_message()
 	_buzz(12)
+	match action.kind:
+		PuzzleAction.Kind.RUN_CORE:
+			AudioDirector.play("run")
+		PuzzleAction.Kind.TOGGLE_SWITCH, PuzzleAction.Kind.FLIP_REFLECTOR, PuzzleAction.Kind.FLIP_MAGNET:
+			AudioDirector.play("switch")
+		_:
+			AudioDirector.play("move")
 	_busy = true
 	_refresh()
 	_play_back(before, result)
@@ -163,11 +172,13 @@ func request_action(action: PuzzleAction) -> ActionResult:
 
 func request_undo() -> void:
 	if not _busy and _session.undo():
+		AudioDirector.play("undo")
 		_snap()
 
 
 func request_restart() -> void:
 	if not _busy and _session.restart():
+		AudioDirector.play("undo", 0.8)
 		_snap()
 
 
@@ -556,7 +567,10 @@ func _play_back(before: PuzzleState, result: ActionResult) -> void:
 		_completion_new_best = previous_best_actions < 0 or actions < previous_best_actions
 		_board.celebrate()
 		_buzz(60)
+		AudioDirector.play("complete")
 		level_completed.emit(actions)
+	elif result.state.phase == PuzzleState.Phase.CHECKPOINT_PAUSED and result.travel != null:
+		AudioDirector.play("checkpoint")
 	_refresh()
 
 

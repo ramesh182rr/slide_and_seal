@@ -47,6 +47,8 @@ func _queue_zone_turns(tween: Tween, before: PuzzleState, after: PuzzleState) ->
 		var to_yaw := BoardCoords.direction_yaw(after.gravity_directions[zone_id])
 		if is_equal_approx(from_yaw, to_yaw):
 			continue
+		if count == 0:
+			tween.tween_callback(func() -> void: AudioDirector.play("turn"))
 		for pivot: Node3D in _board.zone_chevrons(zone_id):
 			var turn := func(t: float) -> void: pivot.rotation.y = lerp_angle(from_yaw, to_yaw, t)
 			_tweener(tween, count > 0).tween_method(turn, 0.0, 1.0, ZONE_TURN_SECONDS)
@@ -77,6 +79,7 @@ func _queue_section_turns(tween: Tween, before: PuzzleState, result: ActionResul
 		var turns_after: int = result.state.section_turns[section.id]
 		if turns_before == turns_after:
 			continue
+		tween.tween_callback(func() -> void: AudioDirector.play("turn", 0.85))
 		var pivot := _board.section_pivot(section.id)
 		var from_yaw := BoardRenderer3D.section_yaw(turns_before)
 		# The shortest signed quarter turn (one action = one quarter turn).
@@ -105,6 +108,8 @@ func _queue_gate_changes(tween: Tween, before: PuzzleState, after: PuzzleState) 
 		var open_after := SwitchGateResolver.is_gate_open(level, after, gate)
 		if open_after == SwitchGateResolver.is_gate_open(level, before, gate):
 			continue
+		if count == 0:
+			tween.tween_callback(func() -> void: AudioDirector.play("gate"))
 		var node := _board.fixtures().gate_node(gate.id)
 		_tweener(tween, count > 0).tween_property(node, "position:y", MechanismFixtures3D.gate_y(open_after),
 			GATE_SECONDS).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -122,6 +127,9 @@ func _queue_travel(tween: Tween, result: ActionResult) -> int:
 			# Teleport: jump to the exit instead of sliding across the board (placeholder effect).
 			tween.tween_callback(func() -> void: core.position = target)
 		else:
+			# Each step ticks a little higher than the last, so a long run sings upward.
+			var pitch := 1.0 + minf(i, 12) * 0.035
+			tween.tween_callback(func() -> void: AudioDirector.play("step", pitch, -4.0))
 			tween.tween_property(core, "position", target, CORE_STEP_SECONDS)
 		count += 1
 		var first := true
@@ -156,6 +164,8 @@ func _queue_move(tween: Tween, move: ObjectMove, parallel: bool) -> void:
 	var node := _board.object_node(move.object_id)
 	var target := BoardRenderer3D.object_world_position(move.to_cell)
 	if move.cause == ObjectMove.Cause.PUSH:
+		if not parallel:
+			tween.tween_callback(func() -> void: AudioDirector.play("slide"))
 		_tweener(tween, parallel).tween_property(node, "position", target, PUSH_SECONDS) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	else:

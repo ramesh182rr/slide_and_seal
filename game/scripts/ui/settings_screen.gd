@@ -5,6 +5,8 @@ extends Control
 signal back_requested
 signal reduced_motion_changed(enabled: bool)
 signal haptics_changed(enabled: bool)
+signal sound_changed(enabled: bool)
+signal music_changed(enabled: bool)
 signal reset_progress_confirmed
 
 const MARGIN := 48
@@ -18,13 +20,19 @@ var _confirm_reset := ConfirmDialog.new()
 var _margin := MarginContainer.new()
 var _initial_reduced_motion := false
 var _initial_haptics := true
+var _initial_sound := true
+var _initial_music := true
+var _sound: Button
+var _music: Button
 var _haptics := Button.new()
 var _haptics_state := Label.new()
 
 
-func setup(reduced_motion: bool, haptics: bool = true) -> void:
+func setup(reduced_motion: bool, haptics: bool = true, sound: bool = true, music: bool = true) -> void:
 	_initial_reduced_motion = reduced_motion
 	_initial_haptics = haptics
+	_initial_sound = sound
+	_initial_music = music
 
 
 func _ready() -> void:
@@ -81,6 +89,10 @@ func _ready() -> void:
 	column.add_child(_reduced_motion)
 	_note(column, "Skips animations: every move appears instantly.")
 
+	_section(column, "Sound")
+	_sound = _toggle(column, "Sound effects", _initial_sound, func(enabled: bool) -> void: sound_changed.emit(enabled))
+	_music = _toggle(column, "Music", _initial_music, func(enabled: bool) -> void: music_changed.emit(enabled))
+
 	_section(column, "Feedback")
 	_haptics.toggle_mode = true
 	_haptics.custom_minimum_size = Vector2(0, 110)
@@ -132,7 +144,43 @@ func handle_back() -> bool:
 	return false
 
 
+## An On/Off row: the state is spelled out, not shown by colour alone.
+func _toggle(column: VBoxContainer, title: String, initial: bool, changed: Callable) -> Button:
+	var button := Button.new()
+	button.toggle_mode = true
+	button.custom_minimum_size = Vector2(0, 110)
+	button.focus_mode = Control.FOCUS_NONE
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(row)
+	var name_label := Label.new()
+	name_label.text = "   " + title
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiTheme.style_label(name_label, 34, Palette.TEXT)
+	row.add_child(name_label)
+	var state := Label.new()
+	state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(state)
+	button.button_pressed = initial
+	_show_toggle_state(state, initial)
+	button.toggled.connect(func(enabled: bool) -> void:
+		_show_toggle_state(state, enabled)
+		changed.call(enabled))
+	column.add_child(button)
+	return button
+
+
 # Accessors for tests.
+func sound_toggle() -> Button:
+	return _sound
+
+
+func music_toggle() -> Button:
+	return _music
+
+
 func haptics_toggle() -> Button:
 	return _haptics
 

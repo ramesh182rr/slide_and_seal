@@ -432,6 +432,12 @@ The "stranded inside a section" softlock raised here was resolved by D-021.
 - **Gate colours stay reserved:** blocks avoid amber and pink.
 - **UI:** raised buttons that sink when pressed, a press bounce, vivid primary actions, a pulse on the next level to play, and a stars-first completion card.
 
+### P-032 — Sound design (M18, awaiting review)
+- **Source:** all audio is synthesised by `tools/generate_audio.py`. No third-party samples.
+- **Role:** sound only reports what the simulation already decided. It never gates or delays input.
+- **Music:** one ambient loop per world; menus use World 1's.
+- **Settings:** Sound effects and Music are separate switches, both on by default.
+
 ## Provisional (M1 implementation choices — approved 2026-11-15)
 
 ### P-001 — Core travel resolves atomically

@@ -12,6 +12,9 @@ var load_notes: PackedStringArray = PackedStringArray()
 var reduced_motion: bool = false
 ## Short vibration ticks on moves, rejections and completion.
 var haptics: bool = true
+## Sound effects and the ambient music bed.
+var sound: bool = true
+var music: bool = true
 
 
 func _init(p_path: String = DEFAULT_PATH) -> void:
@@ -23,8 +26,10 @@ func load_from_disk() -> void:
 	load_notes = result.notes
 	reduced_motion = bool(result.data.get("reduced_motion", false))
 	haptics = bool(result.data.get("haptics", true))
+	sound = bool(result.data.get("sound", true))
+	music = bool(result.data.get("music", true))
 
 
 func save_to_disk() -> bool:
 	return SafeJsonFile.write(path, {"schema_version": SCHEMA_VERSION, "reduced_motion": reduced_motion,
-		"haptics": haptics})
+		"haptics": haptics, "sound": sound, "music": music})

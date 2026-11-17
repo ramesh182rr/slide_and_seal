@@ -21,6 +21,9 @@ func reveal() -> void:
 	var tween := create_tween()
 	tween.tween_interval(0.25)
 	tween.tween_method(func(value: float) -> void:
+		# A higher ping as each star starts to light.
+		if value > 0.0 and int(ceil(value)) > int(ceil(_revealed)):
+			AudioDirector.play("star", 1.0 + 0.18 * (int(ceil(value)) - 1))
 		_revealed = value
 		queue_redraw(), 0.0, float(earned), 0.3 * maxi(earned, 1))
 	tween.tween_callback(func() -> void: _revealed = float(MAX_STARS))

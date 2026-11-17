@@ -140,6 +140,7 @@ func land_pulse(object_id: String) -> void:
 	var node: Node3D = _objects.get(object_id)
 	if node == null or not animate:
 		return
+	AudioDirector.play("land")
 	var tween := create_tween()
 	tween.tween_property(node, "scale", Vector3(1.08, 0.86, 1.08), 0.06)
 	tween.tween_property(node, "scale", Vector3.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

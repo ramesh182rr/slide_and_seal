@@ -5,6 +5,53 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ent
 
 ## [Unreleased]
 
+### 2026-11-17 — M18: Sound and music
+
+Owner request: add sound.
+
+**Added**
+- **All audio is synthesised from code** by `tools/generate_audio.py` (Python standard library only). It is original and project-owned: no samples, no licences. The output is deterministic 16-bit mono WAV in `game/assets/audio/`.
+- **15 effects** (`sfx/`, 44.1 kHz):
+  - tap, move, reject, undo and whoosh
+  - run (the core powering up) and step (a glassy tick)
+  - land, slide, gate, switch and turn
+  - checkpoint (a two-note chime), complete (an arpeggio blooming into a chord) and star
+- **7 ambient loops** (`music/`, one per world, 16 s, 22.05 kHz, imported as forward loops):
+  - Each is a breathing pad on the world's own chord, with looped wind and sparse bells from its scale.
+  - The machine worlds (3, 6 and 7) add a slow throb.
+  - Every pitch is locked to a whole number of cycles in the loop, and the wind's tail is cross-faded into its head, so the loops are seamless.
+- **`AudioDirector`** (under `AppRoot`):
+  - It has 8 effect voices and two music players that cross-fade over 0.8 s.
+  - It guards against retriggering the same effect within 45 ms.
+  - Effects play at −5 dB and music at −17 dB, with a hard limiter at −1 dB on the master bus.
+  - Other code calls the static `AudioDirector.play()` and `set_world()`. These are safe no-ops when there is no director (tests, scenes run on their own) or the setting is off.
+- **Where sounds play:**
+  - Every button ticks.
+  - Screen changes whoosh.
+  - Committed moves sound by kind (run, switch, move); rejected moves buzz.
+  - Each core step ticks a little higher than the last.
+  - Pushes scrape and landings thud.
+  - Gates grind; gravity and section turns swoosh.
+  - Checkpoints chime.
+  - Completion plays the fanfare, and each star pings higher than the last.
+  - Undo and restart play a falling blip.
+- **Music follows the world:** menus use World 1's loop, the campaign card switches as you page through worlds, and a level plays its own world's loop.
+- **Settings → Sound:** "Sound effects" and "Music" switches, saved as `sound` and `music`.
+
+**Verified**
+- 350 tests pass. 4 are new: every effect and world loop exists and loops; buttons, runs, checkpoints and rejections play their sounds, and the static calls are safe without a director; music follows the world; both settings persist and apply.
+- **Measured, not heard:**
+  - No file clips, effects end near silence, and each loop's seam jump is below a normal sample step.
+  - The game's master output was recorded during a real session (home → level 1 → run → resume → completion). Music faded in; 15 steps, 2 runs, the checkpoint chime, the fanfare and 3 star pings were counted. After adding headroom the peak was 0.60 with no sample at full scale (it was 1.00 before).
+- The export completes with exit 0 and no errors or warnings. The APK is 65 MB (was 64 MB).
+- On the emulator, with the real APK: a level was played with no crash and no game errors, and Android reported the game as a started, unmuted media player.
+
+**Not verified**
+- How it sounds. Nobody has listened to it yet, so the balance and character need the owner's ear on a phone.
+
+**Known limitations**
+- The music is ambient atmosphere, not composed melodies.
+
 ### 2026-11-17 — M17: Colossal arenas for every world; clear walls, blocks and floors; chunkier UI
 
 Owner approval: carry the colossal-maze treatment to all worlds. Owner report: walls and blocks still look alike across levels, and floors and blocks blend together. Owner request: UI and feel on par with the big casual mobile games.

@@ -165,6 +165,7 @@ func show_world(index: int) -> void:
 	for i: int in _grids.size():
 		_grids[i].visible = i == _world_index
 	_backdrop.theme_data = world_theme
+	AudioDirector.set_world(page.id)
 	_card.add_theme_stylebox_override("panel", UiTheme.panel(world_theme.accent, 34))
 	_world_number.text = "WORLD %d" % _number_of(page.id)
 	_world_title.text = page.title

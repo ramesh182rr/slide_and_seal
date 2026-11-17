@@ -32,9 +32,13 @@ var _current_level_id := ""
 ## One live diorama shared by Home and Campaign: its boards are built once (during the startup
 ## warm-up) and survive screen changes, so paging through worlds never rebuilds anything.
 var _diorama: DioramaView
+var _audio: AudioDirector
 
 
 func _ready() -> void:
+	_audio = AudioDirector.new()
+	_audio.name = "Audio"
+	add_child(_audio)
 	_diorama = DioramaView.new()
 	_diorama.name = "SharedDiorama"
 	_catalog = LevelCatalog.load_default()
@@ -48,6 +52,8 @@ func _ready() -> void:
 	_settings.load_from_disk()
 	for note: String in _settings.load_notes:
 		push_warning("Settings: " + note)
+	_audio.sound_enabled = _settings.sound
+	_audio.music_enabled = _settings.music
 	# Development: `godot --path game -- --level=world_05_reflector_logic` jumps straight into a level.
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--level=") and _catalog.entry(arg.trim_prefix("--level=")) != null:
@@ -117,7 +123,9 @@ func show_level_select() -> void:
 
 func show_settings() -> void:
 	var screen := SettingsScreen.new()
-	screen.setup(_settings.reduced_motion, _settings.haptics)
+	screen.setup(_settings.reduced_motion, _settings.haptics, _settings.sound, _settings.music)
+	screen.sound_changed.connect(_on_sound_changed)
+	screen.music_changed.connect(_on_music_changed)
 	screen.haptics_changed.connect(_on_haptics_changed)
 	screen.back_requested.connect(show_home)
 	screen.reduced_motion_changed.connect(_on_reduced_motion_changed)
@@ -210,6 +218,24 @@ func _on_reduced_motion_changed(enabled: bool) -> void:
 		push_error("Settings could not be saved to %s" % _settings.path)
 
 
+func _on_sound_changed(enabled: bool) -> void:
+	_settings.sound = enabled
+	_audio.sound_enabled = enabled
+	if not _settings.save_to_disk():
+		push_error("Settings could not be saved to %s" % _settings.path)
+
+
+func _on_music_changed(enabled: bool) -> void:
+	_settings.music = enabled
+	_audio.music_enabled = enabled
+	if not _settings.save_to_disk():
+		push_error("Settings could not be saved to %s" % _settings.path)
+
+
+func audio() -> AudioDirector:
+	return _audio
+
+
 func _on_haptics_changed(enabled: bool) -> void:
 	_settings.haptics = enabled
 	if not _settings.save_to_disk():
@@ -232,6 +258,10 @@ func _start_next_level() -> void:
 ## so the old screen is removed from the tree now and deleted at the end of the frame.
 func _set_screen(screen: Node, screen_name: String) -> void:
 	_diorama.release()  # Kept alive across screens (see _diorama).
+	if _screen != null:
+		AudioDirector.play("whoosh")
+	if screen_name == HOME or screen_name == SETTINGS:
+		AudioDirector.set_world("world_01_awakening")
 	if _screen != null:
 		remove_child(_screen)
 		_screen.queue_free()
